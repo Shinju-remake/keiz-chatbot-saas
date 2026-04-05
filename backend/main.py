@@ -86,6 +86,28 @@ async def debug_network():
     except Exception as e:
         return {"error": str(e)}
 
+@app.get("/debug/httpx")
+async def debug_httpx():
+    """
+    Test raw HTTPX connectivity to OpenAI (without the SDK).
+    """
+    import httpx
+    import os
+    key = os.getenv("OPENAI_API_KEY")
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.get(
+                "https://api.openai.com/v1/models",
+                headers={"Authorization": f"Bearer {key}"}
+            )
+            return {
+                "status_code": resp.status_code,
+                "json": resp.json() if resp.status_code == 200 else str(resp.text),
+                "headers": dict(resp.headers)
+            }
+    except Exception as e:
+        return {"error_type": type(e).__name__, "message": str(e)}
+
 @app.get("/debug/ai")
 async def debug_ai_endpoint(db: Session = Depends(get_session)):
     """
