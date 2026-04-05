@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Keiz Chatbot Admin Dashboard</title>
+    <style>
+        body { font-family: sans-serif; background: #f0f2f5; margin: 0; display: flex; }
+        #sidebar { width: 250px; background: #333; color: white; height: 100vh; padding: 20px; }
+        #content { flex: 1; padding: 30px; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        h1, h2 { color: #BB00FF; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background: #f9f9f9; }
+        .tag { padding: 4px 8px; border-radius: 4px; font-size: 12px; }
+        .keyword { background: #e3f2fd; color: #1976d2; }
+        .ai { background: #fff3e0; color: #ef6c00; }
+    </style>
+</head>
+<body>
+    <div id="sidebar">
+        <h2>Keiz SaaS</h2>
+        <p>Admin Dashboard</p>
+        <hr>
+        <p style="cursor:pointer;">📊 Analytics</p>
+        <p style="cursor:pointer;">🛠️ FAQ Rules</p>
+        <p style="cursor:pointer;">👤 Account Settings</p>
+    </div>
+
+    <div id="content">
+        <h1>Dashboard - Keiz Bistro</h1>
+
+        <div class="card">
+            <h2>Live Conversations</h2>
+            <p>Monitor how your bot is interacting with customers.</p>
+            <table id="logs-table">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Session ID</th>
+                        <th>User Message</th>
+                        <th>Bot Reply</th>
+                        <th>Type</th>
+                    </tr>
+                </thead>
+                <tbody id="logs-body">
+                    <!-- Logs will appear here -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h2>Current FAQ Rules</h2>
+            <ul>
+                <li><strong>price</strong> -> "Our prices range from €10 to €50..."</li>
+                <li><strong>contact</strong> -> "You can reach us at contact@..."</li>
+                <li><strong>book</strong> -> "To book a table, please provide..."</li>
+            </ul>
+            <button style="background:#BB00FF; color:white; border:none; padding:10px 15px; border-radius:4px; cursor:pointer;">+ Add New Rule</button>
+        </div>
+    </div>
+
+    <script>
+        const API_KEY = "dev-api-key-123";
+        const LOGS_URL = "/admin/logs";
+
+        async function fetchLogs() {
+            try {
+                const response = await fetch(LOGS_URL, {
+                    headers: { "X-API-Key": API_KEY }
+                });
+                const logs = await response.json();
+                const tbody = document.getElementById("logs-body");
+                tbody.innerHTML = "";
+
+                logs.reverse().forEach(log => {
+                    const row = document.createElement("tr");
+                    const time = new Date(log.timestamp).toLocaleTimeString();
+                    row.innerHTML = `
+                        <td>${time}</td>
+                        <td style="font-family:monospace; font-size:12px; color:#666;">${log.session_id}</td>
+                        <td>${log.user_msg}</td>
+                        <td>${log.bot_reply}</td>
+                        <td><span class="tag ${log.source === 'keyword' ? 'keyword' : 'ai'}">${log.source}</span></td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } catch (e) {
+                console.error("Failed to fetch logs");
+            }
+        }
+
+        // Refresh logs every 5 seconds
+        setInterval(fetchLogs, 5000);
+        fetchLogs();
+    </script>
+</body>
+</html>

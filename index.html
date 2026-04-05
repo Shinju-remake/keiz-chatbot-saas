@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Keiz AI | The Omni-Bot</title>
+    <style>
+        :root {
+            --primary-purple: #BB00FF;
+            --dark-bg: #0a0a0a;
+            --card-bg: #1a1a1a;
+            --text-gray: #b0b0b0;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: var(--dark-bg);
+            color: white;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Animated Background Gradient */
+        body::before {
+            content: "";
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at center, rgba(187, 0, 255, 0.05) 0%, transparent 70%);
+            z-index: -1;
+            animation: pulse 15s infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(5%, 5%); }
+        }
+
+        header {
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: -1px;
+            color: var(--primary-purple);
+            text-shadow: 0 0 15px rgba(187, 0, 255, 0.5);
+        }
+
+        main {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        #chat-window {
+            width: 100%;
+            max-width: 900px;
+            height: 80vh;
+            background: var(--card-bg);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            position: relative;
+        }
+
+        #messages-container {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Custom Scrollbar */
+        #messages-container::-webkit-scrollbar { width: 6px; }
+        #messages-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+
+        .message {
+            max-width: 75%;
+            padding: 15px 20px;
+            border-radius: 15px;
+            line-height: 1.5;
+            font-size: 16px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .user-msg {
+            background: var(--primary-purple);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 2px;
+            box-shadow: 0 4px 15px rgba(187, 0, 255, 0.3);
+        }
+
+        .bot-msg {
+            background: #2a2a2a;
+            color: #efefef;
+            align-self: flex-start;
+            border-bottom-left-radius: 2px;
+        }
+
+        #input-area {
+            padding: 25px;
+            background: rgba(0,0,0,0.2);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            gap: 15px;
+        }
+
+        input {
+            flex: 1;
+            background: #252525;
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 15px 20px;
+            border-radius: 12px;
+            color: white;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        input:focus { border-color: var(--primary-purple); }
+
+        button {
+            background: var(--primary-purple);
+            color: white;
+            border: none;
+            padding: 0 30px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, opacity 0.2s;
+        }
+
+        button:hover { transform: scale(1.02); opacity: 0.9; }
+        button:active { transform: scale(0.98); }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #00ff88;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+            box-shadow: 0 0 10px #00ff88;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">KEIZ AI</div>
+        <div style="font-size: 14px; color: var(--text-gray);">
+            <span class="status-dot"></span> V3 OMNI-ENGINE ACTIVE
+        </div>
+    </header>
+
+    <main>
+        <div id="chat-window">
+            <div id="messages-container">
+                <!-- Messages will load here -->
+            </div>
+            <div id="input-area">
+                <input type="text" id="user-input" placeholder="Ask anything about Keiz Bistro, or just chat..." autofocus>
+                <button id="send-btn">SEND</button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const BACKEND_URL = "/chat";
+        const API_KEY = "dev-api-key-123";
+        
+        let sessionId = localStorage.getItem("keiz_official_session");
+        if (!sessionId) {
+            sessionId = "sess_portal_" + Math.random().toString(36).substr(2, 9);
+            localStorage.setItem("keiz_official_session", sessionId);
+        }
+
+        const container = document.getElementById("messages-container");
+        const input = document.getElementById("user-input");
+        const btn = document.getElementById("send-btn");
+
+        function addMessage(text, sender) {
+            const div = document.createElement("div");
+            div.className = `message ${sender}-msg`;
+            div.innerText = text;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        async function chat() {
+            const msg = input.value.trim();
+            if (!msg) return;
+
+            addMessage(msg, "user");
+            input.value = "";
+
+            try {
+                const response = await fetch(BACKEND_URL, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-API-Key": API_KEY
+                    },
+                    body: JSON.stringify({ message: msg, session_id: sessionId })
+                });
+                const data = await response.json();
+                addMessage(data.reply, "bot");
+            } catch (e) {
+                addMessage("Connection error. Ensure backend is running on port 8000.", "bot");
+            }
+        }
+
+        btn.onclick = chat;
+        input.onkeypress = (e) => { if (e.key === "Enter") chat(); };
+
+        // Initial Greeting
+        window.onload = () => {
+            setTimeout(() => {
+                addMessage("Welcome to the Keiz AI Command Center. I am the Omni-Engine. How can I serve you?", "bot");
+            }, 500);
+        };
+    </script>
+</body>
+</html>
