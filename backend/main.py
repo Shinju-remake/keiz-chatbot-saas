@@ -71,6 +71,21 @@ def on_startup():
         
         session.commit()
 
+@app.get("/debug/network")
+async def debug_network():
+    """
+    Test outbound connectivity to OpenAI via curl.
+    """
+    import subprocess
+    try:
+        result = subprocess.run(
+            ["curl", "-v", "https://api.openai.com/v1/models"],
+            capture_output=True, text=True, timeout=10
+        )
+        return {"stdout": result.stdout, "stderr": result.stderr}
+    except Exception as e:
+        return {"error": str(e)}
+
 @app.get("/debug/ai")
 async def debug_ai_endpoint(db: Session = Depends(get_session)):
     """
@@ -91,7 +106,7 @@ async def debug_ai_endpoint(db: Session = Depends(get_session)):
         )
         return {"status": "success", "reply": response.choices[0].message.content}
     except Exception as e:
-        return {"status": "error", "message": str(e)}
+        return {"status": "error", "type": type(e).__name__, "message": str(e)}
 
 class ChatMessage(BaseModel):
     message: str
