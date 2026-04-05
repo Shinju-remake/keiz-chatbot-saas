@@ -59,8 +59,8 @@ def get_ai_response(company: Company, session_id: str, user_msg: str, db: Sessio
     if not openai_key:
         return None
     
-    # Clean the key (remove newlines/spaces from Render env vars)
-    openai_key = openai_key.strip()
+    # Clean the key aggressively (remove ALL spaces and newlines from the middle)
+    openai_key = openai_key.replace(" ", "").replace("\n", "").replace("\r", "").strip()
 
     try:
         # 2026 Render Fix: Force IPv4 to avoid handshake timeouts with OpenAI

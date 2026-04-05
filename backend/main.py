@@ -118,8 +118,8 @@ async def debug_ai_endpoint(db: Session = Depends(get_session)):
     if not key:
         return {"status": "error", "message": "OPENAI_API_KEY env var is MISSING on Render"}
     
-    # Clean the key (remove newlines/spaces)
-    key = key.strip()
+    # Clean the key aggressively (remove ALL spaces/newlines from middle)
+    key = key.replace(" ", "").replace("\n", "").replace("\r", "").strip()
     
     masked_key = key[:10] + "..." + key[-5:]
     import httpx
@@ -139,9 +139,20 @@ async def debug_ai_endpoint(db: Session = Depends(get_session)):
             messages=[{"role": "user", "content": "ping"}],
             max_completion_tokens=10
         )
-        return {"status": "success", "reply": response.choices[0].message.content, "key_used": masked_key}
+        return {
+            "status": "success", 
+            "reply": response.choices[0].message.content, 
+            "key_used": masked_key,
+            "version": "Diagnostic V5 (Aggressive Key Cleaning + IPv4 Force)"
+        }
     except Exception as e:
-        return {"status": "error", "type": type(e).__name__, "message": str(e), "key_used": masked_key}
+        return {
+            "status": "error", 
+            "type": type(e).__name__, 
+            "message": str(e), 
+            "key_used": masked_key,
+            "version": "Diagnostic V5 (Aggressive Key Cleaning + IPv4 Force)"
+        }
 
 class ChatMessage(BaseModel):
     message: str
