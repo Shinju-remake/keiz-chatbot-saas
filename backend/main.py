@@ -83,7 +83,7 @@ async def debug_ai_endpoint(db: Session = Depends(get_session)):
     
     from openai import OpenAI
     try:
-        client = OpenAI(api_key=key)
+        client = OpenAI(api_key=key, timeout=60.0)
         response = client.chat.completions.create(
             model="gpt-5.4-nano",
             messages=[{"role": "user", "content": "ping"}],

@@ -60,7 +60,7 @@ def get_ai_response(company: Company, session_id: str, user_msg: str, db: Sessio
         return None
 
     try:
-        client = OpenAI(api_key=openai_key)
+        client = OpenAI(api_key=openai_key, timeout=60.0)
         history = db.exec(
             select(ChatLog)
             .where(ChatLog.company_id == company.id)
@@ -82,7 +82,8 @@ def get_ai_response(company: Company, session_id: str, user_msg: str, db: Sessio
             temperature=0.7
         )
         return response.choices[0].message.content.strip()
-    except:
+    except Exception as e:
+        print(f"OPENAI CLOUD ERROR: {e}")
         return None
 
 async def send_whatsapp_reply(company: Company, to_number: str, text: str):
