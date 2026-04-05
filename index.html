@@ -172,8 +172,15 @@
 <body>
     <header>
         <div class="logo">KEIZ AI</div>
-        <div style="font-size: 14px; color: var(--text-gray);">
-            <span class="status-dot"></span> V3 OMNI-ENGINE ACTIVE
+        <div style="display:flex; align-items:center; gap:20px;">
+            <select id="lang-select" style="background:transparent; color:var(--text-gray); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:5px 10px; cursor:pointer; outline:none;">
+                <option value="en">English</option>
+                <option value="fr">Français</option>
+                <option value="es">Español</option>
+            </select>
+            <div style="font-size: 14px; color: var(--text-gray);">
+                <span class="status-dot"></span> V3 OMNI-ENGINE ACTIVE
+            </div>
         </div>
     </header>
 
@@ -183,7 +190,7 @@
                 <!-- Messages will load here -->
             </div>
             <div id="input-area">
-                <input type="text" id="user-input" placeholder="Ask anything about Keiz Bistro, or just chat..." autofocus>
+                <input type="text" id="user-input" placeholder="Ask anything..." autofocus>
                 <button id="send-btn">SEND</button>
             </div>
         </div>
@@ -193,7 +200,27 @@
         const BACKEND_URL = "/chat";
         const API_KEY = "dev-api-key-123";
         
+        const translations = {
+            "en": {
+                "placeholder": "Ask anything about Keiz Bistro, or just chat...",
+                "send": "SEND",
+                "greeting": "Welcome to the Keiz AI Command Center. I am the Omni-Engine. How can I serve you?"
+            },
+            "fr": {
+                "placeholder": "Posez n'importe quelle question...",
+                "send": "ENVOYER",
+                "greeting": "Bienvenue au Centre de Commande Keiz AI. Je suis l'Omni-Engine. Comment puis-je vous servir ?"
+            },
+            "es": {
+                "placeholder": "Pregunta lo que quieras...",
+                "send": "ENVIAR",
+                "greeting": "Bienvenido al Centro de Mando de Keiz AI. Soy el Omni-Engine. ¿En qué puedo ayudarle?"
+            }
+        };
+
+        let currentLang = localStorage.getItem("keiz_official_lang") || "en";
         let sessionId = localStorage.getItem("keiz_official_session");
+        
         if (!sessionId) {
             sessionId = "sess_portal_" + Math.random().toString(36).substr(2, 9);
             localStorage.setItem("keiz_official_session", sessionId);
@@ -202,6 +229,18 @@
         const container = document.getElementById("messages-container");
         const input = document.getElementById("user-input");
         const btn = document.getElementById("send-btn");
+        const langSelect = document.getElementById("lang-select");
+
+        langSelect.value = currentLang;
+        input.placeholder = translations[currentLang].placeholder;
+        btn.innerText = translations[currentLang].send;
+
+        langSelect.onchange = (e) => {
+            currentLang = e.target.value;
+            localStorage.setItem("keiz_official_lang", currentLang);
+            input.placeholder = translations[currentLang].placeholder;
+            btn.innerText = translations[currentLang].send;
+        };
 
         function addMessage(text, sender) {
             const div = document.createElement("div");
@@ -225,12 +264,16 @@
                         "Content-Type": "application/json",
                         "X-API-Key": API_KEY
                     },
-                    body: JSON.stringify({ message: msg, session_id: sessionId })
+                    body: JSON.stringify({ 
+                        message: msg, 
+                        session_id: sessionId,
+                        language: currentLang
+                    })
                 });
                 const data = await response.json();
                 addMessage(data.reply, "bot");
             } catch (e) {
-                addMessage("Connection error. Ensure backend is running on port 8000.", "bot");
+                addMessage("Connection error. Ensure backend is running.", "bot");
             }
         }
 
@@ -240,7 +283,7 @@
         // Initial Greeting
         window.onload = () => {
             setTimeout(() => {
-                addMessage("Welcome to the Keiz AI Command Center. I am the Omni-Engine. How can I serve you?", "bot");
+                addMessage(translations[currentLang].greeting, "bot");
             }, 500);
         };
     </script>
