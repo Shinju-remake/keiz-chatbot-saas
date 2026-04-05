@@ -140,7 +140,8 @@ async def get_logs(x_api_key: str = Header(...), db: Session = Depends(get_sessi
     ).all()
 
 # MOUNT STATIC FILES
-PROJECT_ROOT = Path("/home/keizinho/projects/chatbot_saas")
-app.mount("/widget", StaticFiles(directory=str(PROJECT_ROOT / "widget")), name="widget")
-app.mount("/admin", StaticFiles(directory=str(PROJECT_ROOT / "admin")), name="admin")
-app.mount("/", StaticFiles(directory=str(PROJECT_ROOT), html=True), name="static")
+# Use paths relative to this file's location for cloud deployment
+BASE_DIR = Path(__file__).resolve().parent.parent
+app.mount("/widget", StaticFiles(directory=str(BASE_DIR / "widget")), name="widget")
+app.mount("/admin", StaticFiles(directory=str(BASE_DIR / "admin")), name="admin")
+app.mount("/", StaticFiles(directory=str(BASE_DIR), html=True), name="static")
