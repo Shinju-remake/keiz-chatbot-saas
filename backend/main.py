@@ -37,30 +37,37 @@ app.add_middleware(
 def on_startup():
     create_db_and_tables()
     with Session(engine) as session:
-        if not session.exec(select(Company)).first():
-            demo_company = Company(
+        company = session.exec(select(Company)).first()
+        if not company:
+            company = Company(
                 name="Keiz Bistro", 
                 api_key="dev-api-key-123",
                 system_prompt="You are a helpful assistant for Keiz Bistro. Prices range from €10 to €50.",
-                whatsapp_verify_token="keiz_pro_verify" # For Pro formula
+                whatsapp_verify_token="keiz_pro_verify"
             )
-            session.add(demo_company)
+            session.add(company)
             session.commit()
-            session.refresh(demo_company)
+            session.refresh(company)
             
-            rules = [
-                FAQRule(company_id=demo_company.id, keyword="price", response="Our prices range from €10 to €50. Check our menu for details!"),
-                FAQRule(company_id=demo_company.id, keyword="contact", response="You can reach us at contact@keizbistro.com or call +33 1 23 45 67 89."),
-                FAQRule(company_id=demo_company.id, keyword="book", response="To book a table, please provide your name and number of guests."),
-                FAQRule(company_id=demo_company.id, keyword="menu", response="Menu at keizbistro.com/menu"),
-                FAQRule(company_id=demo_company.id, keyword="vibe", response="The vibe at Keiz Bistro is chic and cozy, with soft jazz and warm lighting."),
-                FAQRule(company_id=demo_company.id, keyword="hello", response="Hello! Welcome to Keiz Bistro."),
-                FAQRule(company_id=demo_company.id, keyword="hi", response="Hi there! How can I help?"),
-                FAQRule(company_id=demo_company.id, keyword="recommend", response="I highly recommend our Coq au Vin."),
-                FAQRule(company_id=demo_company.id, keyword="hey", response="Hey! How can I help you today?")
-            ]
-            session.add_all(rules)
-            session.commit()
+        # Ensure all 8 rules exist
+        target_rules = {
+            "price": "Our prices range from €10 to €50. Check our menu for details!",
+            "contact": "You can reach us at contact@keizbistro.com or call +33 1 23 45 67 89.",
+            "book": "To book a table, please provide your name and number of guests.",
+            "menu": "Menu at keizbistro.com/menu",
+            "vibe": "The vibe at Keiz Bistro is chic and cozy, with soft jazz and warm lighting.",
+            "hello": "Hello! Welcome to Keiz Bistro.",
+            "hi": "Hi there! How can I help?",
+            "recommend": "I highly recommend our Coq au Vin.",
+            "hey": "Hey! How can I help you today?"
+        }
+        
+        existing_keywords = session.exec(select(FAQRule.keyword).where(FAQRule.company_id == company.id)).all()
+        for kw, resp in target_rules.items():
+            if kw not in existing_keywords:
+                session.add(FAQRule(company_id=company.id, keyword=kw, response=resp))
+        
+        session.commit()
 
 class ChatMessage(BaseModel):
     message: str
