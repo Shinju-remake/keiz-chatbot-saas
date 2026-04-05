@@ -49,11 +49,13 @@ def on_startup():
             session.commit()
             session.refresh(company)
             
-        # Ensure all 8 rules exist
+        # Ensure all rules exist
         target_rules = {
             "price": "Our prices range from €10 to €50. Check our menu for details!",
             "contact": "You can reach us at contact@keizbistro.com or call +33 1 23 45 67 89.",
             "book": "To book a table, please provide your name and number of guests.",
+            "reserve": "I can help with reservations! Please provide the date, time, and number of guests.",
+            "reservation": "To make a reservation, tell me the date, time, and how many people.",
             "menu": "Menu at keizbistro.com/menu",
             "vibe": "The vibe at Keiz Bistro is chic and cozy, with soft jazz and warm lighting.",
             "hello": "Hello! Welcome to Keiz Bistro.",
@@ -68,6 +70,28 @@ def on_startup():
                 session.add(FAQRule(company_id=company.id, keyword=kw, response=resp))
         
         session.commit()
+
+@app.get("/debug/ai")
+async def debug_ai_endpoint(db: Session = Depends(get_session)):
+    """
+    Diagnostic endpoint to test OpenAI connection on Render.
+    """
+    company = db.exec(select(Company)).first()
+    key = os.getenv("OPENAI_API_KEY")
+    if not key:
+        return {"status": "error", "message": "OPENAI_API_KEY env var is MISSING on Render"}
+    
+    from openai import OpenAI
+    try:
+        client = OpenAI(api_key=key)
+        response = client.chat.completions.create(
+            model="gpt-5.4-nano",
+            messages=[{"role": "user", "content": "ping"}],
+            max_completion_tokens=10
+        )
+        return {"status": "success", "reply": response.choices[0].message.content}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 class ChatMessage(BaseModel):
     message: str
