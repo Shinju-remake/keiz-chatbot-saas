@@ -51,7 +51,13 @@ def on_startup():
             rules = [
                 FAQRule(company_id=demo_company.id, keyword="price", response="Our prices range from €10 to €50. Check our menu for details!"),
                 FAQRule(company_id=demo_company.id, keyword="contact", response="You can reach us at contact@keizbistro.com or call +33 1 23 45 67 89."),
-                FAQRule(company_id=demo_company.id, keyword="book", response="To book a table, please provide your name and number of guests.")
+                FAQRule(company_id=demo_company.id, keyword="book", response="To book a table, please provide your name and number of guests."),
+                FAQRule(company_id=demo_company.id, keyword="menu", response="Menu at keizbistro.com/menu"),
+                FAQRule(company_id=demo_company.id, keyword="vibe", response="The vibe at Keiz Bistro is chic and cozy, with soft jazz and warm lighting."),
+                FAQRule(company_id=demo_company.id, keyword="hello", response="Hello! Welcome to Keiz Bistro."),
+                FAQRule(company_id=demo_company.id, keyword="hi", response="Hi there! How can I help?"),
+                FAQRule(company_id=demo_company.id, keyword="recommend", response="I highly recommend our Coq au Vin."),
+                FAQRule(company_id=demo_company.id, keyword="hey", response="Hey! How can I help you today?")
             ]
             session.add_all(rules)
             session.commit()
