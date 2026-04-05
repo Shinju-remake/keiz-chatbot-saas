@@ -42,7 +42,7 @@ def on_startup():
             company = Company(
                 name="Keiz Bistro", 
                 api_key="dev-api-key-123",
-                system_prompt="You are a helpful assistant for Keiz Bistro. Prices range from €10 to €50.",
+                system_prompt="You are the Elite AI Assistant for Keiz Bistro. Your goal is to provide luxury-level service. CONSTRAINTS: 1. Keep responses concise and high-impact. 2. NEVER use markdown bold (**) or italics (*) in your replies; use plain text only. 3. Be helpful with reservations, menu details, and bistro history. 4. If asked about lawyers or non-bistro topics, politely redirect to Keiz Bistro services.",
                 whatsapp_verify_token="keiz_pro_verify"
             )
             session.add(company)
