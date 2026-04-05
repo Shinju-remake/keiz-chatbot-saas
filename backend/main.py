@@ -157,6 +157,7 @@ async def debug_ai_endpoint(db: Session = Depends(get_session)):
 class ChatMessage(BaseModel):
     message: str
     session_id: str
+    language: Optional[str] = "en"
 
 class ChatResponse(BaseModel):
     reply: str
@@ -169,7 +170,7 @@ async def chat_endpoint(request: Request, msg: ChatMessage, x_api_key: str = Hea
     if not company:
         raise HTTPException(status_code=403, detail="Invalid API Key")
     
-    result = process_message_v3(company, msg.session_id, msg.message, db)
+    result = process_message_v3(company, msg.session_id, msg.message, db, language=msg.language)
     return ChatResponse(**result)
 
 # --- PRO FEATURES: WHATSAPP WEBHOOK ---

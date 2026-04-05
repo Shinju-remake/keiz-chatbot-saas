@@ -8,7 +8,7 @@ import smtplib
 from email.mime.text import MIMEText
 from datetime import datetime
 
-def process_message_v3(company: Company, session_id: str, user_msg: str, db: Session) -> dict:
+def process_message_v3(company: Company, session_id: str, user_msg: str, db: Session, language: str = "en") -> dict:
     """
     The Omni-Engine Brain:
     1. Check Keywords (Zero-cost)
@@ -20,20 +20,27 @@ def process_message_v3(company: Company, session_id: str, user_msg: str, db: Ses
     source = "keyword"
     
     # 1. Keywords
+    # Note: For now, keywords are language-agnostic. 
+    # In a full Pro version, we'd have FAQRule.language.
     rules = db.exec(select(FAQRule).where(FAQRule.company_id == company.id)).all()
     for rule in sorted(rules, key=lambda r: len(r.keyword), reverse=True):
         if rule.keyword.lower() in user_input:
             reply = rule.response
             break
             
-    # 2. AI Fallback
+    # 2. AI Fallback (Handles translation if needed)
     if not reply:
-        ai_reply = get_ai_response(company, session_id, user_msg, db)
+        ai_reply = get_ai_response(company, session_id, user_msg, db, language=language)
         if ai_reply:
             reply = ai_reply
             source = "ai"
         else:
-            reply = "I'm not sure about that. Try asking about 'price' or 'contact'."
+            fallback_msgs = {
+                "en": "I'm not sure about that. Try asking about 'price' or 'contact'.",
+                "fr": "Je ne suis pas sûr de comprendre. Essayez de demander les 'prix' ou le 'contact'.",
+                "es": "No estoy seguro de eso. Intente preguntar sobre 'precio' o 'contacto'."
+            }
+            reply = fallback_msgs.get(language, fallback_msgs["en"])
             source = "fallback"
 
     # Log the interaction
@@ -49,12 +56,12 @@ def process_message_v3(company: Company, session_id: str, user_msg: str, db: Ses
     db.commit()
     
     # Check for escalation triggers (Pro feature)
-    if "human" in user_input or "escalate" in user_input or "help" in user_input:
+    if any(word in user_input for word in ["human", "escalate", "help", "aide", "humain"]):
         send_escalation_email(company, user_msg, session_id)
 
     return {"reply": reply, "source": source}
 
-def get_ai_response(company: Company, session_id: str, user_msg: str, db: Session) -> str:
+def get_ai_response(company: Company, session_id: str, user_msg: str, db: Session, language: str = "en") -> str:
     openai_key = company.openai_api_key or os.getenv("OPENAI_API_KEY")
     if not openai_key:
         return None
@@ -80,7 +87,13 @@ def get_ai_response(company: Company, session_id: str, user_msg: str, db: Sessio
             .limit(6)
         ).all()
         
-        messages = [{"role": "system", "content": company.system_prompt}]
+        # Add language instruction to system prompt
+        lang_names = {"en": "English", "fr": "French", "es": "Spanish"}
+        target_lang = lang_names.get(language, "English")
+        
+        full_system_prompt = company.system_prompt + f" IMPORTANT: You MUST respond in {target_lang}."
+        
+        messages = [{"role": "system", "content": full_system_prompt}]
         for h in reversed(history):
             messages.append({"role": "user", "content": h.user_msg})
             messages.append({"role": "assistant", "content": h.bot_reply})

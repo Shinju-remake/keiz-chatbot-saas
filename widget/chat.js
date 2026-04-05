@@ -22,25 +22,68 @@
     bubble.innerHTML = "💬";
     document.body.appendChild(bubble);
 
+    const translations = {
+        "en": {
+            "header": "Keiz Support",
+            "input": "Type a message...",
+            "send": "Send",
+            "greeting": "Hello! I am the Omni-Engine. How can I help you today?"
+        },
+        "fr": {
+            "header": "Support Keiz",
+            "input": "Écrivez un message...",
+            "send": "Envoyer",
+            "greeting": "Bonjour! Je suis l'Omni-Engine. Comment puis-je vous aider aujourd'hui ?"
+        },
+        "es": {
+            "header": "Soporte Keiz",
+            "input": "Escribe un mensaje...",
+            "send": "Enviar",
+            "greeting": "¡Hola! Soy el Omni-Engine. ¿Cómo puedo ayudarte hoy?"
+        }
+    };
+
+    let currentLang = localStorage.getItem("keiz_chat_lang") || "en";
+
     const container = document.createElement("div");
     container.id = "keiz-chat-container";
     container.innerHTML = `
         <div id="keiz-chat-header">
-            <span>Keiz Support</span>
-            <span style="cursor:pointer;" id="keiz-chat-close">✖</span>
+            <span id="keiz-chat-title">${translations[currentLang].header}</span>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <select id="keiz-chat-lang-select" style="background:transparent; color:white; border:1px solid white; border-radius:4px; font-size:12px; cursor:pointer;">
+                    <option value="en" ${currentLang === 'en' ? 'selected' : ''}>EN</option>
+                    <option value="fr" ${currentLang === 'fr' ? 'selected' : ''}>FR</option>
+                    <option value="es" ${currentLang === 'es' ? 'selected' : ''}>ES</option>
+                </select>
+                <span style="cursor:pointer;" id="keiz-chat-close">✖</span>
+            </div>
         </div>
         <div id="keiz-chat-messages" style="display:flex; flex-direction:column;"></div>
         <div id="keiz-chat-input-area">
-            <input type="text" id="keiz-chat-input" placeholder="Type a message...">
-            <button id="keiz-chat-send">Send</button>
+            <input type="text" id="keiz-chat-input" placeholder="${translations[currentLang].input}">
+            <button id="keiz-chat-send">${translations[currentLang].send}</button>
         </div>
     `;
     document.body.appendChild(container);
 
     const msgContainer = document.getElementById("keiz-chat-messages");
     const input = document.getElementById("keiz-chat-input");
+    const langSelect = document.getElementById("keiz-chat-lang-select");
+    const headerTitle = document.getElementById("keiz-chat-title");
+    const sendBtn = document.getElementById("keiz-chat-send");
 
     // 4. Interaction Logic
+    langSelect.onchange = (e) => {
+        currentLang = e.target.value;
+        localStorage.setItem("keiz_chat_lang", currentLang);
+        
+        // Update UI Text
+        headerTitle.innerText = translations[currentLang].header;
+        input.placeholder = translations[currentLang].input;
+        sendBtn.innerText = translations[currentLang].send;
+    };
+
     bubble.onclick = () => {
         container.style.display = container.style.display === "flex" ? "none" : "flex";
     };
@@ -71,7 +114,11 @@
                     "Content-Type": "application/json",
                     "X-API-Key": API_KEY
                 },
-                body: JSON.stringify({ message: text, session_id: sessionId })
+                body: JSON.stringify({ 
+                    message: text, 
+                    session_id: sessionId,
+                    language: currentLang
+                })
             });
 
             if (!response.ok) {
@@ -99,6 +146,6 @@
 
     // Initial greeting
     setTimeout(() => {
-        appendMessage("Hello! I am the Omni-Engine. How can I help you today?", "bot");
+        appendMessage(translations[currentLang].greeting, "bot");
     }, 500);
 })();
