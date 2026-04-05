@@ -58,6 +58,9 @@ def get_ai_response(company: Company, session_id: str, user_msg: str, db: Sessio
     openai_key = company.openai_api_key or os.getenv("OPENAI_API_KEY")
     if not openai_key:
         return None
+    
+    # Clean the key (remove newlines/spaces from Render env vars)
+    openai_key = openai_key.strip()
 
     try:
         client = OpenAI(api_key=openai_key, timeout=60.0)

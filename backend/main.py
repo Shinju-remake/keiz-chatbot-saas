@@ -118,6 +118,9 @@ async def debug_ai_endpoint(db: Session = Depends(get_session)):
     if not key:
         return {"status": "error", "message": "OPENAI_API_KEY env var is MISSING on Render"}
     
+    # Clean the key (remove newlines/spaces)
+    key = key.strip()
+    
     masked_key = key[:10] + "..." + key[-5:]
     from openai import OpenAI
     try:
