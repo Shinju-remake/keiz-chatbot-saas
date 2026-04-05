@@ -96,6 +96,7 @@ async def debug_ai_endpoint(db: Session = Depends(get_session)):
     if not key:
         return {"status": "error", "message": "OPENAI_API_KEY env var is MISSING on Render"}
     
+    masked_key = key[:10] + "..." + key[-5:]
     from openai import OpenAI
     try:
         client = OpenAI(api_key=key, timeout=60.0)
@@ -104,9 +105,9 @@ async def debug_ai_endpoint(db: Session = Depends(get_session)):
             messages=[{"role": "user", "content": "ping"}],
             max_completion_tokens=10
         )
-        return {"status": "success", "reply": response.choices[0].message.content}
+        return {"status": "success", "reply": response.choices[0].message.content, "key_used": masked_key}
     except Exception as e:
-        return {"status": "error", "type": type(e).__name__, "message": str(e)}
+        return {"status": "error", "type": type(e).__name__, "message": str(e), "key_used": masked_key}
 
 class ChatMessage(BaseModel):
     message: str
