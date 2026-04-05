@@ -122,9 +122,18 @@ async def debug_ai_endpoint(db: Session = Depends(get_session)):
     key = key.strip()
     
     masked_key = key[:10] + "..." + key[-5:]
+    import httpx
     from openai import OpenAI
     try:
-        client = OpenAI(api_key=key, timeout=60.0)
+        # 2026 Render Fix: Force IPv4
+        transport = httpx.HTTPTransport(local_address="0.0.0.0")
+        http_client = httpx.Client(transport=transport)
+        
+        client = OpenAI(
+            api_key=key, 
+            timeout=60.0,
+            http_client=http_client
+        )
         response = client.chat.completions.create(
             model="gpt-5.4-nano",
             messages=[{"role": "user", "content": "ping"}],

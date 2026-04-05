@@ -63,7 +63,15 @@ def get_ai_response(company: Company, session_id: str, user_msg: str, db: Sessio
     openai_key = openai_key.strip()
 
     try:
-        client = OpenAI(api_key=openai_key, timeout=60.0)
+        # 2026 Render Fix: Force IPv4 to avoid handshake timeouts with OpenAI
+        transport = httpx.HTTPTransport(local_address="0.0.0.0")
+        http_client = httpx.Client(transport=transport)
+        
+        client = OpenAI(
+            api_key=openai_key, 
+            timeout=60.0,
+            http_client=http_client
+        )
         history = db.exec(
             select(ChatLog)
             .where(ChatLog.company_id == company.id)
