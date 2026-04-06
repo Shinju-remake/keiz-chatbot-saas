@@ -14,13 +14,14 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
-from backend.database import create_db_and_tables, get_session, engine
-from backend.models import Company, FAQRule, ChatLog
-from backend.utils import process_message_v3, send_whatsapp_reply
+# Relative imports for local/render consistency
+from .database import create_db_and_tables, get_session, engine
+from .models import Company, FAQRule, ChatLog
+from .utils import process_message_v3, send_whatsapp_reply
 
 load_dotenv()
 
-# Hardened Path Resolution for Render
+# Absolute Path Resolution
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Initialize Rate Limiter
@@ -77,18 +78,13 @@ def on_startup():
 
 @app.get("/debug/files")
 async def debug_files():
-    """
-    List files to verify path resolution on Render.
-    """
     return {
         "BASE_DIR": str(BASE_DIR),
-        "CWD": os.getcwd(),
         "exists": {
             "index.html": (BASE_DIR / "index.html").exists(),
             "agency.html": (BASE_DIR / "agency.html").exists(),
-            "admin/dashboard.html": (BASE_DIR / "admin" / "dashboard.html").exists(),
+            "dashboard.html": (BASE_DIR / "admin" / "dashboard.html").exists(),
             "test.html": (BASE_DIR / "test.html").exists(),
-            "widget/test.html": (BASE_DIR / "widget" / "test.html").exists(),
         },
         "contents": os.listdir(str(BASE_DIR))
     }
@@ -116,32 +112,23 @@ async def chat_endpoint(request: Request, msg: ChatMessage, x_api_key: str = Hea
 
 @app.get("/")
 async def get_hub_page():
-    return FileResponse(BASE_DIR / "index.html")
+    return FileResponse(str(BASE_DIR / "index.html"))
 
 @app.get("/agency")
 async def get_agency_page():
-    return FileResponse(BASE_DIR / "agency.html")
+    return FileResponse(str(BASE_DIR / "agency.html"))
 
 @app.get("/dashboard")
 async def get_dashboard_page():
-    path = BASE_DIR / "admin" / "dashboard.html"
-    if not path.exists():
-        raise HTTPException(status_code=404, detail=f"Dashboard not found at {path}")
-    return FileResponse(path)
+    return FileResponse(str(BASE_DIR / "admin" / "dashboard.html"))
 
 @app.get("/demo")
 async def get_demo_page():
-    path = BASE_DIR / "test.html"
-    if not path.exists():
-        raise HTTPException(status_code=404, detail=f"Demo not found at {path}")
-    return FileResponse(path)
+    return FileResponse(str(BASE_DIR / "test.html"))
 
 @app.get("/test")
 async def get_test_page():
-    path = BASE_DIR / "widget" / "test.html"
-    if not path.exists():
-        raise HTTPException(status_code=404, detail=f"Test not found at {path}")
-    return FileResponse(path)
+    return FileResponse(str(BASE_DIR / "widget" / "test.html"))
 
 # --- ADMIN ROUTES ---
 
@@ -164,17 +151,11 @@ async def get_rules(x_api_key: str = Header(...), db: Session = Depends(get_sess
         raise HTTPException(status_code=403, detail="Invalid API Key")
     return db.exec(select(FAQRule).where(FAQRule.company_id == company.id)).all()
 
-class FAQRuleCreate(BaseModel):
-    keyword: str
-    response: str
-
 @app.post("/admin/rules")
 async def create_rule(rule_in: FAQRuleCreate, x_api_key: str = Header(...), db: Session = Depends(get_session)):
     company = db.exec(select(Company).where(Company.api_key == x_api_key)).first()
     if not company:
         raise HTTPException(status_code=403, detail="Invalid API Key")
-    
-    # Check if keyword already exists
     existing = db.exec(select(FAQRule).where(FAQRule.company_id == company.id, FAQRule.keyword == rule_in.keyword.lower())).first()
     if existing:
         existing.response = rule_in.response
@@ -182,7 +163,6 @@ async def create_rule(rule_in: FAQRuleCreate, x_api_key: str = Header(...), db: 
     else:
         new_rule = FAQRule(company_id=company.id, keyword=rule_in.keyword.lower(), response=rule_in.response)
         db.add(new_rule)
-    
     db.commit()
     return {"status": "success"}
 
@@ -191,11 +171,9 @@ async def delete_rule(rule_id: int, x_api_key: str = Header(...), db: Session = 
     company = db.exec(select(Company).where(Company.api_key == x_api_key)).first()
     if not company:
         raise HTTPException(status_code=403, detail="Invalid API Key")
-    
     rule = db.get(FAQRule, rule_id)
     if not rule or rule.company_id != company.id:
         raise HTTPException(status_code=404, detail="Rule not found")
-    
     db.delete(rule)
     db.commit()
     return {"status": "success"}
@@ -219,17 +197,19 @@ class SettingsUpdate(BaseModel):
     openai_api_key: Optional[str] = None
     whatsapp_phone_id: Optional[str] = None
 
+class FAQRuleCreate(BaseModel):
+    keyword: str
+    response: str
+
 @app.post("/admin/settings")
 async def update_settings(settings_in: SettingsUpdate, x_api_key: str = Header(...), db: Session = Depends(get_session)):
     company = db.exec(select(Company).where(Company.api_key == x_api_key)).first()
     if not company:
         raise HTTPException(status_code=403, detail="Invalid API Key")
-    
     if settings_in.name: company.name = settings_in.name
     if settings_in.system_prompt: company.system_prompt = settings_in.system_prompt
     if settings_in.openai_api_key: company.openai_api_key = settings_in.openai_api_key
     if settings_in.whatsapp_phone_id: company.whatsapp_phone_id = settings_in.whatsapp_phone_id
-    
     db.add(company)
     db.commit()
     return {"status": "success"}
