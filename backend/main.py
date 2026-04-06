@@ -321,6 +321,18 @@ from fastapi.responses import FileResponse
 async def get_agency_page():
     return FileResponse(BASE_DIR / "agency.html")
 
+@app.get("/dashboard")
+async def get_dashboard_page():
+    return FileResponse(BASE_DIR / "admin" / "dashboard.html")
+
+@app.get("/demo")
+async def get_demo_page():
+    return FileResponse(BASE_DIR / "test.html")
+
+@app.get("/test")
+async def get_test_page():
+    return FileResponse(BASE_DIR / "widget" / "test.html")
+
 # MOUNT STATIC FILES
 # Use paths relative to this file's location for cloud deployment
 BASE_DIR = Path(__file__).resolve().parent.parent
