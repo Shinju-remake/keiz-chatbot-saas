@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException, Header, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import List, Optional
 from sqlmodel import Session, select
@@ -18,6 +19,9 @@ from backend.models import Company, FAQRule, ChatLog
 from backend.utils import process_message_v3, send_whatsapp_reply
 
 load_dotenv()
+
+# Define BASE_DIR at the top for use in routes and mounting
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Initialize Rate Limiter
 limiter = Limiter(key_func=get_remote_address)
@@ -315,8 +319,6 @@ async def update_settings(settings_in: SettingsUpdate, x_api_key: str = Header(.
     db.commit()
     return {"status": "success"}
 
-from fastapi.responses import FileResponse
-
 @app.get("/agency")
 async def get_agency_page():
     return FileResponse(BASE_DIR / "agency.html")
@@ -334,8 +336,6 @@ async def get_test_page():
     return FileResponse(BASE_DIR / "widget" / "test.html")
 
 # MOUNT STATIC FILES
-# Use paths relative to this file's location for cloud deployment
-BASE_DIR = Path(__file__).resolve().parent.parent
 app.mount("/widget", StaticFiles(directory=str(BASE_DIR / "widget")), name="widget")
 app.mount("/admin", StaticFiles(directory=str(BASE_DIR / "admin")), name="admin")
 app.mount("/", StaticFiles(directory=str(BASE_DIR), html=True), name="static")
