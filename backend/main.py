@@ -238,6 +238,83 @@ async def get_logs(x_api_key: str = Header(...), db: Session = Depends(get_sessi
         .limit(100)
     ).all()
 
+@app.get("/admin/rules")
+async def get_rules(x_api_key: str = Header(...), db: Session = Depends(get_session)):
+    company = db.exec(select(Company).where(Company.api_key == x_api_key)).first()
+    if not company:
+        raise HTTPException(status_code=403, detail="Invalid API Key")
+    return db.exec(select(FAQRule).where(FAQRule.company_id == company.id)).all()
+
+class FAQRuleCreate(BaseModel):
+    keyword: str
+    response: str
+
+@app.post("/admin/rules")
+async def create_rule(rule_in: FAQRuleCreate, x_api_key: str = Header(...), db: Session = Depends(get_session)):
+    company = db.exec(select(Company).where(Company.api_key == x_api_key)).first()
+    if not company:
+        raise HTTPException(status_code=403, detail="Invalid API Key")
+    
+    # Check if keyword already exists
+    existing = db.exec(select(FAQRule).where(FAQRule.company_id == company.id, FAQRule.keyword == rule_in.keyword.lower())).first()
+    if existing:
+        existing.response = rule_in.response
+        db.add(existing)
+    else:
+        new_rule = FAQRule(company_id=company.id, keyword=rule_in.keyword.lower(), response=rule_in.response)
+        db.add(new_rule)
+    
+    db.commit()
+    return {"status": "success"}
+
+@app.delete("/admin/rules/{rule_id}")
+async def delete_rule(rule_id: int, x_api_key: str = Header(...), db: Session = Depends(get_session)):
+    company = db.exec(select(Company).where(Company.api_key == x_api_key)).first()
+    if not company:
+        raise HTTPException(status_code=403, detail="Invalid API Key")
+    
+    rule = db.get(FAQRule, rule_id)
+    if not rule or rule.company_id != company.id:
+        raise HTTPException(status_code=404, detail="Rule not found")
+    
+    db.delete(rule)
+    db.commit()
+    return {"status": "success"}
+
+@app.get("/admin/settings")
+async def get_settings(x_api_key: str = Header(...), db: Session = Depends(get_session)):
+    company = db.exec(select(Company).where(Company.api_key == x_api_key)).first()
+    if not company:
+        raise HTTPException(status_code=403, detail="Invalid API Key")
+    return {
+        "name": company.name,
+        "system_prompt": company.system_prompt,
+        "openai_api_key": company.openai_api_key, # Usually masked in prod, but keeping it for now for Root Admin
+        "whatsapp_phone_id": company.whatsapp_phone_id,
+        "whatsapp_verify_token": company.whatsapp_verify_token
+    }
+
+class SettingsUpdate(BaseModel):
+    name: Optional[str] = None
+    system_prompt: Optional[str] = None
+    openai_api_key: Optional[str] = None
+    whatsapp_phone_id: Optional[str] = None
+
+@app.post("/admin/settings")
+async def update_settings(settings_in: SettingsUpdate, x_api_key: str = Header(...), db: Session = Depends(get_session)):
+    company = db.exec(select(Company).where(Company.api_key == x_api_key)).first()
+    if not company:
+        raise HTTPException(status_code=403, detail="Invalid API Key")
+    
+    if settings_in.name: company.name = settings_in.name
+    if settings_in.system_prompt: company.system_prompt = settings_in.system_prompt
+    if settings_in.openai_api_key: company.openai_api_key = settings_in.openai_api_key
+    if settings_in.whatsapp_phone_id: company.whatsapp_phone_id = settings_in.whatsapp_phone_id
+    
+    db.add(company)
+    db.commit()
+    return {"status": "success"}
+
 # MOUNT STATIC FILES
 # Use paths relative to this file's location for cloud deployment
 BASE_DIR = Path(__file__).resolve().parent.parent

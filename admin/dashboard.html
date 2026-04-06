@@ -5,95 +5,285 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Keiz Chatbot Admin Dashboard</title>
     <style>
-        body { font-family: sans-serif; background: #f0f2f5; margin: 0; display: flex; }
-        #sidebar { width: 250px; background: #333; color: white; height: 100vh; padding: 20px; }
-        #content { flex: 1; padding: 30px; }
-        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        h1, h2 { color: #BB00FF; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-        th { background: #f9f9f9; }
-        .tag { padding: 4px 8px; border-radius: 4px; font-size: 12px; }
-        .keyword { background: #e3f2fd; color: #1976d2; }
-        .ai { background: #fff3e0; color: #ef6c00; }
+        :root { --primary: #BB00FF; --dark: #1a1a1a; --gray: #f4f4f4; }
+        body { font-family: 'Inter', sans-serif; background: #fafafa; margin: 0; display: flex; color: #333; }
+        #sidebar { width: 260px; background: var(--dark); color: white; height: 100vh; padding: 25px; box-sizing: border-box; }
+        #sidebar h2 { color: var(--primary); margin-top: 0; font-size: 1.5rem; }
+        #sidebar hr { border: 0; border-top: 1px solid #444; margin: 20px 0; }
+        .nav-item { padding: 12px 15px; border-radius: 6px; cursor: pointer; transition: 0.2s; margin-bottom: 5px; display: flex; align-items: center; }
+        .nav-item:hover { background: #333; color: var(--primary); }
+        .nav-item.active { background: var(--primary); color: white; }
+
+        #content { flex: 1; padding: 40px; overflow-y: auto; height: 100vh; box-sizing: border-box; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .header h1 { margin: 0; font-size: 1.8rem; }
+        
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 30px; }
+        .card h2 { margin-top: 0; color: var(--dark); border-bottom: 2px solid var(--gray); padding-bottom: 10px; margin-bottom: 20px; font-size: 1.2rem; }
+
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid var(--gray); }
+        th { font-weight: 600; color: #666; font-size: 0.9rem; text-transform: uppercase; }
+        
+        .tag { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase; }
+        .tag.keyword { background: #e3f2fd; color: #1976d2; }
+        .tag.ai { background: #fff3e0; color: #ef6c00; }
+
+        .btn { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: 0.3s; }
+        .btn:hover { filter: brightness(1.2); }
+        .btn-sm { padding: 5px 10px; font-size: 12px; }
+        .btn-danger { background: #ff4d4d; }
+
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.9rem; }
+        input, textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-family: inherit; }
+        textarea { height: 80px; resize: vertical; }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        #toast { position: fixed; bottom: 20px; right: 20px; background: #333; color: white; padding: 12px 25px; border-radius: 8px; display: none; z-index: 1000; }
     </style>
 </head>
 <body>
     <div id="sidebar">
         <h2>Keiz SaaS</h2>
-        <p>Admin Dashboard</p>
+        <p style="opacity:0.6; font-size:0.8rem;">Omni-Engine V3 (PRO)</p>
         <hr>
-        <p style="cursor:pointer;">📊 Analytics</p>
-        <p style="cursor:pointer;">🛠️ FAQ Rules</p>
-        <p style="cursor:pointer;">👤 Account Settings</p>
+        <div class="nav-item active" onclick="switchTab('analytics')">📊 Analytics</div>
+        <div class="nav-item" onclick="switchTab('rules')">🛠️ FAQ Rules</div>
+        <div class="nav-item" onclick="switchTab('settings')">👤 Account Settings</div>
+        <div class="nav-item" style="margin-top:auto;">🚪 Logout</div>
     </div>
 
     <div id="content">
-        <h1>Dashboard - Keiz Bistro</h1>
-
-        <div class="card">
-            <h2>Live Conversations</h2>
-            <p>Monitor how your bot is interacting with customers.</p>
-            <table id="logs-table">
-                <thead>
-                    <tr>
-                        <th>Time</th>
-                        <th>Session ID</th>
-                        <th>User Message</th>
-                        <th>Bot Reply</th>
-                        <th>Type</th>
-                    </tr>
-                </thead>
-                <tbody id="logs-body">
-                    <!-- Logs will appear here -->
-                </tbody>
-            </table>
+        <div class="header">
+            <h1 id="company-title">Dashboard - Keiz Bistro</h1>
+            <div id="status-indicator" style="display:flex; align-items:center;">
+                <span style="width:10px; height:10px; background:#44ff44; border-radius:50%; margin-right:8px;"></span>
+                <span style="font-size:0.9rem; font-weight:600;">System Online</span>
+            </div>
         </div>
 
-        <div class="card">
-            <h2>Current FAQ Rules</h2>
-            <ul>
-                <li><strong>price</strong> -> "Our prices range from €10 to €50..."</li>
-                <li><strong>contact</strong> -> "You can reach us at contact@..."</li>
-                <li><strong>book</strong> -> "To book a table, please provide..."</li>
-            </ul>
-            <button style="background:#BB00FF; color:white; border:none; padding:10px 15px; border-radius:4px; cursor:pointer;">+ Add New Rule</button>
+        <!-- ANALYTICS TAB -->
+        <div id="tab-analytics" class="tab-content active">
+            <div class="card">
+                <h2>Live Conversation Logs</h2>
+                <div style="max-height: 600px; overflow-y: auto;">
+                    <table id="logs-table">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Session ID</th>
+                                <th>User Message</th>
+                                <th>Bot Reply</th>
+                                <th>Source</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logs-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- RULES TAB -->
+        <div id="tab-rules" class="tab-content">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div class="card">
+                    <h2>Add / Update Rule</h2>
+                    <form id="rule-form">
+                        <div class="form-group">
+                            <label>Keyword / Trigger</label>
+                            <input type="text" id="rule-keyword" placeholder="e.g., price, hours" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Response</label>
+                            <textarea id="rule-response" placeholder="Bot reply content..." required></textarea>
+                        </div>
+                        <button type="submit" class="btn" style="width:100%;">Save FAQ Rule</button>
+                    </form>
+                </div>
+                <div class="card">
+                    <h2>Active FAQ Rules</h2>
+                    <div style="max-height: 400px; overflow-y: auto;">
+                        <table id="rules-table">
+                            <thead>
+                                <tr>
+                                    <th>Keyword</th>
+                                    <th>Response</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rules-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SETTINGS TAB -->
+        <div id="tab-settings" class="tab-content">
+            <div class="card">
+                <h2>Omni-Engine Configuration</h2>
+                <form id="settings-form">
+                    <div class="form-group">
+                        <label>Company Name</label>
+                        <input type="text" id="set-name">
+                    </div>
+                    <div class="form-group">
+                        <label>AI System Prompt (Persona)</label>
+                        <textarea id="set-prompt" style="height:150px;"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>OpenAI API Key (Override)</label>
+                        <input type="password" id="set-openai-key" placeholder="Leave empty to use SaaS global key">
+                    </div>
+                    <div class="form-group">
+                        <label>WhatsApp Phone ID</label>
+                        <input type="text" id="set-wa-phone-id">
+                    </div>
+                    <div class="form-group">
+                        <label>WhatsApp Verify Token (Read-Only)</label>
+                        <input type="text" id="set-wa-token" readonly style="background:#f9f9f9; color:#888;">
+                    </div>
+                    <button type="submit" class="btn">Update Account Settings</button>
+                </form>
+            </div>
         </div>
     </div>
 
+    <div id="toast">Operation successful!</div>
+
     <script>
         const API_KEY = "dev-api-key-123";
-        const LOGS_URL = "/admin/logs";
+        const API_BASE = window.location.origin;
 
+        function showToast(msg) {
+            const t = document.getElementById("toast");
+            t.innerText = msg;
+            t.style.display = "block";
+            setTimeout(() => t.style.display = "none", 3000);
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            document.getElementById(`tab-${tab}`).classList.add('active');
+            
+            // Highlight nav item
+            const navItems = document.querySelectorAll('.nav-item');
+            if (tab === 'analytics') navItems[0].classList.add('active');
+            if (tab === 'rules') navItems[1].classList.add('active');
+            if (tab === 'settings') {
+                navItems[2].classList.add('active');
+                fetchSettings();
+            }
+        }
+
+        async function fetchSettings() {
+            try {
+                const response = await fetch(`${API_BASE}/admin/settings`, {
+                    headers: { "X-API-Key": API_KEY }
+                });
+                const s = await response.json();
+                document.getElementById("set-name").value = s.name;
+                document.getElementById("set-prompt").value = s.system_prompt;
+                document.getElementById("set-openai-key").value = s.openai_api_key || "";
+                document.getElementById("set-wa-phone-id").value = s.whatsapp_phone_id || "";
+                document.getElementById("set-wa-token").value = s.whatsapp_verify_token || "";
+                document.getElementById("company-title").innerText = `Dashboard - ${s.name}`;
+            } catch (e) { console.error("Settings fetch failed"); }
+        }
+
+        document.getElementById("settings-form").onsubmit = async (e) => {
+            e.preventDefault();
+            const data = {
+                name: document.getElementById("set-name").value,
+                system_prompt: document.getElementById("set-prompt").value,
+                openai_api_key: document.getElementById("set-openai-key").value,
+                whatsapp_phone_id: document.getElementById("set-wa-phone-id").value
+            };
+            try {
+                await fetch(`${API_BASE}/admin/settings`, {
+                    method: 'POST',
+                    headers: { 
+                        "X-API-Key": API_KEY,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(data)
+                });
+                showToast("Settings updated!");
+                fetchSettings();
+            } catch (e) { showToast("Update failed."); }
+        };
+
+        // --- RULES LOGIC ---
+        async function fetchRules() {
+            try {
+                const response = await fetch(`${API_BASE}/admin/rules`, {
+                    headers: { "X-API-Key": API_KEY }
+                });
+                const rules = await response.json();
+                const tbody = document.getElementById("rules-body");
+                tbody.innerHTML = "";
+                rules.forEach(rule => {
+                    const row = document.createElement("tr");
+                    row.innerHTML = `
+                        <td style="font-weight:600; color:var(--primary);">${rule.keyword}</td>
+                        <td style="font-size:0.85rem;">${rule.response.substring(0,60)}...</td>
+                        <td><button onclick="deleteRule(${rule.id})" class="btn btn-sm btn-danger">Delete</button></td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } catch (e) { console.error("Rules fetch failed"); }
+        }
+
+        async function deleteRule(id) {
+            if(!confirm("Delete rule?")) return;
+            await fetch(`${API_BASE}/admin/rules/${id}`, { method: 'DELETE', headers: { "X-API-Key": API_KEY } });
+            fetchRules();
+        }
+
+        document.getElementById("rule-form").onsubmit = async (e) => {
+            e.preventDefault();
+            const keyword = document.getElementById("rule-keyword").value;
+            const response = document.getElementById("rule-response").value;
+            await fetch(`${API_BASE}/admin/rules`, {
+                method: 'POST',
+                headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" },
+                body: JSON.stringify({ keyword, response })
+            });
+            document.getElementById("rule-form").reset();
+            fetchRules();
+        };
+
+        // --- LOGS LOGIC ---
         async function fetchLogs() {
             try {
-                const response = await fetch(LOGS_URL, {
+                const response = await fetch(`${API_BASE}/admin/logs`, {
                     headers: { "X-API-Key": API_KEY }
                 });
                 const logs = await response.json();
                 const tbody = document.getElementById("logs-body");
                 tbody.innerHTML = "";
-
-                logs.reverse().forEach(log => {
+                logs.forEach(log => {
                     const row = document.createElement("tr");
                     const time = new Date(log.timestamp).toLocaleTimeString();
                     row.innerHTML = `
                         <td>${time}</td>
-                        <td style="font-family:monospace; font-size:12px; color:#666;">${log.session_id}</td>
+                        <td style="font-family:monospace; font-size:11px; color:#999;">${log.session_id.substring(0,8)}...</td>
                         <td>${log.user_msg}</td>
-                        <td>${log.bot_reply}</td>
+                        <td style="font-style:italic;">${log.bot_reply}</td>
                         <td><span class="tag ${log.source === 'keyword' ? 'keyword' : 'ai'}">${log.source}</span></td>
                     `;
                     tbody.appendChild(row);
                 });
-            } catch (e) {
-                console.error("Failed to fetch logs");
-            }
+            } catch (e) { console.error("Logs fetch failed"); }
         }
 
-        // Refresh logs every 5 seconds
-        setInterval(fetchLogs, 5000);
+        fetchRules();
         fetchLogs();
+        setInterval(fetchLogs, 10000);
     </script>
 </body>
 </html>
