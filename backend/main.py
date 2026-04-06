@@ -43,7 +43,7 @@ def on_startup():
                 name="Shinju AI", 
                 api_key="dev-api-key-123",
                 system_prompt="You are Shinju AI, the Elite Virtual Assistant. Your goal is to provide luxury-level service. CONSTRAINTS: 1. Keep responses concise and high-impact. 2. NEVER use markdown bold (**) or italics (*) in your replies; use plain text only. 3. Be helpful with all inquiries related to your host company.",
-                whatsapp_verify_token="keiz_pro_verify"
+                whatsapp_verify_token="shinju_pro_verify"
             )
             session.add(company)
             session.commit()
@@ -51,17 +51,17 @@ def on_startup():
             
         # Ensure all rules exist
         target_rules = {
-            "price": "Our prices range from €10 to €50. Check our menu for details!",
-            "contact": "You can reach us at contact@keizbistro.com or call +33 1 23 45 67 89.",
-            "book": "To book a table, please provide your name and number of guests.",
-            "reserve": "I can help with reservations! Please provide the date, time, and number of guests.",
-            "reservation": "To make a reservation, tell me the date, time, and how many people.",
-            "menu": "Menu at keizbistro.com/menu",
-            "vibe": "The vibe at Keiz Bistro is chic and cozy, with soft jazz and warm lighting.",
-            "hello": "Hello! Welcome to Keiz Bistro.",
-            "hi": "Hi there! How can I help?",
-            "recommend": "I highly recommend our Coq au Vin.",
-            "hey": "Hey! How can I help you today?"
+            "price": "Our luxury dining experience ranges from 50€ to 150€. Quality is our priority.",
+            "contact": "Contact Shinju at contact@shinju-ai.com or visit our dashboard.",
+            "book": "To book a table at Shinju Bistro, please provide your name and number of guests.",
+            "reserve": "I can assist with reservations at Shinju Bistro! Please provide the date, time, and party size.",
+            "reservation": "For reservations, tell me the date, time, and how many guests will be joining us.",
+            "menu": "Explore our menu at shinju-bistro.com/menu",
+            "vibe": "The atmosphere at Shinju is one of refined elegance, perfect for discerning guests.",
+            "hello": "Hello! I am Shinju AI. How can I serve you today?",
+            "hi": "Greetings. I am Shinju AI, your dedicated assistant. How may I help?",
+            "recommend": "I highly recommend our signature Omakase experience.",
+            "hey": "Welcome back. I am Shinju AI. What can I do for you?"
         }
         
         existing_keywords = session.exec(select(FAQRule.keyword).where(FAQRule.company_id == company.id)).all()

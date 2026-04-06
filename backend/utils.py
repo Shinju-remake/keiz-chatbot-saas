@@ -56,8 +56,11 @@ def process_message_v3(company: Company, session_id: str, user_msg: str, db: Ses
     db.commit()
     
     # Check for escalation triggers (Pro feature)
-    if any(word in user_input for word in ["human", "escalate", "help", "aide", "humain"]):
-        send_escalation_email(company, user_msg, session_id)
+    escalation_words = ["human", "escalate", "help", "aide", "humain", "urgent", "problem", "problème", "reservation", "book"]
+    if any(word in user_input for word in escalation_words):
+        import asyncio
+        # Run automation in background to avoid slowing down the chat reply
+        asyncio.create_task(trigger_pro_automation(company, user_msg, session_id))
 
     return {"reply": reply, "source": source}
 
@@ -131,16 +134,30 @@ async def send_whatsapp_reply(company: Company, to_number: str, text: str):
     async with httpx.AsyncClient() as client:
         await client.post(url, headers=headers, json=payload)
 
-def send_escalation_email(company: Company, user_msg: str, session_id: str):
+async def trigger_pro_automation(company: Company, user_msg: str, session_id: str):
     """
-    Pro Feature: Alert the business owner of a high-priority query.
+    Pro Tier: Trigger Make.com Webhook for lead tracking and human escalation.
     """
-    owner_email = os.getenv("ADMIN_EMAIL", "traore.m.2007@gmail.com")
-    msg = MIMEText(f"User is asking for human help!\n\nSession: {session_id}\nMessage: {user_msg}")
-    msg["Subject"] = f"🚨 AI Escalation: {company.name}"
-    msg["From"] = "keiz-ai@saas.com"
-    msg["To"] = owner_email
+    webhook_url = os.getenv("MAKE_WEBHOOK_URL")
+    admin_email = os.getenv("ADMIN_EMAIL", "traore.m.2007@gmail.com")
     
-    # In production, use a real SMTP service (SendGrid, Mailgun)
-    # For now, we log the intent.
-    print(f"DEBUG: Escalation Email sent to {owner_email} for {company.name}")
+    payload = {
+        "company_name": company.name,
+        "session_id": session_id,
+        "message": user_msg,
+        "admin_email": admin_email,
+        "timestamp": datetime.utcnow().isoformat(),
+        "platform": "Web Widget" if not session_id.startswith("wa_") else "WhatsApp"
+    }
+
+    print(f"DEBUG: Triggering Pro Automation for {company.name} (Session: {session_id})")
+    
+    if webhook_url and "placeholder" not in webhook_url:
+        try:
+            async with httpx.AsyncClient() as client:
+                await client.post(webhook_url, json=payload, timeout=10.0)
+        except Exception as e:
+            print(f"AUTOMATION ERROR: {e}")
+    else:
+        # Fallback to local log/email-sim if no webhook is set
+        print(f"NOTICE: Webhook placeholder active. Escalation for '{user_msg}' logged to terminal.")

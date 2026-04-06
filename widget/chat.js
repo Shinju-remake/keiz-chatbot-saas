@@ -24,22 +24,22 @@
 
     const translations = {
         "en": {
-            "header": "Keiz Support",
+            "header": "Shinju AI Support",
             "input": "Type a message...",
             "send": "Send",
-            "greeting": "Hello! I am the Omni-Engine. How can I help you today?"
+            "greeting": "Hello! I am Shinju AI. How can I help you today?"
         },
         "fr": {
-            "header": "Support Keiz",
+            "header": "Support Shinju AI",
             "input": "Écrivez un message...",
             "send": "Envoyer",
-            "greeting": "Bonjour! Je suis l'Omni-Engine. Comment puis-je vous aider aujourd'hui ?"
+            "greeting": "Bonjour! Je suis Shinju AI. Comment puis-je vous aider aujourd'hui ?"
         },
         "es": {
-            "header": "Soporte Keiz",
+            "header": "Soporte Shinju AI",
             "input": "Escribe un mensaje...",
             "send": "Enviar",
-            "greeting": "¡Hola! Soy el Omni-Engine. ¿Cómo puedo ayudarte hoy?"
+            "greeting": "¡Hola! Soy Shinju AI. ¿Cómo puedo ayudarte hoy?"
         }
     };
 
