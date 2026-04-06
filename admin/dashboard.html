@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Keiz Chatbot Admin Dashboard</title>
+    <title>Shinju AI | Admin Dashboard</title>
     <style>
         :root { --primary: #BB00FF; --dark: #1a1a1a; --gray: #f4f4f4; }
         body { font-family: 'Inter', sans-serif; background: #fafafa; margin: 0; display: flex; color: #333; }
@@ -47,7 +47,7 @@
 </head>
 <body>
     <div id="sidebar">
-        <h2>Keiz SaaS</h2>
+        <h2>Shinju AI</h2>
         <p style="opacity:0.6; font-size:0.8rem;">Omni-Engine V3 (PRO)</p>
         <hr>
         <div class="nav-item active" onclick="switchTab('analytics')">📊 Analytics</div>
@@ -57,9 +57,8 @@
     </div>
 
     <div id="content">
-    <div class="header">
-        <h1 id="company-title">Dashboard - Shinju AI</h1>
-
+        <div class="header">
+            <h1 id="company-title">Dashboard - Shinju AI</h1>
             <div id="status-indicator" style="display:flex; align-items:center;">
                 <span style="width:10px; height:10px; background:#44ff44; border-radius:50%; margin-right:8px;"></span>
                 <span style="font-size:0.9rem; font-weight:600;">System Online</span>
@@ -167,14 +166,24 @@
         }
 
         function switchTab(tab) {
+            console.log("Switching to tab:", tab);
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-            document.getElementById(`tab-${tab}`).classList.add('active');
+            
+            const activeTab = document.getElementById(`tab-${tab}`);
+            if (activeTab) {
+                activeTab.classList.add('active');
+            } else {
+                console.error("Tab not found:", tab);
+            }
             
             // Highlight nav item
             const navItems = document.querySelectorAll('.nav-item');
             if (tab === 'analytics') navItems[0].classList.add('active');
-            if (tab === 'rules') navItems[1].classList.add('active');
+            if (tab === 'rules') {
+                navItems[1].classList.add('active');
+                fetchRules();
+            }
             if (tab === 'settings') {
                 navItems[2].classList.add('active');
                 fetchSettings();
@@ -187,13 +196,13 @@
                     headers: { "X-API-Key": API_KEY }
                 });
                 const s = await response.json();
-                document.getElementById("set-name").value = s.name;
-                document.getElementById("set-prompt").value = s.system_prompt;
+                document.getElementById("set-name").value = s.name || "";
+                document.getElementById("set-prompt").value = s.system_prompt || "";
                 document.getElementById("set-openai-key").value = s.openai_api_key || "";
                 document.getElementById("set-wa-phone-id").value = s.whatsapp_phone_id || "";
                 document.getElementById("set-wa-token").value = s.whatsapp_verify_token || "";
                 document.getElementById("company-title").innerText = `Dashboard - ${s.name}`;
-            } catch (e) { console.error("Settings fetch failed"); }
+            } catch (e) { console.error("Settings fetch failed", e); }
         }
 
         document.getElementById("settings-form").onsubmit = async (e) => {
@@ -205,7 +214,7 @@
                 whatsapp_phone_id: document.getElementById("set-wa-phone-id").value
             };
             try {
-                await fetch(`${API_BASE}/admin/settings`, {
+                const res = await fetch(`${API_BASE}/admin/settings`, {
                     method: 'POST',
                     headers: { 
                         "X-API-Key": API_KEY,
@@ -213,9 +222,13 @@
                     },
                     body: JSON.stringify(data)
                 });
-                showToast("Settings updated!");
-                fetchSettings();
-            } catch (e) { showToast("Update failed."); }
+                if(res.ok) {
+                    showToast("Settings updated!");
+                    fetchSettings();
+                } else {
+                    showToast("Server error updating settings.");
+                }
+            } catch (e) { showToast("Network error."); }
         };
 
         // --- RULES LOGIC ---
@@ -227,35 +240,50 @@
                 const rules = await response.json();
                 const tbody = document.getElementById("rules-body");
                 tbody.innerHTML = "";
-                rules.forEach(rule => {
-                    const row = document.createElement("tr");
-                    row.innerHTML = `
-                        <td style="font-weight:600; color:var(--primary);">${rule.keyword}</td>
-                        <td style="font-size:0.85rem;">${rule.response.substring(0,60)}...</td>
-                        <td><button onclick="deleteRule(${rule.id})" class="btn btn-sm btn-danger">Delete</button></td>
-                    `;
-                    tbody.appendChild(row);
-                });
-            } catch (e) { console.error("Rules fetch failed"); }
+                if (Array.isArray(rules)) {
+                    rules.forEach(rule => {
+                        const row = document.createElement("tr");
+                        row.innerHTML = `
+                            <td style="font-weight:600; color:var(--primary);">${rule.keyword}</td>
+                            <td style="font-size:0.85rem;">${rule.response.substring(0,60)}${rule.response.length > 60 ? '...' : ''}</td>
+                            <td><button onclick="deleteRule(${rule.id})" class="btn btn-sm btn-danger">Delete</button></td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                }
+            } catch (e) { console.error("Rules fetch failed", e); }
         }
 
         async function deleteRule(id) {
             if(!confirm("Delete rule?")) return;
-            await fetch(`${API_BASE}/admin/rules/${id}`, { method: 'DELETE', headers: { "X-API-Key": API_KEY } });
-            fetchRules();
+            try {
+                const res = await fetch(`${API_BASE}/admin/rules/${id}`, { 
+                    method: 'DELETE', 
+                    headers: { "X-API-Key": API_KEY } 
+                });
+                if(res.ok) {
+                    showToast("Rule deleted.");
+                    fetchRules();
+                }
+            } catch (e) { showToast("Delete failed."); }
         }
 
         document.getElementById("rule-form").onsubmit = async (e) => {
             e.preventDefault();
             const keyword = document.getElementById("rule-keyword").value;
             const response = document.getElementById("rule-response").value;
-            await fetch(`${API_BASE}/admin/rules`, {
-                method: 'POST',
-                headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" },
-                body: JSON.stringify({ keyword, response })
-            });
-            document.getElementById("rule-form").reset();
-            fetchRules();
+            try {
+                const res = await fetch(`${API_BASE}/admin/rules`, {
+                    method: 'POST',
+                    headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" },
+                    body: JSON.stringify({ keyword, response })
+                });
+                if(res.ok) {
+                    showToast("Rule saved!");
+                    document.getElementById("rule-form").reset();
+                    fetchRules();
+                }
+            } catch (e) { showToast("Save failed."); }
         };
 
         // --- LOGS LOGIC ---
@@ -267,24 +295,29 @@
                 const logs = await response.json();
                 const tbody = document.getElementById("logs-body");
                 tbody.innerHTML = "";
-                logs.forEach(log => {
-                    const row = document.createElement("tr");
-                    const time = new Date(log.timestamp).toLocaleTimeString();
-                    row.innerHTML = `
-                        <td>${time}</td>
-                        <td style="font-family:monospace; font-size:11px; color:#999;">${log.session_id.substring(0,8)}...</td>
-                        <td>${log.user_msg}</td>
-                        <td style="font-style:italic;">${log.bot_reply}</td>
-                        <td><span class="tag ${log.source === 'keyword' ? 'keyword' : 'ai'}">${log.source}</span></td>
-                    `;
-                    tbody.appendChild(row);
-                });
-            } catch (e) { console.error("Logs fetch failed"); }
+                if(Array.isArray(logs)) {
+                    logs.forEach(log => {
+                        const row = document.createElement("tr");
+                        const time = new Date(log.timestamp).toLocaleTimeString();
+                        row.innerHTML = `
+                            <td>${time}</td>
+                            <td style="font-family:monospace; font-size:11px; color:#999;">${log.session_id.substring(0,8)}...</td>
+                            <td>${log.user_msg}</td>
+                            <td style="font-style:italic;">${log.bot_reply}</td>
+                            <td><span class="tag ${log.source === 'keyword' ? 'keyword' : 'ai'}">${log.source}</span></td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                }
+            } catch (e) { console.error("Logs fetch failed", e); }
         }
 
-        fetchRules();
-        fetchLogs();
-        setInterval(fetchLogs, 10000);
+        // Global initialization
+        window.onload = () => {
+            fetchRules();
+            fetchLogs();
+            setInterval(fetchLogs, 10000);
+        };
     </script>
 </body>
 </html>
