@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Keiz AI | The Omni-Bot</title>
+    <title>Shinju AI | The Omni-Bot</title>
     <style>
         :root {
             --primary-purple: #BB00FF;
@@ -171,7 +171,7 @@
 </head>
 <body>
     <header>
-        <div class="logo">KEIZ AI</div>
+        <div class="logo">SHINJU AI</div>
         <div style="display:flex; align-items:center; gap:20px;">
             <select id="lang-select" style="background:transparent; color:var(--text-gray); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:5px 10px; cursor:pointer; outline:none;">
                 <option value="en">English</option>
@@ -198,26 +198,26 @@
 
     <script>
         const BACKEND_URL = "/chat";
-        <title>Shinju AI | The Omni-Bot</title>
-        ...
-        <header>
-            <div class="logo">SHINJU AI</div>
-        ...
-                "en": {
-                    "placeholder": "Ask anything about Shinju AI, or just chat...",
-                    "send": "SEND",
-                    "greeting": "Welcome to the Shinju AI Command Center. How can I serve you?"
-                },
-                "fr": {
-                    "placeholder": "Posez n'importe quelle question...",
-                    "send": "ENVOYER",
-                    "greeting": "Bienvenue au Centre de Commande Shinju AI. Comment puis-je vous servir ?"
-                },
-                "es": {
-                    "placeholder": "Pregunta lo que quieras...",
-                    "send": "ENVIAR",
-                    "greeting": "Bienvenido al Centro de Mando de Shinju AI. ¿En qué puedo ayudarle?"
-                }
+        const API_KEY = "dev-api-key-123";
+        
+        const translations = {
+            "en": {
+                "placeholder": "Ask anything about Shinju AI, or just chat...",
+                "send": "SEND",
+                "greeting": "Welcome to the Shinju AI Command Center. How can I serve you?"
+            },
+            "fr": {
+                "placeholder": "Posez n'importe quelle question...",
+                "send": "ENVOYER",
+                "greeting": "Bienvenue au Centre de Commande Shinju AI. Comment puis-je vous servir ?"
+            },
+            "es": {
+                "placeholder": "Pregunta lo que quieras...",
+                "send": "ENVIAR",
+                "greeting": "Bienvenido al Centro de Mando de Shinju AI. ¿En qué puedo ayudarle?"
+            }
+        };
+
         let currentLang = localStorage.getItem("keiz_official_lang") || "en";
         let sessionId = localStorage.getItem("keiz_official_session");
         
