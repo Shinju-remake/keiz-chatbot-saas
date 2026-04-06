@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shinju AI | Automation Agency</title>
+    <style>
+        :root {
+            --primary: #BB00FF;
+            --dark-bg: #0a0a0a;
+            --card-bg: #161616;
+            --text-gray: #a0a0a0;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: var(--dark-bg);
+            color: white;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Hero Section */
+        header {
+            height: 80vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+            background: radial-gradient(circle at center, rgba(187, 0, 255, 0.1) 0%, transparent 70%);
+        }
+
+        h1 {
+            font-size: 4rem;
+            font-weight: 900;
+            letter-spacing: -2px;
+            margin-bottom: 20px;
+            background: linear-gradient(to right, #fff, var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        p.subtitle {
+            font-size: 1.2rem;
+            color: var(--text-gray);
+            max-width: 600px;
+            margin-bottom: 40px;
+        }
+
+        .btn {
+            background: var(--primary);
+            color: white;
+            padding: 15px 40px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 700;
+            transition: 0.3s;
+            box-shadow: 0 10px 30px rgba(187, 0, 255, 0.4);
+        }
+
+        .btn:hover { transform: translateY(-3px); box-shadow: 0 15px 40px rgba(187, 0, 255, 0.6); }
+
+        /* Solutions Section */
+        .section { padding: 100px 20px; max-width: 1200px; margin: 0 auto; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; margin-top: 50px; }
+        .card {
+            background: var(--card-bg);
+            padding: 40px;
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.05);
+            transition: 0.3s;
+        }
+        .card:hover { border-color: var(--primary); transform: translateY(-10px); }
+        .card h3 { color: var(--primary); margin-bottom: 15px; font-size: 1.5rem; }
+
+        /* Pricing Section */
+        .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-top: 50px; }
+        .price-card {
+            background: #111;
+            padding: 50px 30px;
+            border-radius: 24px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.05);
+            position: relative;
+        }
+        .price-card.featured { border: 2px solid var(--primary); transform: scale(1.05); z-index: 2; background: #161616; }
+        .price { font-size: 3rem; font-weight: 800; margin: 20px 0; }
+        .price span { font-size: 1rem; color: var(--text-gray); }
+        ul { list-style: none; margin: 30px 0; color: var(--text-gray); text-align: left; }
+        li { margin-bottom: 12px; display: flex; align-items: center; }
+        li::before { content: "✓"; color: var(--primary); margin-right: 10px; font-weight: bold; }
+
+        footer { padding: 50px; text-align: center; border-top: 1px solid rgba(255,255,255,0.1); color: var(--text-gray); font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div style="color: var(--primary); font-weight: 800; font-size: 1.2rem; margin-bottom: 20px; letter-spacing: 2px;">SHINJU AI SOLUTIONS</div>
+        <h1>Automate Your Future.</h1>
+        <p class="subtitle">Deploy elite AI agents that handle your customer service, reservations, and sales 24/7 without lifting a finger.</p>
+        <a href="#pricing" class="btn">VIEW OUR FORMULAS</a>
+    </header>
+
+    <div class="section">
+        <h2 style="text-align:center; font-size: 2.5rem;">The Shinju Omni-Engine</h2>
+        <div class="grid">
+            <div class="card">
+                <h3>Website Concierge</h3>
+                <p>An intelligent chat interface that greets your visitors, answers FAQs, and captures high-quality leads in real-time.</p>
+            </div>
+            <div class="card">
+                <h3>WhatsApp/Social Pro</h3>
+                <p>Meet your customers where they are. Full automation for WhatsApp and Instagram DM inquiries and bookings.</p>
+            </div>
+            <div class="card">
+                <h3>Autonomous Email</h3>
+                <p>Our AI agents sort, draft, and reply to customer emails, escalating only the most critical cases to your team.</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="pricing" class="section">
+        <h2 style="text-align:center; font-size: 2.5rem;">Investment Formulas</h2>
+        <div class="pricing-grid">
+            <!-- STARTER -->
+            <div class="price-card">
+                <h3>STARTER</h3>
+                <div class="price">1,500€</div>
+                <ul>
+                    <li>Custom AI Chatbot (Web Widget)</li>
+                    <li>Keyword-Based Instant FAQ</li>
+                    <li>Lead Capture System</li>
+                    <li>2-Week Deployment</li>
+                </ul>
+                <a href="mailto:traore.m.2007@gmail.com?subject=Shinju AI - Starter Inquiry" class="btn">GET STARTED</a>
+            </div>
+
+            <!-- PRO -->
+            <div class="price-card featured">
+                <div style="position:absolute; top:-15px; left:50%; transform:translateX(-50%); background:var(--primary); padding:5px 20px; border-radius:20px; font-size:12px; font-weight:800;">MOST POPULAR</div>
+                <h3>PRO</h3>
+                <div class="price">3,500€</div>
+                <ul>
+                    <li>Multi-Channel (Web + WhatsApp + Email)</li>
+                    <li>Omni-Engine Intelligence (GPT-5.4 Nano)</li>
+                    <li>Automated Reservation/Booking Logic</li>
+                    <li>3-Week Deployment</li>
+                </ul>
+                <a href="mailto:traore.m.2007@gmail.com?subject=Shinju AI - Pro Inquiry" class="btn">SCALE NOW</a>
+            </div>
+
+            <!-- RETAINER -->
+            <div class="price-card">
+                <h3>PREMIUM</h3>
+                <div class="price">500€<span>/month</span></div>
+                <ul>
+                    <li>Continuous AI Optimization</li>
+                    <li>Answer Accuracy Improvement</li>
+                    <li>Monthly Reporting & Analytics</li>
+                    <li>Priority Tech Support</li>
+                </ul>
+                <a href="mailto:traore.m.2007@gmail.com?subject=Shinju AI - Retainer Inquiry" class="btn">SUBSCRIBE</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="section" style="text-align:center;">
+        <h2>Ready for a Free Audit?</h2>
+        <p style="color:var(--text-gray); margin: 20px 0 40px;">We'll analyze your current customer flow and show you exactly where you're losing revenue.</p>
+        <a href="mailto:traore.m.2007@gmail.com" class="btn" style="background:transparent; border: 2px solid var(--primary);">BOOK MY AUDIT</a>
+    </div>
+
+    <footer>
+        &copy; 2026 Shinju AI SaaS Solutions. Built by Traore M.
+    </footer>
+
+</body>
+</html>
