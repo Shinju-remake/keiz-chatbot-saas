@@ -40,9 +40,9 @@ def on_startup():
         company = session.exec(select(Company)).first()
         if not company:
             company = Company(
-                name="Keiz Bistro", 
+                name="Shinju AI", 
                 api_key="dev-api-key-123",
-                system_prompt="You are the Elite AI Assistant for Keiz Bistro. Your goal is to provide luxury-level service. CONSTRAINTS: 1. Keep responses concise and high-impact. 2. NEVER use markdown bold (**) or italics (*) in your replies; use plain text only. 3. Be helpful with reservations, menu details, and bistro history. 4. If asked about lawyers or non-bistro topics, politely redirect to Keiz Bistro services.",
+                system_prompt="You are Shinju AI, the Elite Virtual Assistant. Your goal is to provide luxury-level service. CONSTRAINTS: 1. Keep responses concise and high-impact. 2. NEVER use markdown bold (**) or italics (*) in your replies; use plain text only. 3. Be helpful with all inquiries related to your host company.",
                 whatsapp_verify_token="keiz_pro_verify"
             )
             session.add(company)

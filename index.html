@@ -198,25 +198,26 @@
 
     <script>
         const BACKEND_URL = "/chat";
-        const API_KEY = "dev-api-key-123";
-        
-        const translations = {
-            "en": {
-                "placeholder": "Ask anything about Keiz Bistro, or just chat...",
-                "send": "SEND",
-                "greeting": "Welcome to the Keiz AI Command Center. I am the Omni-Engine. How can I serve you?"
-            },
-            "fr": {
-                "placeholder": "Posez n'importe quelle question...",
-                "send": "ENVOYER",
-                "greeting": "Bienvenue au Centre de Commande Keiz AI. Je suis l'Omni-Engine. Comment puis-je vous servir ?"
-            },
-            "es": {
-                "placeholder": "Pregunta lo que quieras...",
-                "send": "ENVIAR",
-                "greeting": "Bienvenido al Centro de Mando de Keiz AI. Soy el Omni-Engine. ¿En qué puedo ayudarle?"
-            }
-        };
+        <title>Shinju AI | The Omni-Bot</title>
+        ...
+        <header>
+            <div class="logo">SHINJU AI</div>
+        ...
+                "en": {
+                    "placeholder": "Ask anything about Shinju AI, or just chat...",
+                    "send": "SEND",
+                    "greeting": "Welcome to the Shinju AI Command Center. I am the Omni-Engine. How can I serve you?"
+                },
+                "fr": {
+                    "placeholder": "Posez n'importe quelle question...",
+                    "send": "ENVOYER",
+                    "greeting": "Bienvenue au Centre de Commande Shinju AI. Je suis l'Omni-Engine. Comment puis-je vous servir ?"
+                },
+                "es": {
+                    "placeholder": "Pregunta lo que quieras...",
+                    "send": "ENVIAR",
+                    "greeting": "Bienvenido al Centro de Mando de Shinju AI. Soy el Omni-Engine. ¿En qué puedo ayudarle?"
+                }
 
         let currentLang = localStorage.getItem("keiz_official_lang") || "en";
         let sessionId = localStorage.getItem("keiz_official_session");
