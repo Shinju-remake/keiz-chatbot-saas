@@ -315,6 +315,12 @@ async def update_settings(settings_in: SettingsUpdate, x_api_key: str = Header(.
     db.commit()
     return {"status": "success"}
 
+from fastapi.responses import FileResponse
+
+@app.get("/agency")
+async def get_agency_page():
+    return FileResponse(BASE_DIR / "agency.html")
+
 # MOUNT STATIC FILES
 # Use paths relative to this file's location for cloud deployment
 BASE_DIR = Path(__file__).resolve().parent.parent
