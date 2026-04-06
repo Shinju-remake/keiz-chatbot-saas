@@ -3,28 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shinju AI | The Omni-Bot</title>
+    <title>Shinju AI | Omni-Engine Hub</title>
     <style>
         :root {
-            --primary-purple: #BB00FF;
+            --primary: #BB00FF;
             --dark-bg: #0a0a0a;
-            --card-bg: #1a1a1a;
-            --text-gray: #b0b0b0;
+            --card-bg: #161616;
+            --text-gray: #a0a0a0;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
-
         body {
             font-family: 'Inter', -apple-system, sans-serif;
             background-color: var(--dark-bg);
             color: white;
-            height: 100vh;
+            line-height: 1.6;
+            overflow: hidden;
             display: flex;
             flex-direction: column;
-            overflow: hidden;
+            height: 100vh;
         }
 
-        /* Animated Background Gradient */
+        /* Gradient Background */
         body::before {
             content: "";
             position: absolute;
@@ -34,12 +34,6 @@
             height: 200%;
             background: radial-gradient(circle at center, rgba(187, 0, 255, 0.05) 0%, transparent 70%);
             z-index: -1;
-            animation: pulse 15s infinite alternate;
-        }
-
-        @keyframes pulse {
-            0% { transform: translate(0, 0); }
-            100% { transform: translate(5%, 5%); }
         }
 
         header {
@@ -49,243 +43,159 @@
             align-items: center;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
+            z-index: 100;
         }
 
         .logo {
             font-size: 24px;
             font-weight: 800;
             letter-spacing: -1px;
-            color: var(--primary-purple);
-            text-shadow: 0 0 15px rgba(187, 0, 255, 0.5);
+            color: var(--primary);
+            text-shadow: 0 0 15px rgba(187, 0, 255, 0.3);
+            text-decoration: none;
         }
+
+        nav a {
+            color: var(--text-gray);
+            text-decoration: none;
+            margin-left: 30px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: 0.3s;
+        }
+
+        nav a:hover { color: var(--primary); }
 
         main {
             flex: 1;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
-            padding: 20px;
+            padding: 40px;
+            text-align: center;
         }
 
-        #chat-window {
+        h1 {
+            font-size: 3.5rem;
+            font-weight: 900;
+            margin-bottom: 10px;
+            background: linear-gradient(to right, #fff, var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        p.tagline {
+            color: var(--text-gray);
+            margin-bottom: 50px;
+            font-size: 1.1rem;
+            max-width: 600px;
+        }
+
+        .portal-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            max-width: 1100px;
             width: 100%;
-            max-width: 900px;
-            height: 80vh;
+        }
+
+        .portal-card {
             background: var(--card-bg);
-            border-radius: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 40px 30px;
+            border-radius: 24px;
+            border: 1px solid rgba(255,255,255,0.05);
+            text-decoration: none;
+            color: white;
+            transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             display: flex;
             flex-direction: column;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-            position: relative;
+            align-items: center;
         }
 
-        #messages-container {
-            flex: 1;
-            padding: 30px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
+        .portal-card:hover {
+            transform: translateY(-15px);
+            border-color: var(--primary);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4), 0 0 20px rgba(187, 0, 255, 0.2);
         }
 
-        /* Custom Scrollbar */
-        #messages-container::-webkit-scrollbar { width: 6px; }
-        #messages-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
-
-        .message {
-            max-width: 75%;
-            padding: 15px 20px;
-            border-radius: 15px;
-            line-height: 1.5;
-            font-size: 16px;
-            animation: slideIn 0.3s ease-out;
+        .portal-card .icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
         }
 
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+        .portal-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            color: var(--primary);
         }
 
-        .user-msg {
-            background: var(--primary-purple);
-            color: white;
-            align-self: flex-end;
-            border-bottom-right-radius: 2px;
-            box-shadow: 0 4px 15px rgba(187, 0, 255, 0.3);
+        .portal-card p {
+            font-size: 0.9rem;
+            color: var(--text-gray);
         }
 
-        .bot-msg {
-            background: #2a2a2a;
-            color: #efefef;
-            align-self: flex-start;
-            border-bottom-left-radius: 2px;
+        footer {
+            padding: 20px;
+            text-align: center;
+            font-size: 0.8rem;
+            color: #444;
+            border-top: 1px solid rgba(255,255,255,0.05);
         }
 
-        #input-area {
-            padding: 25px;
-            background: rgba(0,0,0,0.2);
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            display: flex;
-            gap: 15px;
-        }
-
-        input {
-            flex: 1;
-            background: #252525;
-            border: 1px solid rgba(255,255,255,0.1);
-            padding: 15px 20px;
-            border-radius: 12px;
-            color: white;
-            font-size: 16px;
-            outline: none;
-            transition: border-color 0.3s;
-        }
-
-        input:focus { border-color: var(--primary-purple); }
-
-        button {
-            background: var(--primary-purple);
-            color: white;
-            border: none;
-            padding: 0 30px;
-            border-radius: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s, opacity 0.2s;
-        }
-
-        button:hover { transform: scale(1.02); opacity: 0.9; }
-        button:active { transform: scale(0.98); }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            background: #00ff88;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 8px;
-            box-shadow: 0 0 10px #00ff88;
+        @media (max-width: 900px) {
+            .portal-grid { grid-template-columns: 1fr; }
+            h1 { font-size: 2.5rem; }
+            body { overflow-y: auto; }
+            main { height: auto; }
         }
     </style>
 </head>
 <body>
+
     <header>
-        <div class="logo">SHINJU AI</div>
-        <div style="display:flex; align-items:center; gap:20px;">
-            <select id="lang-select" style="background:transparent; color:var(--text-gray); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:5px 10px; cursor:pointer; outline:none;">
-                <option value="en">English</option>
-                <option value="fr">Français</option>
-                <option value="es">Español</option>
-            </select>
-            <div style="font-size: 14px; color: var(--text-gray);">
-                <span class="status-dot"></span> V3 OMNI-ENGINE ACTIVE
-            </div>
-        </div>
+        <a href="/" class="logo">SHINJU AI</a>
+        <nav>
+            <a href="/agency">Agency</a>
+            <a href="/demo">Live Demo</a>
+            <a href="/dashboard">Dashboard</a>
+        </nav>
     </header>
 
     <main>
-        <div id="chat-window">
-            <div id="messages-container">
-                <!-- Messages will load here -->
-            </div>
-            <div id="input-area">
-                <input type="text" id="user-input" placeholder="Ask anything..." autofocus>
-                <button id="send-btn">SEND</button>
-            </div>
+        <h1>The Omni-Engine Hub.</h1>
+        <p class="tagline">Welcome to the central gateway of Shinju AI. Choose your destination to start automating your future.</p>
+
+        <div class="portal-grid">
+            <!-- AGENCY PORTAL -->
+            <a href="/agency" class="portal-card">
+                <div class="icon">🏢</div>
+                <h3>AI Agency</h3>
+                <p>Explore our strategic formulas, success stories, and automation services.</p>
+            </a>
+
+            <!-- DEMO PORTAL -->
+            <a href="/demo" class="portal-card">
+                <div class="icon">🎭</div>
+                <h3>Bistro Demo</h3>
+                <p>See the Shinju AI Omni-Engine in action with our 5-star restaurant experience.</p>
+            </a>
+
+            <!-- ADMIN PORTAL -->
+            <a href="/dashboard" class="portal-card">
+                <div class="icon">⚙️</div>
+                <h3>Dashboard</h3>
+                <p>Manage your FAQ rules, monitor live conversation logs, and tune AI settings.</p>
+            </a>
         </div>
     </main>
 
-    <script>
-        const BACKEND_URL = "/chat";
-        const API_KEY = "dev-api-key-123";
-        
-        const translations = {
-            "en": {
-                "placeholder": "Ask anything about Shinju AI, or just chat...",
-                "send": "SEND",
-                "greeting": "Welcome to the Shinju AI Command Center. How can I serve you?"
-            },
-            "fr": {
-                "placeholder": "Posez n'importe quelle question...",
-                "send": "ENVOYER",
-                "greeting": "Bienvenue au Centre de Commande Shinju AI. Comment puis-je vous servir ?"
-            },
-            "es": {
-                "placeholder": "Pregunta lo que quieras...",
-                "send": "ENVIAR",
-                "greeting": "Bienvenido al Centro de Mando de Shinju AI. ¿En qué puedo ayudarle?"
-            }
-        };
+    <!-- FLOATING CHAT WIDGET (Self-Test) -->
+    <script src="/widget/chat.js"></script>
 
-        let currentLang = localStorage.getItem("keiz_official_lang") || "en";
-        let sessionId = localStorage.getItem("keiz_official_session");
-        
-        if (!sessionId) {
-            sessionId = "sess_portal_" + Math.random().toString(36).substr(2, 9);
-            localStorage.setItem("keiz_official_session", sessionId);
-        }
+    <footer>
+        &copy; 2026 Shinju AI Solutions. All systems operational.
+    </footer>
 
-        const container = document.getElementById("messages-container");
-        const input = document.getElementById("user-input");
-        const btn = document.getElementById("send-btn");
-        const langSelect = document.getElementById("lang-select");
-
-        langSelect.value = currentLang;
-        input.placeholder = translations[currentLang].placeholder;
-        btn.innerText = translations[currentLang].send;
-
-        langSelect.onchange = (e) => {
-            currentLang = e.target.value;
-            localStorage.setItem("keiz_official_lang", currentLang);
-            input.placeholder = translations[currentLang].placeholder;
-            btn.innerText = translations[currentLang].send;
-        };
-
-        function addMessage(text, sender) {
-            const div = document.createElement("div");
-            div.className = `message ${sender}-msg`;
-            div.innerText = text;
-            container.appendChild(div);
-            container.scrollTop = container.scrollHeight;
-        }
-
-        async function chat() {
-            const msg = input.value.trim();
-            if (!msg) return;
-
-            addMessage(msg, "user");
-            input.value = "";
-
-            try {
-                const response = await fetch(BACKEND_URL, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "X-API-Key": API_KEY
-                    },
-                    body: JSON.stringify({ 
-                        message: msg, 
-                        session_id: sessionId,
-                        language: currentLang
-                    })
-                });
-                const data = await response.json();
-                addMessage(data.reply, "bot");
-            } catch (e) {
-                addMessage("Connection error. Ensure backend is running.", "bot");
-            }
-        }
-
-        btn.onclick = chat;
-        input.onkeypress = (e) => { if (e.key === "Enter") chat(); };
-
-        // Initial Greeting
-        window.onload = () => {
-            setTimeout(() => {
-                addMessage(translations[currentLang].greeting, "bot");
-            }, 500);
-        };
-    </script>
 </body>
 </html>
