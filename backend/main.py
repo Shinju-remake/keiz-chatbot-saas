@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Header, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 from typing import List, Optional
 from sqlmodel import Session, select
@@ -20,7 +20,7 @@ from backend.utils import process_message_v3, send_whatsapp_reply
 
 load_dotenv()
 
-# Define BASE_DIR at the top for use in routes and mounting
+# Hardened Path Resolution for Render
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Initialize Rate Limiter
@@ -75,88 +75,23 @@ def on_startup():
         
         session.commit()
 
-@app.get("/debug/network")
-async def debug_network():
+@app.get("/debug/files")
+async def debug_files():
     """
-    Test outbound connectivity to OpenAI via curl.
+    List files to verify path resolution on Render.
     """
-    import subprocess
-    try:
-        result = subprocess.run(
-            ["curl", "-v", "https://api.openai.com/v1/models"],
-            capture_output=True, text=True, timeout=10
-        )
-        return {"stdout": result.stdout, "stderr": result.stderr}
-    except Exception as e:
-        return {"error": str(e)}
-
-@app.get("/debug/httpx")
-async def debug_httpx():
-    """
-    Test raw HTTPX connectivity to OpenAI (without the SDK).
-    """
-    import httpx
-    import os
-    key = os.getenv("OPENAI_API_KEY")
-    try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            resp = await client.get(
-                "https://api.openai.com/v1/models",
-                headers={"Authorization": f"Bearer {key}"}
-            )
-            return {
-                "status_code": resp.status_code,
-                "json": resp.json() if resp.status_code == 200 else str(resp.text),
-                "headers": dict(resp.headers)
-            }
-    except Exception as e:
-        return {"error_type": type(e).__name__, "message": str(e)}
-
-@app.get("/debug/ai")
-async def debug_ai_endpoint(db: Session = Depends(get_session)):
-    """
-    Diagnostic endpoint to test OpenAI connection on Render.
-    """
-    company = db.exec(select(Company)).first()
-    key = os.getenv("OPENAI_API_KEY")
-    if not key:
-        return {"status": "error", "message": "OPENAI_API_KEY env var is MISSING on Render"}
-    
-    # Clean the key aggressively (remove ALL spaces/newlines from middle)
-    key = key.replace(" ", "").replace("\n", "").replace("\r", "").strip()
-    
-    masked_key = key[:10] + "..." + key[-5:]
-    import httpx
-    from openai import OpenAI
-    try:
-        # 2026 Render Fix: Force IPv4
-        transport = httpx.HTTPTransport(local_address="0.0.0.0")
-        http_client = httpx.Client(transport=transport)
-        
-        client = OpenAI(
-            api_key=key, 
-            timeout=60.0,
-            http_client=http_client
-        )
-        response = client.chat.completions.create(
-            model="gpt-5.4-nano",
-            messages=[{"role": "user", "content": "ping"}],
-            max_completion_tokens=10
-        )
-        return {
-            "status": "success", 
-            "reply": response.choices[0].message.content, 
-            "key_used": masked_key,
-            "version": "Diagnostic V5 (Aggressive Key Cleaning + IPv4 Force)"
-        }
-    except Exception as e:
-        return {
-            "status": "error", 
-            "type": type(e).__name__, 
-            "message": str(e), 
-            "key_used": masked_key,
-            "version": "Diagnostic V5 (Aggressive Key Cleaning + IPv4 Force)"
-        }
+    return {
+        "BASE_DIR": str(BASE_DIR),
+        "CWD": os.getcwd(),
+        "exists": {
+            "index.html": (BASE_DIR / "index.html").exists(),
+            "agency.html": (BASE_DIR / "agency.html").exists(),
+            "admin/dashboard.html": (BASE_DIR / "admin" / "dashboard.html").exists(),
+            "test.html": (BASE_DIR / "test.html").exists(),
+            "widget/test.html": (BASE_DIR / "widget" / "test.html").exists(),
+        },
+        "contents": os.listdir(str(BASE_DIR))
+    }
 
 class ChatMessage(BaseModel):
     message: str
@@ -177,56 +112,36 @@ async def chat_endpoint(request: Request, msg: ChatMessage, x_api_key: str = Hea
     result = process_message_v3(company, msg.session_id, msg.message, db, language=msg.language)
     return ChatResponse(**result)
 
-# --- PRO FEATURES: WHATSAPP WEBHOOK ---
+# --- PORTALS (CLEAN URLS) ---
 
-@app.get("/webhook/whatsapp")
-async def verify_whatsapp(request: Request, db: Session = Depends(get_session)):
-    """
-    Step 1: Meta verifies your server URL with a Verify Token.
-    """
-    params = request.query_params
-    mode = params.get("hub.mode")
-    token = params.get("hub.verify_token")
-    challenge = params.get("hub.challenge")
+@app.get("/")
+async def get_hub_page():
+    return FileResponse(BASE_DIR / "index.html")
 
-    if mode == "subscribe" and token:
-        # Check if any company matches this verify token
-        company = db.exec(select(Company).where(Company.whatsapp_verify_token == token)).first()
-        if company:
-            return int(challenge)
-    
-    raise HTTPException(status_code=403, detail="Verification failed")
+@app.get("/agency")
+async def get_agency_page():
+    return FileResponse(BASE_DIR / "agency.html")
 
-@app.post("/webhook/whatsapp")
-async def handle_whatsapp_msg(request: Request, db: Session = Depends(get_session)):
-    """
-    Step 2: Handle incoming WhatsApp messages.
-    """
-    data = await request.json()
-    
-    try:
-        # Extract metadata from Meta's complex payload
-        entry = data["entry"][0]["changes"][0]["value"]
-        if "messages" in entry:
-            message = entry["messages"][0]
-            from_num = message["from"]
-            text = message["text"]["body"]
-            
-            # Identify the company by their phone_id (or other unique metadata)
-            phone_id = data["entry"][0]["id"]
-            company = db.exec(select(Company).where(Company.whatsapp_phone_id == phone_id)).first()
-            
-            if company:
-                # Use the Omni-Engine brain
-                result = process_message_v3(company, f"wa_{from_num}", text, db)
-                
-                # Send back to WhatsApp
-                await send_whatsapp_reply(company, from_num, result["reply"])
-                
-    except Exception as e:
-        print(f"WhatsApp Webhook Error: {e}")
-        
-    return {"status": "success"}
+@app.get("/dashboard")
+async def get_dashboard_page():
+    path = BASE_DIR / "admin" / "dashboard.html"
+    if not path.exists():
+        raise HTTPException(status_code=404, detail=f"Dashboard not found at {path}")
+    return FileResponse(path)
+
+@app.get("/demo")
+async def get_demo_page():
+    path = BASE_DIR / "test.html"
+    if not path.exists():
+        raise HTTPException(status_code=404, detail=f"Demo not found at {path}")
+    return FileResponse(path)
+
+@app.get("/test")
+async def get_test_page():
+    path = BASE_DIR / "widget" / "test.html"
+    if not path.exists():
+        raise HTTPException(status_code=404, detail=f"Test not found at {path}")
+    return FileResponse(path)
 
 # --- ADMIN ROUTES ---
 
@@ -293,7 +208,7 @@ async def get_settings(x_api_key: str = Header(...), db: Session = Depends(get_s
     return {
         "name": company.name,
         "system_prompt": company.system_prompt,
-        "openai_api_key": company.openai_api_key, # Usually masked in prod, but keeping it for now for Root Admin
+        "openai_api_key": company.openai_api_key, 
         "whatsapp_phone_id": company.whatsapp_phone_id,
         "whatsapp_verify_token": company.whatsapp_verify_token
     }
@@ -319,23 +234,7 @@ async def update_settings(settings_in: SettingsUpdate, x_api_key: str = Header(.
     db.commit()
     return {"status": "success"}
 
-@app.get("/agency")
-async def get_agency_page():
-    return FileResponse(BASE_DIR / "agency.html")
-
-@app.get("/dashboard")
-async def get_dashboard_page():
-    return FileResponse(BASE_DIR / "admin" / "dashboard.html")
-
-@app.get("/demo")
-async def get_demo_page():
-    return FileResponse(BASE_DIR / "test.html")
-
-@app.get("/test")
-async def get_test_page():
-    return FileResponse(BASE_DIR / "widget" / "test.html")
-
 # MOUNT STATIC FILES
 app.mount("/widget", StaticFiles(directory=str(BASE_DIR / "widget")), name="widget")
-app.mount("/admin", StaticFiles(directory=str(BASE_DIR / "admin")), name="admin")
-app.mount("/", StaticFiles(directory=str(BASE_DIR), html=True), name="static")
+app.mount("/admin_static", StaticFiles(directory=str(BASE_DIR / "admin")), name="admin_static")
+app.mount("/static", StaticFiles(directory=str(BASE_DIR)), name="static_root")
