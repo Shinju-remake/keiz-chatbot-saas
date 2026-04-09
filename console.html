@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shinju AI | Universal Console</title>
+    <style>
+        :root {
+            --primary: #BB00FF;
+            --dark-bg: #050505;
+            --sidebar-bg: #0a0a0a;
+            --text-gray: #888;
+            --accent: #00ff88;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: var(--dark-bg);
+            color: white;
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* SIDEBAR */
+        #sidebar {
+            width: 80px;
+            background: var(--sidebar-bg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 0;
+            border-right: 1px solid rgba(255,255,255,0.05);
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1000;
+        }
+
+        #sidebar:hover { width: 240px; }
+
+        .brand {
+            font-weight: 900;
+            color: var(--primary);
+            font-size: 1.5rem;
+            margin-bottom: 40px;
+            text-shadow: 0 0 10px rgba(187, 0, 255, 0.5);
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+        .nav-item {
+            width: 100%;
+            padding: 15px 25px;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            color: var(--text-gray);
+            transition: 0.2s;
+            border-left: 3px solid transparent;
+            text-decoration: none;
+        }
+
+        .nav-item:hover {
+            color: white;
+            background: rgba(187, 0, 255, 0.1);
+        }
+
+        .nav-item.active {
+            color: var(--primary);
+            background: rgba(187, 0, 255, 0.05);
+            border-left-color: var(--primary);
+        }
+
+        .nav-item .icon {
+            font-size: 1.2rem;
+            min-width: 30px;
+            margin-right: 15px;
+        }
+
+        .nav-item .label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            opacity: 0;
+            transition: opacity 0.2s;
+            white-space: nowrap;
+        }
+
+        #sidebar:hover .nav-item .label { opacity: 1; }
+
+        /* MAIN VIEW */
+        #view-container {
+            flex: 1;
+            position: relative;
+            background: var(--dark-bg);
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: none;
+        }
+
+        iframe.active { display: block; }
+
+        #welcome-screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 40px;
+            background: radial-gradient(circle at center, rgba(187, 0, 255, 0.05) 0%, transparent 70%);
+        }
+
+        h1 { font-size: 3rem; font-weight: 900; margin-bottom: 10px; }
+        p { color: var(--text-gray); max-width: 500px; margin-bottom: 30px; }
+
+        .status-bar {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 0.75rem;
+            color: #444;
+            font-family: monospace;
+        }
+
+        .pulse {
+            width: 8px; height: 8px;
+            background: var(--accent);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--accent);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(0, 255, 136, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 255, 136, 0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="sidebar">
+        <div class="brand">S. AI</div>
+        
+        <div class="nav-item active" onclick="switchView('hub', this)">
+            <span class="icon">🏠</span>
+            <span class="label">Universal Hub</span>
+        </div>
+        
+        <div class="nav-item" onclick="switchView('agency', this)">
+            <span class="icon">🏢</span>
+            <span class="label">AI Agency</span>
+        </div>
+
+        <div class="nav-item" onclick="switchView('demo', this)">
+            <span class="icon">🎭</span>
+            <span class="label">Bistro Experience</span>
+        </div>
+
+        <div class="nav-item" onclick="switchView('dashboard', this)">
+            <span class="icon">⚙️</span>
+            <span class="label">Admin Dashboard</span>
+        </div>
+
+        <div class="nav-item" onclick="switchView('test', this)" style="margin-top: auto;">
+            <span class="icon">🧪</span>
+            <span class="label">Technical Sandbox</span>
+        </div>
+    </div>
+
+    <div id="view-container">
+        <!-- WELCOME / HUB -->
+        <div id="welcome-screen">
+            <h1>SHINJU AI CONSOLE</h1>
+            <p>The centralized orchestration interface for the Shinju Omni-Engine V3. Navigate between portals via the sidebar.</p>
+            <div style="display:flex; gap:20px;">
+                <button onclick="switchView('agency')" style="background:var(--primary); color:white; border:none; padding:12px 30px; border-radius:50px; cursor:pointer; font-weight:700;">ENTER AGENCY</button>
+                <button onclick="switchView('demo')" style="background:transparent; border:1px solid var(--primary); color:white; padding:12px 30px; border-radius:50px; cursor:pointer; font-weight:700;">TRY BISTRO DEMO</button>
+            </div>
+        </div>
+
+        <!-- PORTAL IFRAMES -->
+        <iframe id="iframe-agency" src="/agency_static"></iframe>
+        <iframe id="iframe-demo" src="/demo_static"></iframe>
+        <iframe id="iframe-dashboard" src="/dashboard_static"></iframe>
+        <iframe id="iframe-test" src="/test_static"></iframe>
+
+        <div class="status-bar">
+            <div class="pulse"></div>
+            <span>OMNI-ENGINE V3 ACTIVE</span>
+            <span>|</span>
+            <span>PORT: 8000</span>
+            <span>|</span>
+            <span>REGION: RENDER-LIVE</span>
+        </div>
+    </div>
+
+    <!-- GLOBAL WIDGET -->
+    <script src="/widget/chat.js"></script>
+
+    <script>
+        function switchView(viewId, el) {
+            // Hide all iframes and welcome screen
+            document.querySelectorAll('iframe').forEach(f => f.classList.remove('active'));
+            document.getElementById('welcome-screen').style.display = 'none';
+            
+            // Show selected
+            if (viewId === 'hub') {
+                document.getElementById('welcome-screen').style.display = 'flex';
+            } else {
+                const frame = document.getElementById(`iframe-${viewId}`);
+                if (frame) frame.classList.add('active');
+            }
+
+            // Update sidebar active state
+            if (el) {
+                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+                el.classList.add('active');
+            }
+        }
+    </script>
+</body>
+</html>

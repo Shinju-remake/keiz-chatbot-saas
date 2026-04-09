@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Header, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import List, Optional
 from sqlmodel import Session, select
@@ -14,19 +14,19 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
-# Relative imports for local/render consistency
+# Relative imports
 from .database import create_db_and_tables, get_session, engine
 from .models import Company, FAQRule, ChatLog
 from .utils import process_message_v3, send_whatsapp_reply
 
 load_dotenv()
 
-# Absolute Path Resolution
+# Hardened Path Resolution
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Initialize Rate Limiter
 limiter = Limiter(key_func=get_remote_address)
-app = FastAPI(title="Keiz Chatbot SaaS - Omni-Engine V3 (PRO)")
+app = FastAPI(title="Shinju AI - Universal Console V3")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
@@ -53,41 +53,7 @@ def on_startup():
             session.add(company)
             session.commit()
             session.refresh(company)
-            
-        # Ensure all rules exist
-        target_rules = {
-            "price": "Our luxury dining experience ranges from 50€ to 150€. Quality is our priority.",
-            "contact": "Contact Shinju at contact@shinju-ai.com or visit our dashboard.",
-            "book": "To book a table at Shinju Bistro, please provide your name and number of guests.",
-            "reserve": "I can assist with reservations at Shinju Bistro! Please provide the date, time, and party size.",
-            "reservation": "For reservations, tell me the date, time, and how many guests will be joining us.",
-            "menu": "Explore our menu at shinju-bistro.com/menu",
-            "vibe": "The atmosphere at Shinju is one of refined elegance, perfect for discerning guests.",
-            "hello": "Hello! I am Shinju AI. How can I serve you today?",
-            "hi": "Greetings. I am Shinju AI, your dedicated assistant. How may I help?",
-            "recommend": "I highly recommend our signature Omakase experience.",
-            "hey": "Welcome back. I am Shinju AI. What can I do for you?"
-        }
-        
-        existing_keywords = session.exec(select(FAQRule.keyword).where(FAQRule.company_id == company.id)).all()
-        for kw, resp in target_rules.items():
-            if kw not in existing_keywords:
-                session.add(FAQRule(company_id=company.id, keyword=kw, response=resp))
-        
         session.commit()
-
-@app.get("/debug/files")
-async def debug_files():
-    return {
-        "BASE_DIR": str(BASE_DIR),
-        "exists": {
-            "index.html": (BASE_DIR / "index.html").exists(),
-            "agency.html": (BASE_DIR / "agency.html").exists(),
-            "dashboard.html": (BASE_DIR / "admin" / "dashboard.html").exists(),
-            "test.html": (BASE_DIR / "test.html").exists(),
-        },
-        "contents": os.listdir(str(BASE_DIR))
-    }
 
 class ChatMessage(BaseModel):
     message: str
@@ -104,92 +70,87 @@ async def chat_endpoint(request: Request, msg: ChatMessage, x_api_key: str = Hea
     company = db.exec(select(Company).where(Company.api_key == x_api_key)).first()
     if not company:
         raise HTTPException(status_code=403, detail="Invalid API Key")
-    
     result = process_message_v3(company, msg.session_id, msg.message, db, language=msg.language)
     return ChatResponse(**result)
 
-# --- PORTALS (CLEAN URLS) ---
+# --- THE UNIVERSAL CONSOLE ---
 
 @app.get("/")
-async def get_hub_page():
-    return FileResponse(str(BASE_DIR / "index.html"))
+async def get_console():
+    return FileResponse(str(BASE_DIR / "console.html"))
 
-@app.get("/agency")
-async def get_agency_page():
+# --- PORTAL STATIC ROUTES (For Iframes) ---
+
+@app.get("/agency_static")
+async def get_agency_static():
     return FileResponse(str(BASE_DIR / "agency.html"))
 
-@app.get("/dashboard")
-async def get_dashboard_page():
-    return FileResponse(str(BASE_DIR / "admin" / "dashboard.html"))
-
-@app.get("/demo")
-async def get_demo_page():
+@app.get("/demo_static")
+async def get_demo_static():
     return FileResponse(str(BASE_DIR / "test.html"))
 
-@app.get("/test")
-async def get_test_page():
+@app.get("/dashboard_static")
+async def get_dashboard_static():
+    return FileResponse(str(BASE_DIR / "admin" / "dashboard.html"))
+
+@app.get("/test_static")
+async def get_test_static():
     return FileResponse(str(BASE_DIR / "widget" / "test.html"))
 
-# --- ADMIN ROUTES ---
+# --- CLEAN URL REDIRECTS (Optional, but good for direct access) ---
+
+@app.get("/agency")
+async def get_agency(): return await get_agency_static()
+
+@app.get("/demo")
+async def get_demo(): return await get_demo_static()
+
+@app.get("/dashboard")
+async def get_dashboard(): return await get_dashboard_static()
+
+@app.get("/test")
+async def get_test(): return await get_test_static()
+
+# --- ADMIN API ROUTES ---
 
 @app.get("/admin/logs")
 async def get_logs(x_api_key: str = Header(...), db: Session = Depends(get_session)):
     company = db.exec(select(Company).where(Company.api_key == x_api_key)).first()
-    if not company:
-        raise HTTPException(status_code=403, detail="Invalid API Key")
-    return db.exec(
-        select(ChatLog)
-        .where(ChatLog.company_id == company.id)
-        .order_by(ChatLog.timestamp.desc())
-        .limit(100)
-    ).all()
+    if not company: raise HTTPException(status_code=403, detail="Invalid API Key")
+    return db.exec(select(ChatLog).where(ChatLog.company_id == company.id).order_by(ChatLog.timestamp.desc()).limit(100)).all()
 
 @app.get("/admin/rules")
 async def get_rules(x_api_key: str = Header(...), db: Session = Depends(get_session)):
     company = db.exec(select(Company).where(Company.api_key == x_api_key)).first()
-    if not company:
-        raise HTTPException(status_code=403, detail="Invalid API Key")
+    if not company: raise HTTPException(status_code=403, detail="Invalid API Key")
     return db.exec(select(FAQRule).where(FAQRule.company_id == company.id)).all()
+
+class FAQRuleCreate(BaseModel):
+    keyword: str
+    response: str
 
 @app.post("/admin/rules")
 async def create_rule(rule_in: FAQRuleCreate, x_api_key: str = Header(...), db: Session = Depends(get_session)):
     company = db.exec(select(Company).where(Company.api_key == x_api_key)).first()
-    if not company:
-        raise HTTPException(status_code=403, detail="Invalid API Key")
+    if not company: raise HTTPException(status_code=403, detail="Invalid API Key")
     existing = db.exec(select(FAQRule).where(FAQRule.company_id == company.id, FAQRule.keyword == rule_in.keyword.lower())).first()
-    if existing:
-        existing.response = rule_in.response
-        db.add(existing)
-    else:
-        new_rule = FAQRule(company_id=company.id, keyword=rule_in.keyword.lower(), response=rule_in.response)
-        db.add(new_rule)
-    db.commit()
-    return {"status": "success"}
+    if existing: existing.response = rule_in.response; db.add(existing)
+    else: db.add(FAQRule(company_id=company.id, keyword=rule_in.keyword.lower(), response=rule_in.response))
+    db.commit(); return {"status": "success"}
 
 @app.delete("/admin/rules/{rule_id}")
 async def delete_rule(rule_id: int, x_api_key: str = Header(...), db: Session = Depends(get_session)):
     company = db.exec(select(Company).where(Company.api_key == x_api_key)).first()
-    if not company:
-        raise HTTPException(status_code=403, detail="Invalid API Key")
+    if not company: raise HTTPException(status_code=403, detail="Invalid API Key")
     rule = db.get(FAQRule, rule_id)
-    if not rule or rule.company_id != company.id:
-        raise HTTPException(status_code=404, detail="Rule not found")
-    db.delete(rule)
-    db.commit()
-    return {"status": "success"}
+    if not rule or rule.company_id != company.id: raise HTTPException(status_code=404, detail="Rule not found")
+    db.delete(rule); db.commit(); return {"status": "success"}
 
 @app.get("/admin/settings")
 async def get_settings(x_api_key: str = Header(...), db: Session = Depends(get_session)):
     company = db.exec(select(Company).where(Company.api_key == x_api_key)).first()
-    if not company:
-        raise HTTPException(status_code=403, detail="Invalid API Key")
-    return {
-        "name": company.name,
-        "system_prompt": company.system_prompt,
-        "openai_api_key": company.openai_api_key, 
-        "whatsapp_phone_id": company.whatsapp_phone_id,
-        "whatsapp_verify_token": company.whatsapp_verify_token
-    }
+    if not company: raise HTTPException(status_code=403, detail="Invalid API Key")
+    return {"name": company.name, "system_prompt": company.system_prompt, "openai_api_key": company.openai_api_key, "whatsapp_phone_id": company.whatsapp_phone_id, "whatsapp_verify_token": company.whatsapp_verify_token}
 
 class SettingsUpdate(BaseModel):
     name: Optional[str] = None
@@ -197,22 +158,15 @@ class SettingsUpdate(BaseModel):
     openai_api_key: Optional[str] = None
     whatsapp_phone_id: Optional[str] = None
 
-class FAQRuleCreate(BaseModel):
-    keyword: str
-    response: str
-
 @app.post("/admin/settings")
 async def update_settings(settings_in: SettingsUpdate, x_api_key: str = Header(...), db: Session = Depends(get_session)):
     company = db.exec(select(Company).where(Company.api_key == x_api_key)).first()
-    if not company:
-        raise HTTPException(status_code=403, detail="Invalid API Key")
+    if not company: raise HTTPException(status_code=403, detail="Invalid API Key")
     if settings_in.name: company.name = settings_in.name
     if settings_in.system_prompt: company.system_prompt = settings_in.system_prompt
     if settings_in.openai_api_key: company.openai_api_key = settings_in.openai_api_key
     if settings_in.whatsapp_phone_id: company.whatsapp_phone_id = settings_in.whatsapp_phone_id
-    db.add(company)
-    db.commit()
-    return {"status": "success"}
+    db.add(company); db.commit(); return {"status": "success"}
 
 # MOUNT STATIC FILES
 app.mount("/widget", StaticFiles(directory=str(BASE_DIR / "widget")), name="widget")
