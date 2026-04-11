@@ -85,11 +85,13 @@
     };
 
     bubble.onclick = () => {
-        container.style.display = container.style.display === "flex" ? "none" : "flex";
+        container.style.display = "flex";
+        bubble.style.display = "none";
     };
 
     document.getElementById("shinju-chat-close").onclick = () => {
         container.style.display = "none";
+        bubble.style.display = "flex";
     };
 
     function appendMessage(text, sender) {
