@@ -4,10 +4,10 @@
     const BACKEND_URL = "/chat"; // Relative path works since served from same domain
 
     // Session Memory Tracking
-    let sessionId = localStorage.getItem("keiz_chat_session");
+    let sessionId = localStorage.getItem("shinju_chat_session");
     if (!sessionId) {
         sessionId = "sess_" + Math.random().toString(36).substr(2, 9);
-        localStorage.setItem("keiz_chat_session", sessionId);
+        localStorage.setItem("shinju_chat_session", sessionId);
     }
 
     // 2. Inject CSS
@@ -18,7 +18,7 @@
 
     // 3. Build UI Elements
     const bubble = document.createElement("div");
-    bubble.id = "keiz-chat-bubble";
+    bubble.id = "shinju-chat-bubble";
     bubble.innerHTML = "💬";
     document.body.appendChild(bubble);
 
@@ -43,40 +43,40 @@
         }
     };
 
-    let currentLang = localStorage.getItem("keiz_chat_lang") || "en";
+    let currentLang = localStorage.getItem("shinju_chat_lang") || "en";
 
     const container = document.createElement("div");
-    container.id = "keiz-chat-container";
+    container.id = "shinju-chat-container";
     container.innerHTML = `
-        <div id="keiz-chat-header">
-            <span id="keiz-chat-title">${translations[currentLang].header}</span>
+        <div id="shinju-chat-header">
+            <span id="shinju-chat-title">${translations[currentLang].header}</span>
             <div style="display:flex; align-items:center; gap:10px;">
-                <select id="keiz-chat-lang-select" style="background:transparent; color:white; border:1px solid white; border-radius:4px; font-size:12px; cursor:pointer;">
+                <select id="shinju-chat-lang-select" style="background:transparent; color:white; border:1px solid white; border-radius:4px; font-size:12px; cursor:pointer;">
                     <option value="en" ${currentLang === 'en' ? 'selected' : ''}>EN</option>
                     <option value="fr" ${currentLang === 'fr' ? 'selected' : ''}>FR</option>
                     <option value="es" ${currentLang === 'es' ? 'selected' : ''}>ES</option>
                 </select>
-                <span style="cursor:pointer;" id="keiz-chat-close">✖</span>
+                <span style="cursor:pointer;" id="shinju-chat-close">✖</span>
             </div>
         </div>
-        <div id="keiz-chat-messages" style="display:flex; flex-direction:column;"></div>
-        <div id="keiz-chat-input-area">
-            <input type="text" id="keiz-chat-input" placeholder="${translations[currentLang].input}">
-            <button id="keiz-chat-send">${translations[currentLang].send}</button>
+        <div id="shinju-chat-messages" style="display:flex; flex-direction:column;"></div>
+        <div id="shinju-chat-input-area">
+            <input type="text" id="shinju-chat-input" placeholder="${translations[currentLang].input}">
+            <button id="shinju-chat-send">${translations[currentLang].send}</button>
         </div>
     `;
     document.body.appendChild(container);
 
-    const msgContainer = document.getElementById("keiz-chat-messages");
-    const input = document.getElementById("keiz-chat-input");
-    const langSelect = document.getElementById("keiz-chat-lang-select");
-    const headerTitle = document.getElementById("keiz-chat-title");
-    const sendBtn = document.getElementById("keiz-chat-send");
+    const msgContainer = document.getElementById("shinju-chat-messages");
+    const input = document.getElementById("shinju-chat-input");
+    const langSelect = document.getElementById("shinju-chat-lang-select");
+    const headerTitle = document.getElementById("shinju-chat-title");
+    const sendBtn = document.getElementById("shinju-chat-send");
 
     // 4. Interaction Logic
     langSelect.onchange = (e) => {
         currentLang = e.target.value;
-        localStorage.setItem("keiz_chat_lang", currentLang);
+        localStorage.setItem("shinju_chat_lang", currentLang);
         
         // Update UI Text
         headerTitle.innerText = translations[currentLang].header;
@@ -88,13 +88,13 @@
         container.style.display = container.style.display === "flex" ? "none" : "flex";
     };
 
-    document.getElementById("keiz-chat-close").onclick = () => {
+    document.getElementById("shinju-chat-close").onclick = () => {
         container.style.display = "none";
     };
 
     function appendMessage(text, sender) {
         const div = document.createElement("div");
-        div.className = `keiz-message keiz-${sender}`;
+        div.className = `shinju-message shinju-${sender}`;
         div.innerText = text;
         msgContainer.appendChild(div);
         msgContainer.scrollTop = msgContainer.scrollHeight;
@@ -139,7 +139,7 @@
         }
     }
 
-    document.getElementById("keiz-chat-send").onclick = sendMessage;
+    document.getElementById("shinju-chat-send").onclick = sendMessage;
     input.onkeypress = (e) => {
         if (e.key === "Enter") sendMessage();
     };

@@ -8,7 +8,7 @@ load_dotenv()
 
 engine = create_engine('sqlite:////home/keizinho/projects/chatbot_saas/backend/chatbot_saas.db')
 with Session(engine) as session:
-    company = session.exec(select(Company).where(Company.name == "Keiz Bistro")).first()
+    company = session.exec(select(Company).where(Company.name == "Shinju Bistro")).first()
     if company:
         print(f"Testing AI with model: gpt-5.4-nano")
         try:

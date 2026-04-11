@@ -1,4 +1,4 @@
-# Keiz Chatbot SaaS - Omni-Engine V3
+# Shinju Chatbot SaaS - Omni-Engine V3
 
 A production-ready multitenant Chatbot SaaS platform with keyword-based FAQ and OpenAI fallback.
 

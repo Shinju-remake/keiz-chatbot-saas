@@ -20,7 +20,7 @@ Evolve the Chatbot SaaS MVP into a production-ready "Omni-Engine" aligned with t
     - 100% test coverage for core paths (keyword matching, AI fallback, rate limits, webhooks).
 
 ## 📈 STRATEGIC ALIGNMENT
-- **Niche:** Restaurants (Keiz Bistro demo).
+- **Niche:** Restaurants (Shinju Bistro demo).
 - **Offer Structure:**
     - **Starter (1,500€):** Website Chatbot + FAQ.
     - **Pro (3,500€):** Site + WhatsApp + Human Alerts.

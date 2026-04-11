@@ -14,10 +14,10 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
-# Relative imports
-from .database import create_db_and_tables, get_session, engine
-from .models import Company, FAQRule, ChatLog
-from .utils import process_message_v3, send_whatsapp_reply
+# Absolute imports for uvicorn consistency
+from database import create_db_and_tables, get_session, engine
+from models import Company, FAQRule, ChatLog
+from utils import process_message_v3, send_whatsapp_reply
 
 load_dotenv()
 
@@ -53,6 +53,27 @@ def on_startup():
             session.add(company)
             session.commit()
             session.refresh(company)
+            
+        # Ensure all rules exist
+        target_rules = {
+            "price": "Our luxury dining experience ranges from 50€ to 150€. Quality is our priority.",
+            "contact": "Contact Shinju at contact@shinju-ai.com or visit our dashboard.",
+            "book": "To book a table at Shinju Bistro, please provide your name and number of guests.",
+            "reserve": "I can assist with reservations at Shinju Bistro! Please provide the date, time, and party size.",
+            "reservation": "For reservations, tell me the date, time, and how many guests will be joining us.",
+            "menu": "Explore our menu at shinju-bistro.com/menu",
+            "vibe": "The atmosphere at Shinju is one of refined elegance, perfect for discerning guests.",
+            "hello": "Hello! I am Shinju AI. How can I serve you today?",
+            "hi": "Greetings. I am Shinju AI, your dedicated assistant. How may I help?",
+            "recommend": "I highly recommend our signature Omakase experience.",
+            "hey": "Welcome back. I am Shinju AI. What can I do for you?"
+        }
+        
+        existing_keywords = session.exec(select(FAQRule.keyword).where(FAQRule.company_id == company.id)).all()
+        for kw, resp in target_rules.items():
+            if kw not in existing_keywords:
+                session.add(FAQRule(company_id=company.id, keyword=kw, response=resp))
+        
         session.commit()
 
 class ChatMessage(BaseModel):
@@ -110,6 +131,57 @@ async def get_dashboard(): return await get_dashboard_static()
 
 @app.get("/test")
 async def get_test(): return await get_test_static()
+
+# --- PRO FEATURES: WHATSAPP WEBHOOK ---
+
+@app.get("/webhook/whatsapp")
+async def verify_whatsapp(request: Request, db: Session = Depends(get_session)):
+    """
+    Step 1: Meta verifies your server URL with a Verify Token.
+    """
+    params = request.query_params
+    mode = params.get("hub.mode")
+    token = params.get("hub.verify_token")
+    challenge = params.get("hub.challenge")
+
+    if mode == "subscribe" and token:
+        # Check if any company matches this verify token
+        company = db.exec(select(Company).where(Company.whatsapp_verify_token == token)).first()
+        if company:
+            return int(challenge)
+    
+    raise HTTPException(status_code=403, detail="Verification failed")
+
+@app.post("/webhook/whatsapp")
+async def handle_whatsapp_msg(request: Request, db: Session = Depends(get_session)):
+    """
+    Step 2: Handle incoming WhatsApp messages.
+    """
+    data = await request.json()
+    
+    try:
+        # Extract metadata from Meta's complex payload
+        entry = data["entry"][0]["changes"][0]["value"]
+        if "messages" in entry:
+            message = entry["messages"][0]
+            from_number = message["from"]
+            text = message["text"]["body"]
+            
+            # Identify which company this webhook is for based on their phone_id or a unique token
+            # For this MVP, we use the first company found (simulated multitenancy)
+            company = db.exec(select(Company)).first()
+            if company:
+                session_id = f"wa_{from_number}"
+                result = process_message_v3(company, session_id, text, db)
+                
+                # Send the reply back to WhatsApp
+                import asyncio
+                asyncio.create_task(send_whatsapp_reply(company, from_number, result["reply"]))
+                
+        return {"status": "ok"}
+    except Exception as e:
+        print(f"WHATSAPP WEBHOOK ERROR: {e}")
+        return {"status": "error"}
 
 # --- ADMIN API ROUTES ---
 

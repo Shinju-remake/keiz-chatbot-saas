@@ -6,7 +6,7 @@ from models import Company, FAQRule
 def add_new_rules():
     with Session(engine) as session:
         # Get the demo company
-        company = session.exec(select(Company).where(Company.name == "Keiz Bistro")).first()
+        company = session.exec(select(Company).where(Company.name == "Shinju Bistro")).first()
         
         if company:
             # Check existing keywords to avoid duplicates
@@ -14,7 +14,7 @@ def add_new_rules():
             
             new_rules = []
             if "vibe" not in existing_keywords:
-                new_rules.append(FAQRule(company_id=company.id, keyword="vibe", response="The vibe at Keiz Bistro is chic and cozy, with soft jazz and warm lighting. Perfect for dates!"))
+                new_rules.append(FAQRule(company_id=company.id, keyword="vibe", response="The vibe at Shinju Bistro is chic and cozy, with soft jazz and warm lighting. Perfect for dates!"))
             if "atmosphere" not in existing_keywords:
                 new_rules.append(FAQRule(company_id=company.id, keyword="atmosphere", response="We offer a sophisticated yet relaxed atmosphere, ideal for both business lunches and romantic dinners."))
             if "recommend" not in existing_keywords:
@@ -22,13 +22,13 @@ def add_new_rules():
             if "dessert" not in existing_keywords:
                 new_rules.append(FAQRule(company_id=company.id, keyword="dessert", response="Our dessert menu features French classics like Tarte Tatin, Profiteroles, and our famous Chocolate Fondant."))
             if "menu" not in existing_keywords:
-                new_rules.append(FAQRule(company_id=company.id, keyword="menu", response="You can view our full menu on our website at keizbistro.com/menu."))
+                new_rules.append(FAQRule(company_id=company.id, keyword="menu", response="You can view our full menu on our website at shinju-bistro.com/menu."))
             if "hello" not in existing_keywords:
-                new_rules.append(FAQRule(company_id=company.id, keyword="hello", response="Hello! Welcome to Keiz Bistro. How can I help you today?"))
+                new_rules.append(FAQRule(company_id=company.id, keyword="hello", response="Hello! Welcome to Shinju Bistro. How can I help you today?"))
             if "hey" not in existing_keywords:
-                new_rules.append(FAQRule(company_id=company.id, keyword="hey", response="Hey there! Welcome to Keiz Bistro. How can I help you?"))
+                new_rules.append(FAQRule(company_id=company.id, keyword="hey", response="Hey there! Welcome to Shinju Bistro. How can I help you?"))
             if "hi" not in existing_keywords:
-                new_rules.append(FAQRule(company_id=company.id, keyword="hi", response="Hi! Welcome to Keiz Bistro. How can I assist you?"))
+                new_rules.append(FAQRule(company_id=company.id, keyword="hi", response="Hi! Welcome to Shinju Bistro. How can I assist you?"))
                 
             if new_rules:
                 session.add_all(new_rules)

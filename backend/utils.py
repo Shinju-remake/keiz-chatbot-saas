@@ -1,7 +1,7 @@
 from openai import OpenAI
 from typing import List, Optional
 from sqlmodel import Session, select
-from .models import ChatLog, Company, FAQRule
+from models import ChatLog, Company, FAQRule
 import os
 import httpx
 import smtplib

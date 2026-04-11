@@ -18,7 +18,7 @@ def session_fixture():
         # Check if already seeded by on_startup
         if not session.exec(select(Company).where(Company.api_key == "test-api-key")).first():
             demo_company = Company(
-                name="Keiz Bistro Test", 
+                name="Shinju Bistro Test", 
                 api_key="test-api-key",
                 system_prompt="Test persona",
                 whatsapp_verify_token="test_verify_token"
@@ -59,4 +59,4 @@ def test_escalation_trigger(session: Session, capsys):
     assert response.status_code == 200
     
     captured = capsys.readouterr()
-    assert "DEBUG: Escalation Email sent" in captured.out
+    assert "DEBUG: Triggering Pro Automation for Shinju Bistro Test" in captured.out
