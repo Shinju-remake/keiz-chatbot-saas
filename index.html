@@ -18,16 +18,16 @@
             background-color: var(--dark-bg);
             color: white;
             line-height: 1.6;
-            overflow: hidden;
             display: flex;
             flex-direction: column;
-            height: 100vh;
+            min-height: 100vh;
+            overflow-x: hidden;
         }
 
         /* Gradient Background */
         body::before {
             content: "";
-            position: absolute;
+            position: fixed;
             top: -50%;
             left: -50%;
             width: 200%;
@@ -44,6 +44,9 @@
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
             z-index: 100;
+            position: sticky;
+            top: 0;
+            background: rgba(10, 10, 10, 0.8);
         }
 
         .logo {
@@ -55,10 +58,10 @@
             text-decoration: none;
         }
 
+        nav { display: flex; gap: 20px; }
         nav a {
             color: var(--text-gray);
             text-decoration: none;
-            margin-left: 30px;
             font-size: 0.9rem;
             font-weight: 600;
             transition: 0.3s;
@@ -72,29 +75,30 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            padding: 40px;
+            padding: 60px 20px;
             text-align: center;
         }
 
         h1 {
-            font-size: 3.5rem;
+            font-size: clamp(2rem, 8vw, 3.5rem);
             font-weight: 900;
             margin-bottom: 10px;
             background: linear-gradient(to right, #fff, var(--primary));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            line-height: 1.2;
         }
 
         p.tagline {
             color: var(--text-gray);
             margin-bottom: 50px;
-            font-size: 1.1rem;
+            font-size: clamp(0.9rem, 4vw, 1.1rem);
             max-width: 600px;
         }
 
         .portal-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 30px;
             max-width: 1100px;
             width: 100%;
@@ -114,7 +118,7 @@
         }
 
         .portal-card:hover {
-            transform: translateY(-15px);
+            transform: translateY(-10px);
             border-color: var(--primary);
             box-shadow: 0 20px 40px rgba(0,0,0,0.4), 0 0 20px rgba(187, 0, 255, 0.2);
         }
@@ -136,18 +140,18 @@
         }
 
         footer {
-            padding: 20px;
+            padding: 40px 20px;
             text-align: center;
             font-size: 0.8rem;
             color: #444;
             border-top: 1px solid rgba(255,255,255,0.05);
         }
 
-        @media (max-width: 900px) {
+        @media (max-width: 768px) {
+            header { padding: 15px 20px; flex-direction: column; gap: 15px; }
+            nav { width: 100%; justify-content: center; }
             .portal-grid { grid-template-columns: 1fr; }
-            h1 { font-size: 2.5rem; }
-            body { overflow-y: auto; }
-            main { height: auto; }
+            main { padding-top: 40px; }
         }
     </style>
 </head>

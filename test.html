@@ -5,19 +5,56 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shinju Bistro | Demo Experience</title>
     <style>
-        body { font-family: sans-serif; background: #f4f4f4; text-align: center; padding-top: 50px; }
-        .hero { background: white; padding: 40px; border-radius: 8px; max-width: 600px; margin: auto; }
-        h1 { color: #BB00FF; }
+        body { 
+            font-family: 'Inter', -apple-system, sans-serif; 
+            margin: 0; 
+            background: #050505; 
+            color: white; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            min-height: 100vh;
+            padding: 20px;
+            text-align: center;
+        }
+        .container {
+            max-width: 600px;
+            width: 100%;
+        }
+        h1 { 
+            color: #BB00FF; 
+            font-size: clamp(2rem, 8vw, 3rem);
+            margin-bottom: 20px;
+        }
+        p { 
+            color: #ccc; 
+            font-size: 1.1rem; 
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+        .back-btn {
+            color: #888;
+            text-decoration: none;
+            font-size: 0.9rem;
+            margin-top: 20px;
+            display: inline-block;
+            transition: 0.3s;
+        }
+        .back-btn:hover { color: #BB00FF; }
     </style>
 </head>
 <body>
-    <div class="hero">
+    <div class="container">
         <h1>Welcome to Shinju Bistro!</h1>
-        <p>Experience the future of fine dining. Our AI concierge is ready to assist you.</p>
-        <p>Scroll down to see the <strong>Shinju AI</strong> widget on the bottom-right corner.</p>
+        <p>This is a live simulation of our <strong>Elite AI Concierge</strong> integration.</p>
+        <p>Interact with the <strong>Shinju AI</strong> widget on the bottom-right corner to book a table, ask for the menu, or inquire about our luxury experience.</p>
+        
+        <a href="/" class="back-btn">← Back to Hub</a>
     </div>
 
-    <!-- The SaaS Embed Script -->
+    <!-- START OF SHINJU CHAT WIDGET EMBED CODE -->
     <script src="/widget/chat.js"></script>
+    <!-- END OF SHINJU CHAT WIDGET EMBED CODE -->
 </body>
 </html>

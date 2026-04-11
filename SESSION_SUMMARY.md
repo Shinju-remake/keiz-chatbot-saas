@@ -1,4 +1,4 @@
-# KEIZ AI AGENCY - SESSION SUMMARY (April 4, 2026)
+# SHINJU AI AGENCY - SESSION SUMMARY (April 4, 2026)
 
 ## 🎯 OBJECTIVE
 Evolve the Chatbot SaaS MVP into a production-ready "Omni-Engine" aligned with the AI Agency strategic guide.
