@@ -15,9 +15,14 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
 # Relative imports for local/render consistency
-from .database import create_db_and_tables, get_session, engine
-from .models import Company, FAQRule, ChatLog
-from .utils import process_message_v3, send_whatsapp_reply
+try:
+    from database import create_db_and_tables, get_session, engine
+    from models import Company, FAQRule, ChatLog
+    from utils import process_message_v3, send_whatsapp_reply
+except ImportError:
+    from .database import create_db_and_tables, get_session, engine
+    from .models import Company, FAQRule, ChatLog
+    from .utils import process_message_v3, send_whatsapp_reply
 
 load_dotenv()
 
