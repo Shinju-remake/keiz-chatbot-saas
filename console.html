@@ -170,6 +170,11 @@
             <span class="label">Admin Dashboard</span>
         </div>
 
+        <div class="nav-item" onclick="switchView('rules', this)">
+            <span class="icon">📜</span>
+            <span class="label">FAQ Rules Editor</span>
+        </div>
+
         <div class="nav-item" onclick="switchView('test', this)" style="margin-top: auto;">
             <span class="icon">🧪</span>
             <span class="label">Technical Sandbox</span>
@@ -221,6 +226,15 @@
             }
 
             // Update sidebar active state
+            if (el) {
+                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+                el.classList.add('active');
+            }
+        }
+    </script>
+</body>
+</html>
+ state
             if (el) {
                 document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
                 el.classList.add('active');

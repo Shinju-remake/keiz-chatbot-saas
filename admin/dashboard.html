@@ -314,8 +314,14 @@
 
         // Global initialization
         window.onload = () => {
+            // Check hash for direct tab access
+            const hash = window.location.hash.replace('#', '');
+            if (hash === 'rules' || hash === 'settings' || hash === 'analytics') {
+                switchTab(hash);
+            } else {
+                fetchLogs();
+            }
             fetchRules();
-            fetchLogs();
             setInterval(fetchLogs, 10000);
         };
     </script>
