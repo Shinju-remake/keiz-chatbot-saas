@@ -79,6 +79,17 @@ def on_startup():
             if kw not in existing_keywords:
                 session.add(FAQRule(company_id=company.id, keyword=kw, response=resp))
         
+        # Sample Reservation for Demo
+        existing_res = session.exec(select(Reservation).where(Reservation.company_id == company.id)).first()
+        if not existing_res:
+            session.add(Reservation(
+                company_id=company.id,
+                customer_name="Keizinho Test",
+                date_time="Tonight at 8:30 PM",
+                pax=2,
+                status="confirmed"
+            ))
+
         session.commit()
 
 class ChatMessage(BaseModel):
@@ -195,6 +206,12 @@ async def get_logs(x_api_key: str = Header(...), db: Session = Depends(get_sessi
     company = db.exec(select(Company).where(Company.api_key == x_api_key)).first()
     if not company: raise HTTPException(status_code=403, detail="Invalid API Key")
     return db.exec(select(ChatLog).where(ChatLog.company_id == company.id).order_by(ChatLog.timestamp.desc()).limit(100)).all()
+
+@app.get("/admin/reservations")
+async def get_reservations(x_api_key: str = Header(...), db: Session = Depends(get_session)):
+    company = db.exec(select(Company).where(Company.api_key == x_api_key)).first()
+    if not company: raise HTTPException(status_code=403, detail="Invalid API Key")
+    return db.exec(select(Reservation).where(Reservation.company_id == company.id).order_by(Reservation.timestamp.desc())).all()
 
 @app.get("/admin/rules")
 async def get_rules(x_api_key: str = Header(...), db: Session = Depends(get_session)):

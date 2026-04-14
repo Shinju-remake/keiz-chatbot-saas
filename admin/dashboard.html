@@ -51,6 +51,7 @@
         <p style="opacity:0.6; font-size:0.8rem;">Omni-Engine V3 (PRO)</p>
         <hr>
         <div class="nav-item active" onclick="switchTab('analytics')">📊 Analytics</div>
+        <div class="nav-item" onclick="switchTab('reservations')">📅 Reservations</div>
         <div class="nav-item" onclick="switchTab('rules')">🛠️ FAQ Rules</div>
         <div class="nav-item" onclick="switchTab('settings')">👤 Account Settings</div>
         <div class="nav-item" onclick="window.location.href='/'" style="margin-top:auto;">🚪 Logout</div>
@@ -81,6 +82,27 @@
                             </tr>
                         </thead>
                         <tbody id="logs-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- RESERVATIONS TAB -->
+        <div id="tab-reservations" class="tab-content">
+            <div class="card">
+                <h2>Customer Bookings</h2>
+                <div style="max-height: 600px; overflow-y: auto;">
+                    <table id="reservations-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Date/Time</th>
+                                <th>Pax</th>
+                                <th>Status</th>
+                                <th>Captured At</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reservations-body"></tbody>
                     </table>
                 </div>
             </div>
@@ -179,15 +201,45 @@
             
             // Highlight nav item
             const navItems = document.querySelectorAll('.nav-item');
+            navItems.forEach(i => i.classList.remove('active'));
+            
             if (tab === 'analytics') navItems[0].classList.add('active');
-            if (tab === 'rules') {
+            if (tab === 'reservations') {
                 navItems[1].classList.add('active');
+                fetchReservations();
+            }
+            if (tab === 'rules') {
+                navItems[2].classList.add('active');
                 fetchRules();
             }
             if (tab === 'settings') {
-                navItems[2].classList.add('active');
+                navItems[3].classList.add('active');
                 fetchSettings();
             }
+        }
+
+        async function fetchReservations() {
+            try {
+                const response = await fetch(`${API_BASE}/admin/reservations`, {
+                    headers: { "X-API-Key": API_KEY }
+                });
+                const res = await response.json();
+                const tbody = document.getElementById("reservations-body");
+                tbody.innerHTML = "";
+                if(Array.isArray(res)) {
+                    res.forEach(r => {
+                        const row = document.createElement("tr");
+                        row.innerHTML = `
+                            <td style="font-weight:600;">${r.customer_name}</td>
+                            <td>${r.date_time}</td>
+                            <td>${r.pax}</td>
+                            <td><span class="tag" style="background:#e8f5e9; color:#2e7d32;">${r.status}</span></td>
+                            <td style="color:#999; font-size:12px;">${new Date(r.timestamp).toLocaleString()}</td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                }
+            } catch (e) { console.error("Reservations fetch failed", e); }
         }
 
         async function fetchSettings() {
@@ -316,7 +368,7 @@
         window.onload = () => {
             // Check hash for direct tab access
             const hash = window.location.hash.replace('#', '');
-            if (hash === 'rules' || hash === 'settings' || hash === 'analytics') {
+            if (hash === 'rules' || hash === 'settings' || hash === 'analytics' || hash === 'reservations') {
                 switchTab(hash);
             } else {
                 fetchLogs();

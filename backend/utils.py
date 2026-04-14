@@ -2,11 +2,12 @@ from openai import OpenAI
 from typing import List, Optional
 from sqlmodel import Session, select
 try:
-    from models import ChatLog, Company, FAQRule
+    from models import ChatLog, Company, FAQRule, Reservation
 except ImportError:
-    from .models import ChatLog, Company, FAQRule
+    from .models import ChatLog, Company, FAQRule, Reservation
 import os
 import httpx
+import re
 import smtplib
 from email.mime.text import MIMEText
 from datetime import datetime
@@ -23,15 +24,13 @@ def process_message_v3(company: Company, session_id: str, user_msg: str, db: Ses
     source = "keyword"
     
     # 1. Keywords
-    # Note: For now, keywords are language-agnostic. 
-    # In a full Pro version, we'd have FAQRule.language.
     rules = db.exec(select(FAQRule).where(FAQRule.company_id == company.id)).all()
     for rule in sorted(rules, key=lambda r: len(r.keyword), reverse=True):
         if rule.keyword.lower() in user_input:
             reply = rule.response
             break
             
-    # 2. AI Fallback (Handles translation if needed)
+    # 2. AI Fallback
     if not reply:
         ai_reply = get_ai_response(company, session_id, user_msg, db, language=language)
         if ai_reply:
@@ -58,11 +57,20 @@ def process_message_v3(company: Company, session_id: str, user_msg: str, db: Ses
     db.add(log_entry)
     db.commit()
     
-    # Check for escalation triggers (Pro feature)
+    # [RESERVATION SYSTEM] Parse and save if successful
+    if "[RESERVATION_SUCCESS]" in reply:
+        try:
+            # Simple extraction from history - we'll rely on the AI's internal state
+            # but for a real MVP we'd use a more structured JSON output from the AI.
+            # Here we just flag it for the admin in the logs for now.
+            print(f"DEBUG: Reservation detected for session {session_id}")
+        except Exception as e:
+            print(f"RESERVATION SAVE ERROR: {e}")
+
+    # Check for escalation triggers
     escalation_words = ["human", "escalate", "help", "aide", "humain", "urgent", "problem", "problème", "reservation", "book"]
     if any(word in user_input for word in escalation_words):
         import asyncio
-        # Run automation in background to avoid slowing down the chat reply
         asyncio.create_task(trigger_pro_automation(company, user_msg, session_id))
 
     return {"reply": reply, "source": source}
@@ -72,11 +80,9 @@ def get_ai_response(company: Company, session_id: str, user_msg: str, db: Sessio
     if not openai_key:
         return None
     
-    # Clean the key aggressively (remove ALL spaces and newlines from the middle)
     openai_key = openai_key.replace(" ", "").replace("\n", "").replace("\r", "").strip()
 
     try:
-        # 2026 Render Fix: Force IPv4 to avoid handshake timeouts with OpenAI
         transport = httpx.HTTPTransport(local_address="0.0.0.0")
         http_client = httpx.Client(transport=transport)
         
@@ -93,11 +99,16 @@ def get_ai_response(company: Company, session_id: str, user_msg: str, db: Sessio
             .limit(6)
         ).all()
         
-        # Add language instruction to system prompt
         lang_names = {"en": "English", "fr": "French", "es": "Spanish"}
         target_lang = lang_names.get(language, "English")
         
-        full_system_prompt = company.system_prompt + f" IMPORTANT: You MUST respond in {target_lang}."
+        full_system_prompt = (
+            company.system_prompt + 
+            f" IMPORTANT: You MUST respond in {target_lang}. "
+            "Handle reservations by collecting: Name, Date, and Pax. "
+            "Highlight questions with **double asterisks**. "
+            "Confirm reservations with [RESERVATION_SUCCESS]."
+        )
         
         messages = [{"role": "system", "content": full_system_prompt}]
         for h in reversed(history):
@@ -106,9 +117,9 @@ def get_ai_response(company: Company, session_id: str, user_msg: str, db: Sessio
         messages.append({"role": "user", "content": user_msg})
         
         response = client.chat.completions.create(
-            model="gpt-5.4-nano", # Modern efficiency
+            model="gpt-5.4-nano",
             messages=messages,
-            max_completion_tokens=150,
+            max_completion_tokens=200,
             temperature=0.7
         )
         return response.choices[0].message.content.strip()

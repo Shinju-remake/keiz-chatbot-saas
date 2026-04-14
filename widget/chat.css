@@ -83,6 +83,11 @@
     border-bottom-left-radius: 2px;
 }
 
+.shinju-highlight {
+    color: #BB00FF;
+    font-weight: 700;
+}
+
 #shinju-chat-input-area {
     padding: 10px;
     border-top: 1px solid #ddd;

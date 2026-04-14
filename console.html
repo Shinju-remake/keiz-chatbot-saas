@@ -175,6 +175,11 @@
             <span class="label">FAQ Rules Editor</span>
         </div>
 
+        <div class="nav-item" onclick="switchView('reservations', this)">
+            <span class="icon">📅</span>
+            <span class="label">Reservations Manager</span>
+        </div>
+
         <div class="nav-item" onclick="switchView('test', this)" style="margin-top: auto;">
             <span class="icon">🧪</span>
             <span class="label">Technical Sandbox</span>
@@ -224,6 +229,12 @@
                 const frame = document.getElementById('iframe-dashboard');
                 if (frame) {
                     frame.src = "/dashboard_static#rules";
+                    frame.classList.add('active');
+                }
+            } else if (viewId === 'reservations') {
+                const frame = document.getElementById('iframe-dashboard');
+                if (frame) {
+                    frame.src = "/dashboard_static#reservations";
                     frame.classList.add('active');
                 }
             } else {

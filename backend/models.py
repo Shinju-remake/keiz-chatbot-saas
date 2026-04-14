@@ -20,6 +20,7 @@ class Company(SQLModel, table=True):
 
     rules: List["FAQRule"] = Relationship(back_populates="company")
     logs: List["ChatLog"] = Relationship(back_populates="company")
+    reservations: List["Reservation"] = Relationship(back_populates="company")
 
 class FAQRule(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -28,6 +29,17 @@ class FAQRule(SQLModel, table=True):
     response: str
     
     company: Company = Relationship(back_populates="rules")
+
+class Reservation(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    company_id: int = Field(foreign_key="company.id")
+    customer_name: str
+    date_time: str # Store as string for flexibility
+    pax: int
+    status: str = Field(default="pending") # pending, confirmed, cancelled
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+    company: "Company" = Relationship(back_populates="reservations")
 
 class ChatLog(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)

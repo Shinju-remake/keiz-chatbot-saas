@@ -97,7 +97,16 @@
     function appendMessage(text, sender) {
         const div = document.createElement("div");
         div.className = `shinju-message shinju-${sender}`;
-        div.innerText = text;
+        
+        // Color-highlighting for AI questions (Pro UI feature)
+        if (sender === "bot") {
+            // Replace **Question?** with <span class="shinju-highlight">Question?</span>
+            const highlightedText = text.replace(/\*\*(.*?)\*\*/g, '<span class="shinju-highlight">$1</span>');
+            div.innerHTML = highlightedText;
+        } else {
+            div.innerText = text;
+        }
+        
         msgContainer.appendChild(div);
         msgContainer.scrollTop = msgContainer.scrollHeight;
     }
