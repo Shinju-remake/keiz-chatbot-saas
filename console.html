@@ -220,21 +220,21 @@
             // Show selected
             if (viewId === 'hub') {
                 document.getElementById('welcome-screen').style.display = 'flex';
+            } else if (viewId === 'rules') {
+                const frame = document.getElementById('iframe-dashboard');
+                if (frame) {
+                    frame.src = "/dashboard_static#rules";
+                    frame.classList.add('active');
+                }
             } else {
                 const frame = document.getElementById(`iframe-${viewId}`);
-                if (frame) frame.classList.add('active');
+                if (frame) {
+                    if (viewId === 'dashboard') frame.src = "/dashboard_static#analytics";
+                    frame.classList.add('active');
+                }
             }
 
             // Update sidebar active state
-            if (el) {
-                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-                el.classList.add('active');
-            }
-        }
-    </script>
-</body>
-</html>
- state
             if (el) {
                 document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
                 el.classList.add('active');
