@@ -8,6 +8,7 @@ except ImportError:
 import os
 import httpx
 import re
+import json
 import smtplib
 from email.mime.text import MIMEText
 from datetime import datetime
@@ -60,12 +61,27 @@ def process_message_v3(company: Company, session_id: str, user_msg: str, db: Ses
     # [RESERVATION SYSTEM] Parse and save if successful
     if "[RESERVATION_SUCCESS]" in reply:
         try:
-            # Simple extraction from history - we'll rely on the AI's internal state
-            # but for a real MVP we'd use a more structured JSON output from the AI.
-            # Here we just flag it for the admin in the logs for now.
-            print(f"DEBUG: Reservation detected for session {session_id}")
+            # Extract JSON data from the hidden [DATA] tags
+            match = re.search(r"\[DATA\](.*?)\[/DATA\]", reply, re.DOTALL)
+            if match:
+                data_str = match.group(1).strip()
+                data = json.loads(data_str)
+                
+                new_res = Reservation(
+                    company_id=company.id,
+                    customer_name=data.get("name", "Unknown"),
+                    date_time=data.get("date", "Unknown"),
+                    pax=int(data.get("pax", 1)),
+                    status="confirmed"
+                )
+                db.add(new_res)
+                db.commit()
+                print(f"✅ AUTO-RESERVATION: Captured booking for {new_res.customer_name}")
+                
+                # Clean the reply for the user (remove the technical [DATA] block)
+                reply = re.sub(r"\[DATA\].*?\[/DATA\]", "", reply, flags=re.DOTALL).strip()
         except Exception as e:
-            print(f"RESERVATION SAVE ERROR: {e}")
+            print(f"RESERVATION EXTRACTION ERROR: {e}")
 
     # Check for escalation triggers
     escalation_words = ["human", "escalate", "help", "aide", "humain", "urgent", "problem", "problème", "reservation", "book"]
@@ -114,7 +130,9 @@ def get_ai_response(company: Company, session_id: str, user_msg: str, db: Sessio
             "- **Number of Guests?**\n\n"
             "Is there anything else I should know?\n\n"
             "CRITICAL: Only wrap the specific question text in **double asterisks**. "
-            "Confirm successful bookings with [RESERVATION_SUCCESS]."
+            "Once you have all details (Name, Date, Pax), confirm with [RESERVATION_SUCCESS]. "
+            "Immediately after [RESERVATION_SUCCESS], you MUST append a hidden data block in this EXACT format: "
+            "[DATA]{\"name\": \"Customer Name\", \"date\": \"Date and Time\", \"pax\": 4}[/DATA]"
         )
         
         messages = [{"role": "system", "content": full_system_prompt}]
