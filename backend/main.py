@@ -118,6 +118,10 @@ async def get_console():
 
 # --- PORTAL STATIC ROUTES (For Iframes) ---
 
+@app.get("/signup")
+async def get_signup():
+    return FileResponse(str(BASE_DIR / "signup.html"))
+
 @app.get("/agency_static")
 async def get_agency_static():
     return FileResponse(str(BASE_DIR / "agency.html"))
@@ -342,15 +346,97 @@ async def update_settings(settings_in: SettingsUpdate, x_api_key: str = Header(.
     if settings_in.whatsapp_phone_id: company.whatsapp_phone_id = settings_in.whatsapp_phone_id
     db.add(company); db.commit(); return {"status": "success"}
 
+# --- PUBLIC SAAS SIGNUP ---
+
+class SignupIn(BaseModel):
+    name: str
+    subdomain: str
+    email: str # For admin context
+    openai_key: Optional[str] = None
+
+@app.post("/auth/signup")
+async def public_signup(data: SignupIn, db: Session = Depends(get_session)):
+    # Check if subdomain is taken
+    existing = db.exec(select(Company).where(Company.subdomain == data.subdomain.lower())).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Subdomain already in use.")
+    
+    new_company = Company(
+        name=data.name,
+        subdomain=data.subdomain.lower(),
+        openai_api_key=data.openai_key,
+        system_prompt=f"You are the AI Assistant for {data.name}. Luxury-level service is mandatory."
+    )
+    db.add(new_company)
+    db.commit()
+    db.refresh(new_company)
+    
+    return {
+        "status": "success",
+        "api_key": new_company.api_key,
+        "dashboard_url": f"https://{new_company.subdomain}.shinju-ai.com/dashboard"
+    }
+
+# --- SUBDOMAIN RESOLUTION ENGINE ---
+
 @app.get("/widget/config")
-async def get_widget_config(x_api_key: str = Header(...), db: Session = Depends(get_session)):
-    company = db.exec(select(Company).where(Company.api_key == x_api_key)).first()
-    if not company: raise HTTPException(status_code=403, detail="Invalid API Key")
+async def get_widget_config(request: Request, x_api_key: Optional[str] = Header(None), db: Session = Depends(get_session)):
+    """
+    Identifies company by either API Key (legacy) or Subdomain (Modern SaaS).
+    """
+    company = None
+    if x_api_key:
+        company = db.exec(select(Company).where(Company.api_key == x_api_key)).first()
+    
+    if not company:
+        host = request.headers.get("host", "")
+        if "." in host:
+            sub = host.split(".")[0]
+            company = db.exec(select(Company).where(Company.subdomain == sub)).first()
+
+    if not company:
+        # Fallback to default for dev testing
+        company = db.exec(select(Company)).first()
+
+    if not company: raise HTTPException(status_code=404, detail="Company not found")
+    
     return {
         "name": company.name,
         "primary_color": company.primary_color,
-        "logo_url": company.logo_url
+        "logo_url": company.logo_url,
+        "api_key": company.api_key
     }
+
+# --- LIVE CHAT TAKEOVER ENGINE ---
+
+class TakeoverIn(BaseModel):
+    session_id: str
+    active: bool
+
+@app.post("/admin/chat/takeover")
+async def toggle_takeover(data: TakeoverIn, x_api_key: str = Header(...), db: Session = Depends(get_session)):
+    company = db.exec(select(Company).where(Company.api_key == x_api_key)).first()
+    if not company: raise HTTPException(status_code=403, detail="Invalid API Key")
+    
+    # Update or create session state
+    session_state = db.exec(select(ChatSession).where(ChatSession.company_id == company.id, ChatSession.session_id == data.session_id)).first()
+    if not session_state:
+        session_state = ChatSession(company_id=company.id, session_id=data.session_id)
+    
+    session_state.is_human_takeover = data.active
+    session_state.last_active = datetime.utcnow()
+    db.add(session_state)
+    db.commit()
+    return {"status": "success"}
+
+@app.get("/admin/chat/active")
+async def get_active_sessions(x_api_key: str = Header(...), db: Session = Depends(get_session)):
+    company = db.exec(select(Company).where(Company.api_key == x_api_key)).first()
+    if not company: raise HTTPException(status_code=403, detail="Invalid API Key")
+    
+    # Return sessions active in the last 24 hours
+    since = datetime.utcnow().timestamp() - 86400
+    return db.exec(select(ChatSession).where(ChatSession.company_id == company.id)).all()
 
 class CorrectionIn(BaseModel):
     log_id: int

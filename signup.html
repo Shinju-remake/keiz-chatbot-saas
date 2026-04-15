@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shinju AI | Launch Your Agent</title>
+    <style>
+        :root { --primary: #BB00FF; --dark: #0a0a0a; }
+        body { font-family: 'Inter', sans-serif; background: var(--dark); color: white; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .card { background: #161616; padding: 40px; border-radius: 24px; width: 100%; max-width: 450px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+        h1 { margin-top: 0; font-weight: 900; background: linear-gradient(to right, #fff, var(--primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        p { color: #888; margin-bottom: 30px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-size: 0.9rem; font-weight: 600; color: #ccc; }
+        input { width: 100%; padding: 12px; background: #222; border: 1px solid #333; border-radius: 8px; color: white; font-size: 1rem; box-sizing: border-box; }
+        input:focus { border-color: var(--primary); outline: none; }
+        .btn { width: 100%; background: var(--primary); color: white; border: none; padding: 15px; border-radius: 50px; font-weight: 700; cursor: pointer; transition: 0.3s; margin-top: 10px; font-size: 1rem; }
+        .btn:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(187,0,255,0.4); }
+        #success-msg { display: none; text-align: center; }
+        .link-box { background: #222; padding: 15px; border-radius: 8px; margin-top: 20px; font-family: monospace; font-size: 0.8rem; word-break: break-all; border: 1px dashed var(--primary); }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div id="signup-form-container">
+            <h1>Join the Elite.</h1>
+            <p>Launch your autonomous AI concierge in under 60 seconds.</p>
+            <form id="signup-form">
+                <div class="form-group">
+                    <label>Company Name</label>
+                    <input type="text" id="name" placeholder="e.g., Shinju Bistro" required>
+                </div>
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="email" placeholder="you@example.com" required>
+                </div>
+                <div class="form-group">
+                    <label>Desired Subdomain</label>
+                    <div style="display:flex; align-items:center; gap:5px;">
+                        <input type="text" id="subdomain" placeholder="bistro" required style="flex:1;">
+                        <span style="color:#666;">.shinju-ai.com</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>OpenAI API Key (Optional)</label>
+                    <input type="password" id="openai_key" placeholder="sk-...">
+                </div>
+                <button type="submit" class="btn">LAUNCH MY AGENT</button>
+            </form>
+        </div>
+
+        <div id="success-msg">
+            <h1 style="background:none; -webkit-text-fill-color: #00ff88;">Deployment Success!</h1>
+            <p>Your Shinju AI instance is live and ready for configuration.</p>
+            <div class="link-box" id="dashboard-link"></div>
+            <button class="btn" onclick="window.location.href='/dashboard'" style="background:#333;">GO TO DASHBOARD</button>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById("signup-form").onsubmit = async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector("button");
+            btn.innerText = "DEPLOYING...";
+            btn.disabled = true;
+
+            const data = {
+                name: document.getElementById("name").value,
+                email: document.getElementById("email").value,
+                subdomain: document.getElementById("subdomain").value,
+                openai_key: document.getElementById("openai_key").value
+            };
+
+            try {
+                const res = await fetch("/auth/signup", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await res.json();
+                
+                if (res.ok) {
+                    document.getElementById("signup-form-container").style.display = "none";
+                    document.getElementById("success-msg").style.display = "block";
+                    document.getElementById("dashboard-link").innerText = `DASHBOARD: ${result.dashboard_url}\nAPI KEY: ${result.api_key}`;
+                    // Store API Key for direct dashboard access
+                    localStorage.setItem("shinju_admin_key", result.api_key);
+                } else {
+                    alert(result.detail || "Signup failed.");
+                    btn.innerText = "LAUNCH MY AGENT";
+                    btn.disabled = false;
+                }
+            } catch (e) {
+                alert("Network error. Please try again.");
+                btn.innerText = "LAUNCH MY AGENT";
+                btn.disabled = false;
+            }
+        };
+    </script>
+</body>
+</html>

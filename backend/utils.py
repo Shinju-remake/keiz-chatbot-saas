@@ -16,10 +16,26 @@ from datetime import datetime
 def process_message_v3(company: Company, session_id: str, user_msg: str, db: Session, language: str = "en") -> dict:
     """
     The Omni-Engine Brain:
-    1. Check Keywords (Zero-cost)
-    2. Check AI (GPT-5.4 Nano)
-    3. Final Fallback
+    1. Check Human Takeover (If active, SILENCE AI)
+    2. Check Keywords
+    3. Check AI (GPT-4o Mini)
     """
+    
+    # [NEW] Human Takeover Check
+    session_state = db.exec(
+        select(ChatSession).where(ChatSession.company_id == company.id, ChatSession.session_id == session_id)
+    ).first()
+    
+    if session_state and session_state.is_human_takeover:
+        # AI is silenced. Log the user message and return a flag.
+        log_entry = ChatLog(
+            company_id=company.id, session_id=session_id, user_msg=user_msg, bot_reply="[HUMAN_ACTIVE]", 
+            source="human_takeover", timestamp=datetime.utcnow()
+        )
+        db.add(log_entry)
+        db.commit()
+        return {"reply": None, "source": "human_takeover"}
+
     user_input = user_msg.lower()
     reply = None
     source = "keyword"
