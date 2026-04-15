@@ -42,6 +42,14 @@
                     </div>
                 </div>
                 <div class="form-group">
+                    <label>Selected Plan</label>
+                    <select id="plan" style="width: 100%; padding: 12px; background: #222; border: 1px solid #333; border-radius: 8px; color: white;">
+                        <option value="starter">Starter Plan (1,500€)</option>
+                        <option value="pro">Pro Plan (3,500€)</option>
+                        <option value="premium">Premium Retainer (500€/mo)</option>
+                    </select>
+                </div>
+                <div class="form-group">
                     <label>OpenAI API Key (Optional)</label>
                     <input type="password" id="openai_key" placeholder="sk-...">
                 </div>
@@ -58,6 +66,15 @@
     </div>
 
     <script>
+        // Pre-fill plan from URL
+        window.onload = () => {
+            const params = new URLSearchParams(window.location.search);
+            const plan = params.get("plan");
+            if (plan) {
+                document.getElementById("plan").value = plan;
+            }
+        };
+
         document.getElementById("signup-form").onsubmit = async (e) => {
             e.preventDefault();
             const btn = e.target.querySelector("button");
@@ -68,7 +85,8 @@
                 name: document.getElementById("name").value,
                 email: document.getElementById("email").value,
                 subdomain: document.getElementById("subdomain").value,
-                openai_key: document.getElementById("openai_key").value
+                openai_key: document.getElementById("openai_key").value,
+                plan: document.getElementById("plan").value
             };
 
             try {

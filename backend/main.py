@@ -351,8 +351,9 @@ async def update_settings(settings_in: SettingsUpdate, x_api_key: str = Header(.
 class SignupIn(BaseModel):
     name: str
     subdomain: str
-    email: str # For admin context
+    email: str 
     openai_key: Optional[str] = None
+    plan: Optional[str] = "free"
 
 @app.post("/auth/signup")
 async def public_signup(data: SignupIn, db: Session = Depends(get_session)):
@@ -365,6 +366,7 @@ async def public_signup(data: SignupIn, db: Session = Depends(get_session)):
         name=data.name,
         subdomain=data.subdomain.lower(),
         openai_api_key=data.openai_key,
+        plan=data.plan,
         system_prompt=f"You are the AI Assistant for {data.name}. Luxury-level service is mandatory."
     )
     db.add(new_company)
