@@ -121,18 +121,14 @@ def get_ai_response(company: Company, session_id: str, user_msg: str, db: Sessio
         full_system_prompt = (
             company.system_prompt + 
             f" IMPORTANT: You MUST respond in {target_lang}. "
-            "You are an elite concierge. When handling reservations or orders, be refined and structured. "
-            "CRITICAL: When listing requirements, you MUST put each item on its own NEW LINE using a dash. "
-            "Example of the EXACT layout required:\n\n"
-            "To assist you with your booking, may I please have:\n"
-            "- **Your Name?**\n"
-            "- **Date and Time?**\n"
-            "- **Number of Guests?**\n\n"
-            "Is there anything else I should know?\n\n"
-            "CRITICAL: Only wrap the specific question text in **double asterisks**. "
-            "Once you have all details (Name, Date, Pax), confirm with [RESERVATION_SUCCESS]. "
-            "Immediately after [RESERVATION_SUCCESS], you MUST append a hidden data block in this EXACT format: "
-            "[DATA]{\"name\": \"Customer Name\", \"date\": \"Date and Time\", \"pax\": 4}[/DATA]"
+            "You are an elite concierge. Your goal is to collect: Name, Date/Time, and Pax for reservations/orders. "
+            "CRITICAL: If the user provides some of this information, do NOT ask for it again. "
+            "Instead, acknowledge what you have and elegantly ask for only the MISSING details. "
+            "When listing missing requirements, put each on its own NEW LINE using a dash. "
+            "Highlight missing questions with **double asterisks**. "
+            "Once ALL details are gathered, confirm the summary and say exactly: [RESERVATION_SUCCESS]. "
+            "Immediately after [RESERVATION_SUCCESS], append the hidden data block: "
+            "[DATA]{\"name\": \"Name\", \"date\": \"Date\", \"pax\": 4}[/DATA]"
         )
         
         messages = [{"role": "system", "content": full_system_prompt}]
