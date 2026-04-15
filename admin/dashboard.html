@@ -153,10 +153,20 @@
         <div id="tab-knowledge" class="tab-content">
             <div class="card">
                 <h2>RAG Knowledge Base (AI Context)</h2>
-                <p style="color:#666; font-size:0.9rem; margin-bottom:20px;">Paste your menus, service lists, or complex business logic here. The AI will use this as its "source of truth."</p>
+                <p style="color:#666; font-size:0.9rem; margin-bottom:20px;">Upload your menu, pricing list, or service manual (PDF) or paste raw text below.</p>
+                
+                <!-- PDF Upload Section -->
+                <div style="background:#f9f9f9; padding:20px; border-radius:12px; margin-bottom:30px; border:1px dashed #ccc;">
+                    <label>Upload Document (PDF Only)</label>
+                    <div style="display:flex; gap:10px; margin-top:10px;">
+                        <input type="file" id="kb-pdf-file" accept=".pdf" style="flex:1;">
+                        <button onclick="uploadPDF()" class="btn" style="background:#444;">Upload PDF</button>
+                    </div>
+                </div>
+
                 <form id="kb-form">
                     <textarea id="kb-content" style="height:300px; font-family:monospace; font-size:13px;" placeholder="e.g., We offer Omakase for 120€, Vegan options available..."></textarea>
-                    <button type="submit" class="btn" style="margin-top:20px;">Synchronize AI Brain</button>
+                    <button type="submit" class="btn" style="margin-top:20px; width:100%;">Synchronize Raw Text</button>
                 </form>
             </div>
         </div>
@@ -271,6 +281,35 @@
             const data = { knowledge_base: document.getElementById("kb-content").value };
             await saveSettings(data);
         };
+
+        async function uploadPDF() {
+            const fileInput = document.getElementById("kb-pdf-file");
+            if (!fileInput.files[0]) {
+                alert("Please select a PDF file first.");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("file", fileInput.files[0]);
+
+            try {
+                showToast("Extracting intelligence from PDF...");
+                const res = await fetch(`${API_BASE}/admin/kb/upload`, {
+                    method: 'POST',
+                    headers: { "X-API-Key": API_KEY },
+                    body: formData
+                });
+                const result = await res.json();
+                if (res.ok) {
+                    showToast(`Success! Extracted ${result.extracted_length} characters.`);
+                    fetchSettings(); // Refresh text area
+                } else {
+                    alert(result.detail || "Upload failed.");
+                }
+            } catch (e) {
+                alert("Network error processing PDF.");
+            }
+        }
 
         async function saveSettings(data) {
             try {

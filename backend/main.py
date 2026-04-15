@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Header, Depends, Request
+from fastapi import FastAPI, HTTPException, Header, Depends, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -6,6 +6,8 @@ from pydantic import BaseModel
 from typing import List, Optional
 from sqlmodel import Session, select
 import os
+import pdfplumber
+import io
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -345,6 +347,36 @@ async def update_settings(settings_in: SettingsUpdate, x_api_key: str = Header(.
     if settings_in.openai_api_key: company.openai_api_key = settings_in.openai_api_key
     if settings_in.whatsapp_phone_id: company.whatsapp_phone_id = settings_in.whatsapp_phone_id
     db.add(company); db.commit(); return {"status": "success"}
+
+@app.post("/admin/kb/upload")
+async def upload_kb_pdf(file: UploadFile = File(...), x_api_key: str = Header(...), db: Session = Depends(get_session)):
+    company = db.exec(select(Company).where(Company.api_key == x_api_key)).first()
+    if not company: raise HTTPException(status_code=403, detail="Invalid API Key")
+    
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files are supported.")
+    
+    try:
+        content = await file.read()
+        extracted_text = ""
+        with pdfplumber.open(io.BytesIO(content)) as pdf:
+            for page in pdf.pages:
+                text = page.extract_text()
+                if text:
+                    extracted_text += text + "\n"
+        
+        if not extracted_text.strip():
+            raise HTTPException(status_code=400, detail="No readable text found in PDF.")
+            
+        # Update company KB
+        company.knowledge_base = extracted_text.strip()
+        db.add(company)
+        db.commit()
+        
+        return {"status": "success", "extracted_length": len(extracted_text)}
+    except Exception as e:
+        print(f"PDF EXTRACTION ERROR: {e}")
+        raise HTTPException(status_code=500, detail="Failed to process PDF.")
 
 # --- PUBLIC SAAS SIGNUP ---
 
