@@ -331,12 +331,22 @@
                         row.innerHTML = `
                             <td style="font-weight:600; color:var(--primary);">${rule.keyword}</td>
                             <td style="font-size:0.85rem;">${rule.response.substring(0,60)}${rule.response.length > 60 ? '...' : ''}</td>
-                            <td><button onclick="deleteRule(${rule.id})" class="btn btn-sm btn-danger">Delete</button></td>
+                            <td>
+                                <button onclick="editRule('${rule.keyword}', \`${rule.response.replace(/`/g, '\\`').replace(/\${/g, '\\${')}\`)" class="btn btn-sm" style="background:#444; margin-right:5px;">Edit</button>
+                                <button onclick="deleteRule(${rule.id})" class="btn btn-sm btn-danger">Delete</button>
+                            </td>
                         `;
                         tbody.appendChild(row);
                     });
                 }
             } catch (e) { console.error("Rules fetch failed", e); }
+        }
+
+        function editRule(keyword, response) {
+            document.getElementById("rule-keyword").value = keyword;
+            document.getElementById("rule-response").value = response;
+            document.getElementById("rule-keyword").focus();
+            showToast("Editing rule: " + keyword);
         }
 
         async function deleteRule(id) {
