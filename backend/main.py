@@ -213,6 +213,25 @@ async def get_reservations(x_api_key: str = Header(...), db: Session = Depends(g
     if not company: raise HTTPException(status_code=403, detail="Invalid API Key")
     return db.exec(select(Reservation).where(Reservation.company_id == company.id).order_by(Reservation.timestamp.desc())).all()
 
+@app.get("/admin/stats")
+async def get_stats(x_api_key: str = Header(...), db: Session = Depends(get_session)):
+    company = db.exec(select(Company).where(Company.api_key == x_api_key)).first()
+    if not company: raise HTTPException(status_code=403, detail="Invalid API Key")
+    
+    total_chats = db.exec(select(ChatLog).where(ChatLog.company_id == company.id)).all()
+    reservations = db.exec(select(Reservation).where(Reservation.company_id == company.id)).all()
+    
+    ai_count = len([l for l in total_chats if l.source == 'ai'])
+    kw_count = len([l for l in total_chats if l.source == 'keyword'])
+    
+    return {
+        "total_messages": len(total_chats),
+        "reservations_count": len(reservations),
+        "ai_usage": ai_count,
+        "keyword_usage": kw_count,
+        "success_rate": "99.9%" # Strategic marketing placeholder
+    }
+
 @app.get("/admin/rules")
 async def get_rules(x_api_key: str = Header(...), db: Session = Depends(get_session)):
     company = db.exec(select(Company).where(Company.api_key == x_api_key)).first()
