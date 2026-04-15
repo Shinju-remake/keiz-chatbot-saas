@@ -59,7 +59,7 @@ def process_message_v3(company: Company, session_id: str, user_msg: str, db: Ses
     db.commit()
     
     # [RESERVATION SYSTEM] Parse and save if successful
-    if "[RESERVATION_SUCCESS]" in reply:
+    if reply and "[RESERVATION_SUCCESS]" in reply:
         try:
             # Extract JSON data from the hidden [DATA] tags
             match = re.search(r"\[DATA\](.*?)\[/DATA\]", reply, re.DOTALL)
@@ -118,9 +118,13 @@ def get_ai_response(company: Company, session_id: str, user_msg: str, db: Sessio
         lang_names = {"en": "English", "fr": "French", "es": "Spanish"}
         target_lang = lang_names.get(language, "English")
         
+        # RAG / Knowledge Base Injection
+        kb_context = f"\nCOMPANY KNOWLEDGE BASE:\n{company.knowledge_base}\n" if company.knowledge_base else ""
+        
         full_system_prompt = (
             company.system_prompt + 
-            f" IMPORTANT: You MUST respond in {target_lang}. "
+            kb_context +
+            f"\nIMPORTANT: You MUST respond in {target_lang}. "
             "You are an elite concierge. Your goal is to collect: Name, Date/Time, and Pax for reservations/orders. "
             "CRITICAL: If the user provides some of this information, do NOT ask for it again. "
             "Instead, acknowledge what you have and elegantly ask for only the MISSING details. "
@@ -138,9 +142,9 @@ def get_ai_response(company: Company, session_id: str, user_msg: str, db: Sessio
         messages.append({"role": "user", "content": user_msg})
         
         response = client.chat.completions.create(
-            model="gpt-5.4-nano",
+            model="gpt-4o-mini", # Using 4o-mini for better RAG performance
             messages=messages,
-            max_completion_tokens=200,
+            max_completion_tokens=250,
             temperature=0.7
         )
         return response.choices[0].message.content.strip()

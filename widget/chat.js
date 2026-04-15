@@ -16,6 +16,30 @@
     link.href = "/widget/chat.css"; 
     document.head.appendChild(link);
 
+    // --- NEW: Fetch Dynamic Config ---
+    async function applyBranding() {
+        try {
+            const res = await fetch("/widget/config", {
+                headers: { "X-API-Key": API_KEY }
+            });
+            const config = await res.json();
+            if (config.primary_color) {
+                document.documentElement.style.setProperty('--primary', config.primary_color);
+                // Update elements already in DOM
+                const bubble = document.getElementById("shinju-chat-bubble");
+                const header = document.getElementById("shinju-chat-header");
+                const sendBtn = document.getElementById("shinju-chat-send");
+                if (bubble) bubble.style.background = config.primary_color;
+                if (header) header.style.background = config.primary_color;
+                if (sendBtn) sendBtn.style.background = config.primary_color;
+            }
+            if (config.logo_url) {
+                const title = document.getElementById("shinju-chat-title");
+                title.innerHTML = `<img src="${config.logo_url}" style="height:24px; margin-right:10px; vertical-align:middle;"> ${config.name}`;
+            }
+        } catch (e) { console.error("Branding fetch failed", e); }
+    }
+
     // 3. Build UI Elements
     const bubble = document.createElement("div");
     bubble.id = "shinju-chat-bubble";
@@ -159,4 +183,7 @@
     setTimeout(() => {
         appendMessage(translations[currentLang].greeting, "bot");
     }, 500);
+
+    // Apply branding from server
+    applyBranding();
 })();

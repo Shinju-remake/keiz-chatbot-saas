@@ -22,7 +22,7 @@
     right: 20px;
     width: 60px;
     height: 60px;
-    background: #BB00FF; 
+    background: var(--primary); 
     border-radius: 50%;
     box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     cursor: pointer;
@@ -38,7 +38,7 @@
 #shinju-chat-bubble:active { transform: scale(0.9); }
 
 #shinju-chat-header {
-    background: #BB00FF;
+    background: var(--primary);
     color: white;
     padding: 15px;
     border-radius: 12px 12px 0 0;
@@ -70,7 +70,7 @@
 }
 
 .shinju-user {
-    background: #BB00FF;
+    background: var(--primary);
     color: white;
     align-self: flex-end;
     margin-left: auto;
@@ -85,7 +85,7 @@
 }
 
 .shinju-highlight {
-    color: #BB00FF;
+    color: var(--primary);
     font-weight: 700;
 }
 
@@ -106,7 +106,7 @@
 }
 
 #shinju-chat-send {
-    background: #BB00FF;
+    background: var(--primary);
     color: white;
     border: none;
     padding: 8px 15px;

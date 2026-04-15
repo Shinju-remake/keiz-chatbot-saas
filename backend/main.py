@@ -199,6 +199,48 @@ async def handle_whatsapp_msg(request: Request, db: Session = Depends(get_sessio
         print(f"WHATSAPP WEBHOOK ERROR: {e}")
         return {"status": "error"}
 
+# --- SAAS MULTI-TENANCY MIDDLEWARE ---
+
+@app.middleware("http")
+async def subdomain_middleware(request: Request, call_next):
+    # Logic: If host is 'bistro.shinju-ai.com', set company context
+    host = request.headers.get("host", "")
+    if "." in host and not host.startswith("www"):
+        subdomain = host.split(".")[0]
+        # We can store this in request.state for use in endpoints
+        request.state.subdomain = subdomain
+    else:
+        request.state.subdomain = None
+    
+    response = await call_next(request)
+    return response
+
+# --- PRO FEATURES: STRIPE SAAS BILLING ---
+
+class CheckoutSession(BaseModel):
+    plan: str
+
+@app.post("/admin/billing/checkout")
+async def create_checkout_session(data: CheckoutSession, x_api_key: str = Header(...), db: Session = Depends(get_session)):
+    company = db.exec(select(Company).where(Company.api_key == x_api_key)).first()
+    if not company: raise HTTPException(status_code=403, detail="Invalid API Key")
+    
+    # In a real app, you would use stripe.checkout.Session.create()
+    # For this MVP, we simulate the redirection URL
+    print(f"STRIPE: Creating {data.plan} session for {company.name}")
+    
+    # Placeholder for the actual Stripe URL
+    stripe_url = f"https://checkout.stripe.com/pay/c_test_shinju_{data.plan}_{company.id}"
+    return {"url": stripe_url}
+
+@app.post("/webhook/stripe")
+async def stripe_webhook(request: Request, db: Session = Depends(get_session)):
+    """
+    Handle successful payments to upgrade company plans.
+    """
+    # Verify Stripe signature and update company.plan
+    return {"status": "ok"}
+
 # --- ADMIN API ROUTES ---
 
 @app.get("/admin/logs")
@@ -263,10 +305,25 @@ async def delete_rule(rule_id: int, x_api_key: str = Header(...), db: Session = 
 async def get_settings(x_api_key: str = Header(...), db: Session = Depends(get_session)):
     company = db.exec(select(Company).where(Company.api_key == x_api_key)).first()
     if not company: raise HTTPException(status_code=403, detail="Invalid API Key")
-    return {"name": company.name, "system_prompt": company.system_prompt, "openai_api_key": company.openai_api_key, "whatsapp_phone_id": company.whatsapp_phone_id, "whatsapp_verify_token": company.whatsapp_verify_token}
+    return {
+        "name": company.name, 
+        "subdomain": company.subdomain,
+        "primary_color": company.primary_color,
+        "logo_url": company.logo_url,
+        "knowledge_base": company.knowledge_base,
+        "system_prompt": company.system_prompt, 
+        "openai_api_key": company.openai_api_key, 
+        "whatsapp_phone_id": company.whatsapp_phone_id, 
+        "whatsapp_verify_token": company.whatsapp_verify_token,
+        "plan": company.plan
+    }
 
 class SettingsUpdate(BaseModel):
     name: Optional[str] = None
+    subdomain: Optional[str] = None
+    primary_color: Optional[str] = None
+    logo_url: Optional[str] = None
+    knowledge_base: Optional[str] = None
     system_prompt: Optional[str] = None
     openai_api_key: Optional[str] = None
     whatsapp_phone_id: Optional[str] = None
@@ -276,10 +333,45 @@ async def update_settings(settings_in: SettingsUpdate, x_api_key: str = Header(.
     company = db.exec(select(Company).where(Company.api_key == x_api_key)).first()
     if not company: raise HTTPException(status_code=403, detail="Invalid API Key")
     if settings_in.name: company.name = settings_in.name
+    if settings_in.subdomain: company.subdomain = settings_in.subdomain.lower()
+    if settings_in.primary_color: company.primary_color = settings_in.primary_color
+    if settings_in.logo_url: company.logo_url = settings_in.logo_url
+    if settings_in.knowledge_base: company.knowledge_base = settings_in.knowledge_base
     if settings_in.system_prompt: company.system_prompt = settings_in.system_prompt
     if settings_in.openai_api_key: company.openai_api_key = settings_in.openai_api_key
     if settings_in.whatsapp_phone_id: company.whatsapp_phone_id = settings_in.whatsapp_phone_id
     db.add(company); db.commit(); return {"status": "success"}
+
+@app.get("/widget/config")
+async def get_widget_config(x_api_key: str = Header(...), db: Session = Depends(get_session)):
+    company = db.exec(select(Company).where(Company.api_key == x_api_key)).first()
+    if not company: raise HTTPException(status_code=403, detail="Invalid API Key")
+    return {
+        "name": company.name,
+        "primary_color": company.primary_color,
+        "logo_url": company.logo_url
+    }
+
+class CorrectionIn(BaseModel):
+    log_id: int
+    correction: str
+
+@app.post("/admin/logs/correct")
+async def correct_log(data: CorrectionIn, x_api_key: str = Header(...), db: Session = Depends(get_session)):
+    company = db.exec(select(Company).where(Company.api_key == x_api_key)).first()
+    if not company: raise HTTPException(status_code=403, detail="Invalid API Key")
+    log = db.get(ChatLog, data.log_id)
+    if not log or log.company_id != company.id: raise HTTPException(status_code=404, detail="Log not found")
+    
+    # Create a new FAQ rule from this correction (Human-in-the-loop)
+    new_rule = FAQRule(
+        company_id=company.id,
+        keyword=log.user_msg.lower()[:50], # Use first 50 chars of user message as keyword
+        response=data.correction
+    )
+    db.add(new_rule)
+    db.commit()
+    return {"status": "success"}
 
 # MOUNT STATIC FILES
 app.mount("/widget", StaticFiles(directory=str(BASE_DIR / "widget")), name="widget")

@@ -6,13 +6,27 @@ import uuid
 class Company(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str
+    subdomain: Optional[str] = Field(default=None, index=True, unique=True)
+    
     # Each company gets a unique API key for the widget
     api_key: str = Field(default_factory=lambda: str(uuid.uuid4()), index=True, unique=True)
-    # Company can provide their own OpenAI key, or use the SaaS global key
+    
+    # Custom Branding
+    primary_color: str = Field(default="#BB00FF")
+    logo_url: Optional[str] = None
+    
+    # RAG / Knowledge Base
+    knowledge_base: Optional[str] = Field(default=None) # Large text for context injection
+    
+    # AI Persona
     openai_api_key: Optional[str] = None
-    # Custom persona for the AI
     system_prompt: str = Field(default="You are a helpful, polite customer support assistant.")
     
+    # SaaS Billing (Stripe)
+    plan: str = Field(default="free") # free, starter, pro, premium
+    stripe_customer_id: Optional[str] = None
+    stripe_subscription_id: Optional[str] = None
+
     # WhatsApp Pro Integration (Meta Cloud API)
     whatsapp_phone_id: Optional[str] = None
     whatsapp_verify_token: Optional[str] = Field(default_factory=lambda: str(uuid.uuid4())[:8])
@@ -34,9 +48,9 @@ class Reservation(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     company_id: int = Field(foreign_key="company.id")
     customer_name: str
-    date_time: str # Store as string for flexibility
+    date_time: str 
     pax: int
-    status: str = Field(default="pending") # pending, confirmed, cancelled
+    status: str = Field(default="pending") 
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
     company: "Company" = Relationship(back_populates="reservations")
@@ -44,10 +58,10 @@ class Reservation(SQLModel, table=True):
 class ChatLog(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     company_id: int = Field(foreign_key="company.id")
-    session_id: str = Field(index=True)  # To track individual user conversations
+    session_id: str = Field(index=True)  
     user_msg: str
     bot_reply: str
-    source: str # 'keyword', 'ai', or 'fallback'
+    source: str 
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     
     company: Company = Relationship(back_populates="logs")
