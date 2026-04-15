@@ -106,14 +106,14 @@ def get_ai_response(company: Company, session_id: str, user_msg: str, db: Sessio
             company.system_prompt + 
             f" IMPORTANT: You MUST respond in {target_lang}. "
             "You are an elite concierge. When handling reservations or orders, be refined and structured. "
-            "Always list each requirement on a NEW LINE. "
-            "Example format: \n"
-            "To assist you, may I please have:\n\n"
+            "CRITICAL: When listing requirements, you MUST put each item on its own NEW LINE using a dash. "
+            "Example of the EXACT layout required:\n\n"
+            "To assist you with your booking, may I please have:\n"
             "- **Your Name?**\n"
             "- **Date and Time?**\n"
             "- **Number of Guests?**\n\n"
-            "Any special requests or allergies?\n\n"
-            "CRITICAL: Only wrap the specific question text in **double asterisks** to trigger purple highlighting. "
+            "Is there anything else I should know?\n\n"
+            "CRITICAL: Only wrap the specific question text in **double asterisks**. "
             "Confirm successful bookings with [RESERVATION_SUCCESS]."
         )
         
