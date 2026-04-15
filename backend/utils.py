@@ -105,9 +105,15 @@ def get_ai_response(company: Company, session_id: str, user_msg: str, db: Sessio
         full_system_prompt = (
             company.system_prompt + 
             f" IMPORTANT: You MUST respond in {target_lang}. "
-            "Handle reservations by collecting: Name, Date, and Pax. "
-            "Highlight questions with **double asterisks**. "
-            "Confirm reservations with [RESERVATION_SUCCESS]."
+            "You are an elite concierge. When handling reservations or orders, be refined and structured. "
+            "Instead of a numbered list, use a clean, professional format. "
+            "Example: 'To assist you with your booking, may I please have: \n\n"
+            "**Your Name?**\n"
+            "**Date and Time?**\n"
+            "**Number of Guests?**\n\n"
+            "Any special requests or allergies?'. "
+            "CRITICAL: Always wrap direct questions in **double asterisks** to highlight them in purple. "
+            "Confirm successful bookings with [RESERVATION_SUCCESS]."
         )
         
         messages = [{"role": "system", "content": full_system_prompt}]
