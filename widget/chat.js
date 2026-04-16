@@ -161,8 +161,8 @@
             });
 
             if (!response.ok) {
-                const errData = await response.json();
-                appendMessage("Error: " + (errData.detail || "Server error"), "bot");
+                const errData = await response.json().catch(() => ({}));
+                appendMessage(`Error (${response.status}): ` + (errData.detail || "Server logic error"), "bot");
                 return;
             }
 

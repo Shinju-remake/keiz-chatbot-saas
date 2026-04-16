@@ -45,54 +45,28 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/health")
+async def health_check():
+    return {"status": "online", "engine": "Shinju AI Omni-Console V3"}
+
 @app.on_event("startup")
 def on_startup():
-    create_db_and_tables()
-    with Session(engine) as session:
-        company = session.exec(select(Company)).first()
-        if not company:
-            company = Company(
-                name="Shinju AI", 
-                api_key="dev-api-key-123",
-                system_prompt="You are Shinju AI, the Elite Virtual Assistant. Your goal is to provide luxury-level service. CONSTRAINTS: 1. Keep responses concise and high-impact. 2. NEVER use markdown bold (**) or italics (*) in your replies; use plain text only. 3. Be helpful with all inquiries related to your host company.",
-                whatsapp_verify_token="shinju_pro_verify"
-            )
-            session.add(company)
-            session.commit()
-            session.refresh(company)
-            
-        # Ensure all rules exist
-        target_rules = {
-            "price": "Our luxury dining experience ranges from 50€ to 150€. Quality is our priority.",
-            "contact": "Contact Shinju at contact@shinju-ai.com or visit our dashboard.",
-            "book": "To book a table at Shinju Bistro, please provide your name and number of guests.",
-            "reserve": "I can assist with reservations at Shinju Bistro! Please provide the date, time, and party size.",
-            "reservation": "For reservations, tell me the date, time, and how many guests will be joining us.",
-            "menu": "Explore our menu at shinju-bistro.com/menu",
-            "vibe": "The atmosphere at Shinju is one of refined elegance, perfect for discerning guests.",
-            "hello": "Hello! I am Shinju AI. How can I serve you today?",
-            "hi": "Greetings. I am Shinju AI, your dedicated assistant. How may I help?",
-            "recommend": "I highly recommend our signature Omakase experience.",
-            "hey": "Welcome back. I am Shinju AI. What can I do for you?"
-        }
-        
-        existing_keywords = session.exec(select(FAQRule.keyword).where(FAQRule.company_id == company.id)).all()
-        for kw, resp in target_rules.items():
-            if kw not in existing_keywords:
-                session.add(FAQRule(company_id=company.id, keyword=kw, response=resp))
-        
-        # Sample Reservation for Demo
-        existing_res = session.exec(select(Reservation).where(Reservation.company_id == company.id)).first()
-        if not existing_res:
-            session.add(Reservation(
-                company_id=company.id,
-                customer_name="Keizinho Test",
-                date_time="Tonight at 8:30 PM",
-                pax=2,
-                status="confirmed"
-            ))
-
-        session.commit()
+    try:
+        create_db_and_tables()
+        with Session(engine) as session:
+            company = session.exec(select(Company)).first()
+            if not company:
+                company = Company(
+                    name="Shinju AI", 
+                    api_key="dev-api-key-123",
+                    system_prompt="You are Shinju AI, the Elite Virtual Assistant. Your goal is to provide luxury-level service. CONSTRAINTS: 1. Keep responses concise and high-impact. 2. NEVER use markdown bold (**) or italics (*) in your replies; use plain text only. 3. Be helpful with all inquiries related to your host company.",
+                    whatsapp_verify_token="shinju_pro_verify"
+                )
+                session.add(company)
+                session.commit()
+                session.refresh(company)
+    except Exception as e:
+        print(f"STARTUP ERROR (Non-fatal): {e}")
 
 class ChatMessage(BaseModel):
     message: str

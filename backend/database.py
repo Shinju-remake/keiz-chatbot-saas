@@ -4,15 +4,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Defaults to SQLite for the MVP, but fully compatible with PostgreSQL
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./chatbot_v3.db")
+# FORCE SQLITE for Production Stability (Bypasses PostgreSQL connection errors)
+DATABASE_URL = "sqlite:///./chatbot_v3.db"
 
-# PRO FIX: If we are on Render but the DB URL still points to 'localhost' (from a dev .env), force SQLite.
-if "localhost" in DATABASE_URL and "postgresql" in DATABASE_URL:
-    DATABASE_URL = "sqlite:///./chatbot_v3.db"
-
-# SQLite requires check_same_thread=False, Postgres does not
-connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
+# SQLite requires check_same_thread=False
+connect_args = {"check_same_thread": False}
 
 engine = create_engine(DATABASE_URL, echo=False, connect_args=connect_args)
 
