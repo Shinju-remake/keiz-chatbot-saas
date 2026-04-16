@@ -115,13 +115,9 @@ def get_ai_response(company: Company, session_id: str, user_msg: str, db: Sessio
     openai_key = openai_key.replace(" ", "").replace("\n", "").replace("\r", "").strip()
 
     try:
-        transport = httpx.HTTPTransport(local_address="0.0.0.0")
-        http_client = httpx.Client(transport=transport)
-        
         client = OpenAI(
             api_key=openai_key, 
-            timeout=60.0,
-            http_client=http_client
+            timeout=60.0
         )
         history = db.exec(
             select(ChatLog)
@@ -158,7 +154,7 @@ def get_ai_response(company: Company, session_id: str, user_msg: str, db: Sessio
         messages.append({"role": "user", "content": user_msg})
         
         response = client.chat.completions.create(
-            model="gpt-4o-mini", # Using 4o-mini for better RAG performance
+            model="gpt-3.5-turbo", # Reverting to standard model for maximum compatibility
             messages=messages,
             max_completion_tokens=250,
             temperature=0.7

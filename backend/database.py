@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Defaults to SQLite for the MVP, but fully compatible with PostgreSQL
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./chatbot_saas.db")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./chatbot_v3.db")
 
 # SQLite requires check_same_thread=False, Postgres does not
 connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
