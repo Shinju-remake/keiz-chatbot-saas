@@ -1,7 +1,11 @@
 (function() {
     // 1. Initial Config
     const API_KEY = "dev-api-key-123"; 
-    const BACKEND_URL = "/chat"; // Relative path works since served from same domain
+    // Use window.location.origin if served from same domain, otherwise fallback to Render URL
+    const BASE_ORIGIN = window.location.origin.includes("localhost") || window.location.origin.includes("127.0.0.1") 
+                        ? window.location.origin 
+                        : "https://keiz-chatbot-saas-1.onrender.com";
+    const BACKEND_URL = `${BASE_ORIGIN}/chat`;
 
     // Session Memory Tracking
     let sessionId = localStorage.getItem("shinju_chat_session");
@@ -19,7 +23,7 @@
     // --- NEW: Fetch Dynamic Config ---
     async function applyBranding() {
         try {
-            const res = await fetch("/widget/config", {
+            const res = await fetch(`${BASE_ORIGIN}/widget/config`, {
                 headers: { "X-API-Key": API_KEY }
             });
             const config = await res.json();
