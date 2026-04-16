@@ -2,9 +2,9 @@ from openai import OpenAI
 from typing import List, Optional
 from sqlmodel import Session, select
 try:
-    from models import ChatLog, Company, FAQRule, Reservation
+    from models import ChatLog, Company, FAQRule, Reservation, ChatSession
 except ImportError:
-    from .models import ChatLog, Company, FAQRule, Reservation
+    from .models import ChatLog, Company, FAQRule, Reservation, ChatSession
 import os
 import httpx
 import re
