@@ -220,7 +220,16 @@
     <div id="toast">Operation successful!</div>
 
     <script>
-        const API_KEY = "dev-api-key-123";
+        // Use localStorage key from signup or fallback to dev key
+        let API_KEY = localStorage.getItem("shinju_admin_key") || "dev-api-key-123";
+        
+        // Allow URL override: ?key=...
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has("key")) {
+            API_KEY = urlParams.get("key");
+            localStorage.setItem("shinju_admin_key", API_KEY);
+        }
+
         const API_BASE = window.location.origin;
 
         function showToast(msg) {
