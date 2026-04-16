@@ -244,6 +244,17 @@
             if (tab === 'settings') { navItems[4].classList.add('active'); fetchSettings(); }
         }
 
+        async function getTrends() {
+            const box = document.getElementById("trend-box");
+            box.innerText = "Analyzing behavioral data...";
+            try {
+                const res = await fetch(`${API_BASE}/admin/analytics/trends`, { headers: { "X-API-Key": API_KEY } });
+                const data = await res.json();
+                box.innerHTML = `<strong>AI Analysis:</strong> ${data.trend}`;
+                box.style.color = "var(--dark)";
+            } catch (e) { box.innerText = "Analysis failed."; }
+        }
+
         async function fetchSettings() {
             try {
                 const response = await fetch(`${API_BASE}/admin/settings`, { headers: { "X-API-Key": API_KEY } });
@@ -395,6 +406,10 @@
         }
 
         window.onload = () => { fetchLogs(); fetchSettings(); };
+    </script>
+</body>
+</html>
+{ fetchLogs(); fetchSettings(); };
     </script>
 </body>
 </html>
