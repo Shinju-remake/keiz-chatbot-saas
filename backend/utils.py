@@ -154,7 +154,7 @@ def get_ai_response(company: Company, session_id: str, user_msg: str, db: Sessio
         messages.append({"role": "user", "content": user_msg})
         
         response = client.chat.completions.create(
-            model="gpt-4o-mini", # Modern, fast, and high-availability
+            model="gpt-5.4-nano", # Reverting to the original Elite Brain
             messages=messages,
             max_completion_tokens=250,
             temperature=0.7
