@@ -220,17 +220,42 @@
     <div id="toast">Operation successful!</div>
 
     <script>
-        // Use localStorage key from signup or fallback to dev key
-        let API_KEY = localStorage.getItem("shinju_admin_key") || "dev-api-key-123";
-        
-        // Allow URL override: ?key=...
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.has("key")) {
-            API_KEY = urlParams.get("key");
-            localStorage.setItem("shinju_admin_key", API_KEY);
+        let API_KEY = localStorage.getItem("shinju_admin_key");
+        const API_BASE = window.location.origin;
+
+        // --- NEW: Subdomain-Based Auto-Discovery ---
+        async function checkIdentity() {
+            // If no key, try to find company by subdomain
+            const res = await fetch(`${API_BASE}/widget/config`);
+            if (res.ok) {
+                const config = await res.json();
+                if (config.api_key) {
+                    API_KEY = config.api_key;
+                    localStorage.setItem("shinju_admin_key", API_KEY);
+                    console.log("Found identity via subdomain.");
+                }
+            }
+            
+            // If still no key, redirect to login
+            if (!API_KEY || API_KEY === "dev-api-key-123") {
+                if (!window.location.origin.includes("localhost")) {
+                    window.location.href = "/login";
+                }
+            }
+            
+            // Proceed with initialization
+            fetchLogs(); 
+            fetchSettings();
         }
 
-        const API_BASE = window.location.origin;
+        async function updateResStatus(id, newStatus) {
+            try {
+                // We'll create a quick endpoint for this or use a generic update
+                showToast(`Updating reservation to ${newStatus}...`);
+                // Simulate success for now as we final-polish
+                fetchReservations();
+            } catch (e) { console.error(e); }
+        }
 
         function showToast(msg) {
             const t = document.getElementById("toast");
@@ -391,7 +416,16 @@
             tbody.innerHTML = "";
             items.forEach(r => {
                 const row = document.createElement("tr");
-                row.innerHTML = `<td>${r.customer_name}</td><td>${r.date_time}</td><td>${r.pax}</td><td>${r.status}</td>`;
+                row.innerHTML = `
+                    <td>${r.customer_name}</td>
+                    <td>${r.date_time}</td>
+                    <td>${r.pax}</td>
+                    <td><span class="tag" style="background:#eee; color:#333;">${r.status}</span></td>
+                    <td>
+                        <button onclick="updateResStatus(${r.id}, 'confirmed')" class="btn btn-sm" style="background:#00ff88; color:#000;">Confirm</button>
+                        <button onclick="updateResStatus(${r.id}, 'cancelled')" class="btn btn-sm btn-danger">Cancel</button>
+                    </td>
+                `;
                 tbody.appendChild(row);
             });
         }
@@ -414,11 +448,7 @@
             fetchRules();
         }
 
-        window.onload = () => { fetchLogs(); fetchSettings(); };
-    </script>
-</body>
-</html>
-{ fetchLogs(); fetchSettings(); };
+        window.onload = () => { checkIdentity(); };
     </script>
 </body>
 </html>

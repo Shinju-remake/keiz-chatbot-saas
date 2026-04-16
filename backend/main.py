@@ -94,6 +94,10 @@ async def get_console():
 
 # --- PORTAL STATIC ROUTES (For Iframes) ---
 
+@app.get("/login")
+async def get_login():
+    return FileResponse(str(BASE_DIR / "login.html"))
+
 @app.get("/signup")
 async def get_signup():
     return FileResponse(str(BASE_DIR / "signup.html"))

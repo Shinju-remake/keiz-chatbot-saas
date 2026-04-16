@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shinju AI | Admin Login</title>
+    <style>
+        :root { --primary: #BB00FF; --dark: #0a0a0a; }
+        body { font-family: 'Inter', sans-serif; background: var(--dark); color: white; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .card { background: #161616; padding: 40px; border-radius: 24px; width: 100%; max-width: 400px; border: 1px solid rgba(255,255,255,0.1); text-align: center; }
+        h1 { margin-bottom: 10px; font-weight: 900; }
+        p { color: #888; margin-bottom: 30px; font-size: 0.9rem; }
+        input { width: 100%; padding: 12px; background: #222; border: 1px solid #333; border-radius: 8px; color: white; margin-bottom: 20px; box-sizing: border-box; }
+        .btn { width: 100%; background: var(--primary); color: white; border: none; padding: 15px; border-radius: 50px; font-weight: 700; cursor: pointer; transition: 0.3s; }
+        .btn:hover { transform: translateY(-2px); }
+        .back-link { margin-top: 20px; display: block; color: #666; text-decoration: none; font-size: 0.8rem; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Welcome Back.</h1>
+        <p>Enter your Administrative API Key to access your Omni-Console.</p>
+        <form id="login-form">
+            <input type="password" id="api-key" placeholder="Enter your API Key" required>
+            <button type="submit" class="btn">ACCESS DASHBOARD</button>
+        </form>
+        <a href="/agency" class="back-link">← Back to Shinju AI</a>
+    </div>
+    <script>
+        document.getElementById("login-form").onsubmit = (e) => {
+            e.preventDefault();
+            const key = document.getElementById("api-key").value.trim();
+            localStorage.setItem("shinju_admin_key", key);
+            window.location.href = "/dashboard";
+        };
+    </script>
+</body>
+</html>
