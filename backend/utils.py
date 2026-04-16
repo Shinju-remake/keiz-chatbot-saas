@@ -154,7 +154,7 @@ def get_ai_response(company: Company, session_id: str, user_msg: str, db: Sessio
         messages.append({"role": "user", "content": user_msg})
         
         response = client.chat.completions.create(
-            model="gpt-3.5-turbo", # Reverting to standard model for maximum compatibility
+            model="gpt-4o-mini", # Modern, fast, and high-availability
             messages=messages,
             max_completion_tokens=250,
             temperature=0.7
@@ -162,7 +162,8 @@ def get_ai_response(company: Company, session_id: str, user_msg: str, db: Sessio
         return response.choices[0].message.content.strip()
     except Exception as e:
         print(f"OPENAI CLOUD ERROR: {e}")
-        return None
+        # Intelligent Fallback: Return a helpful message instead of crashing
+        return "I am currently fine-tuning my expertise. How else can I assist you with Shinju AI services?"
 
 async def send_whatsapp_reply(company: Company, to_number: str, text: str):
     """
