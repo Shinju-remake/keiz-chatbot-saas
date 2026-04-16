@@ -74,7 +74,7 @@ class ChatMessage(BaseModel):
     language: Optional[str] = "en"
 
 class ChatResponse(BaseModel):
-    reply: str
+    reply: Optional[str] = None
     source: str
 
 @app.post("/chat", response_model=ChatResponse)
