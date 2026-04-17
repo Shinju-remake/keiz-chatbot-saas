@@ -36,6 +36,7 @@ class Company(SQLModel, table=True):
     logs: List["ChatLog"] = Relationship(back_populates="company")
     reservations: List["Reservation"] = Relationship(back_populates="company")
     sessions: List["ChatSession"] = Relationship(back_populates="company")
+    insights: List["TrendInsight"] = Relationship(back_populates="company")
 
 class ChatSession(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -74,4 +75,23 @@ class ChatLog(SQLModel, table=True):
     source: str 
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     
+    # Feedback Loop / Human-in-the-loop
+    confidence_score: float = Field(default=1.0)
+    needs_review: bool = Field(default=False)
+    reviewed: bool = Field(default=False)
+    was_corrected: bool = Field(default=False)
+    corrected_reply: Optional[str] = None
+
     company: Company = Relationship(back_populates="logs")
+
+class TrendInsight(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    company_id: int = Field(foreign_key="company.id")
+    topic: str
+    frequency: int
+    insight_text: str
+    suggested_rule: Optional[str] = None
+    status: str = Field(default="unread") # unread, dismissed, applied
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+    company: Company = Relationship(back_populates="insights")

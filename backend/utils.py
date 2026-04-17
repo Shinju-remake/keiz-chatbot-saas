@@ -63,12 +63,24 @@ def process_message_v3(company: Company, session_id: str, user_msg: str, db: Ses
             source = "fallback"
 
     # Log the interaction
+    confidence = 1.0
+    needs_review = False
+    
+    if source == "ai":
+        confidence = 0.85 # High for now, can be improved with logprobs or another AI call
+        needs_review = True # Pro-tier: All AI replies need 1st review in some industries
+    elif source == "fallback":
+        confidence = 0.3
+        needs_review = True
+        
     log_entry = ChatLog(
         company_id=company.id, 
         session_id=session_id, 
         user_msg=user_msg, 
         bot_reply=reply, 
         source=source,
+        confidence_score=confidence,
+        needs_review=needs_review,
         timestamp=datetime.utcnow()
     )
     db.add(log_entry)

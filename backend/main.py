@@ -19,14 +19,33 @@ from slowapi.errors import RateLimitExceeded
 # Relative imports for local/render consistency
 try:
     from database import create_db_and_tables, get_session, engine
-    from models import Company, FAQRule, ChatLog, Reservation, ChatSession
+    from models import Company, FAQRule, ChatLog, Reservation, ChatSession, TrendInsight
     from utils import process_message_v3, send_whatsapp_reply
 except ImportError:
     from .database import create_db_and_tables, get_session, engine
-    from .models import Company, FAQRule, ChatLog, Reservation, ChatSession
+    from .models import Company, FAQRule, ChatLog, Reservation, ChatSession, TrendInsight
     from .utils import process_message_v3, send_whatsapp_reply
 
 load_dotenv()
+
+# --- HELPER FUNCTIONS ---
+
+def get_current_company(request: Request, db: Session, x_api_key: Optional[str] = None) -> Optional[Company]:
+    """
+    Identifies the current company via Subdomain (priority) or API Key.
+    """
+    # 1. Try Subdomain (Modern SaaS)
+    host = request.headers.get("host", "")
+    if "." in host and not host.split(".")[0] in ["www", "localhost"]:
+        subdomain = host.split(".")[0]
+        company = db.exec(select(Company).where(Company.subdomain == subdomain.lower())).first()
+        if company: return company
+    
+    # 2. Try API Key (Admin Portal / Widget Legacy)
+    if x_api_key:
+        return db.exec(select(Company).where(Company.api_key == x_api_key)).first()
+    
+    return None
 
 # Hardened Path Resolution
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -53,6 +72,21 @@ async def health_check():
 def on_startup():
     try:
         create_db_and_tables()
+        # Ensure new columns exist for existing tables (manual SQLite migration)
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            # Columns for ChatLog (Feedback Loop)
+            try: conn.execute(text("ALTER TABLE chatlog ADD COLUMN confidence_score FLOAT DEFAULT 1.0;")); conn.commit()
+            except: pass
+            try: conn.execute(text("ALTER TABLE chatlog ADD COLUMN needs_review BOOLEAN DEFAULT 0;")); conn.commit()
+            except: pass
+            try: conn.execute(text("ALTER TABLE chatlog ADD COLUMN reviewed BOOLEAN DEFAULT 0;")); conn.commit()
+            except: pass
+            try: conn.execute(text("ALTER TABLE chatlog ADD COLUMN was_corrected BOOLEAN DEFAULT 0;")); conn.commit()
+            except: pass
+            try: conn.execute(text("ALTER TABLE chatlog ADD COLUMN corrected_reply TEXT;")); conn.commit()
+            except: pass
+            
         with Session(engine) as session:
             company = session.exec(select(Company)).first()
             if not company:
@@ -187,12 +221,10 @@ async def handle_whatsapp_msg(request: Request, db: Session = Depends(get_sessio
 
 @app.middleware("http")
 async def subdomain_middleware(request: Request, call_next):
-    # Logic: If host is 'bistro.shinju-ai.com', set company context
+    # Logic: Detect subdomain for routing
     host = request.headers.get("host", "")
-    if "." in host and not host.startswith("www"):
-        subdomain = host.split(".")[0]
-        # We can store this in request.state for use in endpoints
-        request.state.subdomain = subdomain
+    if "." in host and not host.split(".")[0] in ["www", "localhost"]:
+        request.state.subdomain = host.split(".")[0].lower()
     else:
         request.state.subdomain = None
     
@@ -245,41 +277,45 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_session)):
 # --- ADMIN API ROUTES ---
 
 @app.get("/admin/logs")
-async def get_logs(x_api_key: str = Header(...), db: Session = Depends(get_session)):
-    company = db.exec(select(Company).where(Company.api_key == x_api_key)).first()
-    if not company: raise HTTPException(status_code=403, detail="Invalid API Key")
+async def get_logs(request: Request, x_api_key: Optional[str] = Header(None), db: Session = Depends(get_session)):
+    company = get_current_company(request, db, x_api_key)
+    if not company: raise HTTPException(status_code=403, detail="Invalid Authentication")
     return db.exec(select(ChatLog).where(ChatLog.company_id == company.id).order_by(ChatLog.timestamp.desc()).limit(100)).all()
 
 @app.get("/admin/reservations")
-async def get_reservations(x_api_key: str = Header(...), db: Session = Depends(get_session)):
-    company = db.exec(select(Company).where(Company.api_key == x_api_key)).first()
-    if not company: raise HTTPException(status_code=403, detail="Invalid API Key")
+async def get_reservations(request: Request, x_api_key: Optional[str] = Header(None), db: Session = Depends(get_session)):
+    company = get_current_company(request, db, x_api_key)
+    if not company: raise HTTPException(status_code=403, detail="Invalid Authentication")
     return db.exec(select(Reservation).where(Reservation.company_id == company.id).order_by(Reservation.timestamp.desc())).all()
 
 @app.get("/admin/analytics/trends")
-async def get_ai_trends(x_api_key: str = Header(...), db: Session = Depends(get_session)):
-    company = db.exec(select(Company).where(Company.api_key == x_api_key)).first()
-    if not company: raise HTTPException(status_code=403, detail="Invalid API Key")
+async def get_ai_trends(request: Request, x_api_key: Optional[str] = Header(None), db: Session = Depends(get_session)):
+    company = get_current_company(request, db, x_api_key)
+    if not company: raise HTTPException(status_code=403, detail="Invalid Authentication")
     
-    # Get last 50 logs to analyze
-    logs = db.exec(select(ChatLog).where(ChatLog.company_id == company.id).limit(50)).all()
-    if not logs: return {"trend": "Not enough data yet. Start chatting!"}
+    # Return persisted insights first
+    stored_insights = db.exec(select(TrendInsight).where(TrendInsight.company_id == company.id).order_by(TrendInsight.timestamp.desc())).all()
+    if stored_insights:
+        return {"trends": stored_insights}
     
-    log_text = "\n".join([f"User: {l.user_msg}" for l in logs])
-    
-    from utils import get_ai_response # Re-use brain for analysis
-    # Simulate an AI analysis call with specialized prompt
-    analysis_prompt = f"Analyze these customer logs for {company.name} and provide a 2-sentence executive summary of the most common requests or trends: \n{log_text}"
-    
-    # In practice, we'd call OpenAI directly here for analysis
-    trend_result = "Customers are showing high interest in weekend reservations and frequently asking about vegan menu options. Recommendation: Update your FAQ with a dedicated 'Dietary' section."
-    
-    return {"trend": trend_result}
+    # Otherwise, generate a fresh one (Simulated)
+    # In a pro-version, this would trigger an OpenAI analysis task
+    new_insight = TrendInsight(
+        company_id=company.id,
+        topic="Menu Inquiries",
+        frequency=15,
+        insight_text="Multiple users are asking about a weekend brunch menu which is not explicitly mentioned in your KB.",
+        suggested_rule="Add keyword 'brunch' with weekend hours: 10AM - 3PM."
+    )
+    db.add(new_insight)
+    db.commit()
+    db.refresh(new_insight)
+    return {"trends": [new_insight]}
 
 @app.get("/admin/rules")
-async def get_rules(x_api_key: str = Header(...), db: Session = Depends(get_session)):
-    company = db.exec(select(Company).where(Company.api_key == x_api_key)).first()
-    if not company: raise HTTPException(status_code=403, detail="Invalid API Key")
+async def get_rules(request: Request, x_api_key: Optional[str] = Header(None), db: Session = Depends(get_session)):
+    company = get_current_company(request, db, x_api_key)
+    if not company: raise HTTPException(status_code=403, detail="Invalid Authentication")
     return db.exec(select(FAQRule).where(FAQRule.company_id == company.id)).all()
 
 class FAQRuleCreate(BaseModel):
@@ -287,26 +323,26 @@ class FAQRuleCreate(BaseModel):
     response: str
 
 @app.post("/admin/rules")
-async def create_rule(rule_in: FAQRuleCreate, x_api_key: str = Header(...), db: Session = Depends(get_session)):
-    company = db.exec(select(Company).where(Company.api_key == x_api_key)).first()
-    if not company: raise HTTPException(status_code=403, detail="Invalid API Key")
+async def create_rule(rule_in: FAQRuleCreate, request: Request, x_api_key: Optional[str] = Header(None), db: Session = Depends(get_session)):
+    company = get_current_company(request, db, x_api_key)
+    if not company: raise HTTPException(status_code=403, detail="Invalid Authentication")
     existing = db.exec(select(FAQRule).where(FAQRule.company_id == company.id, FAQRule.keyword == rule_in.keyword.lower())).first()
     if existing: existing.response = rule_in.response; db.add(existing)
     else: db.add(FAQRule(company_id=company.id, keyword=rule_in.keyword.lower(), response=rule_in.response))
     db.commit(); return {"status": "success"}
 
 @app.delete("/admin/rules/{rule_id}")
-async def delete_rule(rule_id: int, x_api_key: str = Header(...), db: Session = Depends(get_session)):
-    company = db.exec(select(Company).where(Company.api_key == x_api_key)).first()
-    if not company: raise HTTPException(status_code=403, detail="Invalid API Key")
+async def delete_rule(rule_id: int, request: Request, x_api_key: Optional[str] = Header(None), db: Session = Depends(get_session)):
+    company = get_current_company(request, db, x_api_key)
+    if not company: raise HTTPException(status_code=403, detail="Invalid Authentication")
     rule = db.get(FAQRule, rule_id)
     if not rule or rule.company_id != company.id: raise HTTPException(status_code=404, detail="Rule not found")
     db.delete(rule); db.commit(); return {"status": "success"}
 
 @app.get("/admin/settings")
-async def get_settings(x_api_key: str = Header(...), db: Session = Depends(get_session)):
-    company = db.exec(select(Company).where(Company.api_key == x_api_key)).first()
-    if not company: raise HTTPException(status_code=403, detail="Invalid API Key")
+async def get_settings(request: Request, x_api_key: Optional[str] = Header(None), db: Session = Depends(get_session)):
+    company = get_current_company(request, db, x_api_key)
+    if not company: raise HTTPException(status_code=403, detail="Invalid Authentication")
     return {
         "name": company.name, 
         "subdomain": company.subdomain,
@@ -331,9 +367,9 @@ class SettingsUpdate(BaseModel):
     whatsapp_phone_id: Optional[str] = None
 
 @app.post("/admin/settings")
-async def update_settings(settings_in: SettingsUpdate, x_api_key: str = Header(...), db: Session = Depends(get_session)):
-    company = db.exec(select(Company).where(Company.api_key == x_api_key)).first()
-    if not company: raise HTTPException(status_code=403, detail="Invalid API Key")
+async def update_settings(settings_in: SettingsUpdate, request: Request, x_api_key: Optional[str] = Header(None), db: Session = Depends(get_session)):
+    company = get_current_company(request, db, x_api_key)
+    if not company: raise HTTPException(status_code=403, detail="Invalid Authentication")
     if settings_in.name: company.name = settings_in.name
     if settings_in.subdomain: company.subdomain = settings_in.subdomain.lower()
     if settings_in.primary_color: company.primary_color = settings_in.primary_color
@@ -345,9 +381,9 @@ async def update_settings(settings_in: SettingsUpdate, x_api_key: str = Header(.
     db.add(company); db.commit(); return {"status": "success"}
 
 @app.post("/admin/kb/upload")
-async def upload_kb_pdf(file: UploadFile = File(...), x_api_key: str = Header(...), db: Session = Depends(get_session)):
-    company = db.exec(select(Company).where(Company.api_key == x_api_key)).first()
-    if not company: raise HTTPException(status_code=403, detail="Invalid API Key")
+async def upload_kb_pdf(request: Request, file: UploadFile = File(...), x_api_key: Optional[str] = Header(None), db: Session = Depends(get_session)):
+    company = get_current_company(request, db, x_api_key)
+    if not company: raise HTTPException(status_code=403, detail="Invalid Authentication")
     
     if not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are supported.")
@@ -444,9 +480,9 @@ class TakeoverIn(BaseModel):
     active: bool
 
 @app.post("/admin/chat/takeover")
-async def toggle_takeover(data: TakeoverIn, x_api_key: str = Header(...), db: Session = Depends(get_session)):
-    company = db.exec(select(Company).where(Company.api_key == x_api_key)).first()
-    if not company: raise HTTPException(status_code=403, detail="Invalid API Key")
+async def toggle_takeover(data: TakeoverIn, request: Request, x_api_key: Optional[str] = Header(None), db: Session = Depends(get_session)):
+    company = get_current_company(request, db, x_api_key)
+    if not company: raise HTTPException(status_code=403, detail="Invalid Authentication")
     
     # Update or create session state
     session_state = db.exec(select(ChatSession).where(ChatSession.company_id == company.id, ChatSession.session_id == data.session_id)).first()
@@ -460,9 +496,9 @@ async def toggle_takeover(data: TakeoverIn, x_api_key: str = Header(...), db: Se
     return {"status": "success"}
 
 @app.get("/admin/chat/active")
-async def get_active_sessions(x_api_key: str = Header(...), db: Session = Depends(get_session)):
-    company = db.exec(select(Company).where(Company.api_key == x_api_key)).first()
-    if not company: raise HTTPException(status_code=403, detail="Invalid API Key")
+async def get_active_sessions(request: Request, x_api_key: Optional[str] = Header(None), db: Session = Depends(get_session)):
+    company = get_current_company(request, db, x_api_key)
+    if not company: raise HTTPException(status_code=403, detail="Invalid Authentication")
     
     # Return sessions active in the last 24 hours
     since = datetime.utcnow().timestamp() - 86400

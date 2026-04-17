@@ -80,6 +80,14 @@
 
         <!-- ANALYTICS TAB -->
         <div id="tab-analytics" class="tab-content active">
+            <div class="card" style="background: linear-gradient(135deg, #BB00FF 0%, #7000FF 100%); color: white;">
+                <h2 style="color: white; border-bottom: 1px solid rgba(255,255,255,0.2);">🧠 Proactive AI Insights</h2>
+                <div id="trend-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px;">
+                    <!-- Insights will be injected here -->
+                    <p id="trend-placeholder">Analyzing trends...</p>
+                </div>
+            </div>
+
             <div class="card">
                 <h2>Live Conversation Logs</h2>
                 <div style="max-height: 600px; overflow-y: auto;">
@@ -89,7 +97,8 @@
                                 <th>Time</th>
                                 <th>User Message</th>
                                 <th>Bot Reply</th>
-                                <th>Source</th>
+                                <th>Conf.</th>
+                                <th>Status</th>
                                 <th>Action</th>
                             </tr>
                         </thead>
@@ -271,22 +280,51 @@
             
             // Highlight nav item
             const navItems = document.querySelectorAll('.nav-item');
-            if (tab === 'analytics') { navItems[0].classList.add('active'); fetchLogs(); }
+            if (tab === 'analytics') { navItems[0].classList.add('active'); fetchLogs(); fetchTrends(); }
             if (tab === 'reservations') { navItems[1].classList.add('active'); fetchReservations(); }
             if (tab === 'rules') { navItems[2].classList.add('active'); fetchRules(); }
             if (tab === 'knowledge') { navItems[3].classList.add('active'); fetchSettings(); }
             if (tab === 'settings') { navItems[4].classList.add('active'); fetchSettings(); }
         }
 
-        async function getTrends() {
-            const box = document.getElementById("trend-box");
-            box.innerText = "Analyzing behavioral data...";
+        async function fetchTrends() {
+            const container = document.getElementById("trend-container");
             try {
                 const res = await fetch(`${API_BASE}/admin/analytics/trends`, { headers: { "X-API-Key": API_KEY } });
                 const data = await res.json();
-                box.innerHTML = `<strong>AI Analysis:</strong> ${data.trend}`;
-                box.style.color = "var(--dark)";
-            } catch (e) { box.innerText = "Analysis failed."; }
+                
+                if (data.trends && data.trends.length > 0) {
+                    container.innerHTML = "";
+                    data.trends.forEach(t => {
+                        const card = document.createElement("div");
+                        card.style = "background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);";
+                        card.innerHTML = `
+                            <h4 style="margin:0; font-size:14px;">#${t.topic} (${t.frequency} hits)</h4>
+                            <p style="font-size:12px; margin:10px 0; opacity:0.9;">${t.insight_text}</p>
+                            <button onclick="applySuggestedRule('${t.suggested_rule}')" class="btn btn-sm" style="background:white; color:var(--primary); width:100%;">Apply Recommendation</button>
+                        `;
+                        container.appendChild(card);
+                    });
+                } else {
+                    container.innerHTML = "<p>No insights generated yet. Continue collecting user queries.</p>";
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        async function applySuggestedRule(ruleStr) {
+            const match = ruleStr.match(/'(.*?)'.*?: (.*)/);
+            if (match) {
+                const keyword = match[1];
+                const response = match[2];
+                await fetch(`${API_BASE}/admin/rules`, {
+                    method: 'POST',
+                    headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" },
+                    body: JSON.stringify({ keyword, response })
+                });
+                showToast(`Rule for '${keyword}' applied!`);
+            } else {
+                alert("Please manually add this rule: " + ruleStr);
+            }
         }
 
         async function fetchSettings() {
@@ -374,11 +412,20 @@
             tbody.innerHTML = "";
             logs.forEach(l => {
                 const row = document.createElement("tr");
+                const isWarning = l.needs_review && !l.reviewed;
+                if (isWarning) row.style.background = "#fff8e1";
+                
+                const confColor = l.confidence_score > 0.8 ? "#4CAF50" : (l.confidence_score > 0.5 ? "#FFC107" : "#F44336");
+                const statusTag = l.reviewed ? `<span class="tag" style="background:#e8f5e9; color:#2e7d32;">Reviewed</span>` : 
+                                 (l.needs_review ? `<span class="tag" style="background:#fff3e0; color:#ef6c00;">Review Needed</span>` : 
+                                 `<span class="tag" style="background:#f5f5f5; color:#757575;">Automated</span>`);
+
                 row.innerHTML = `
                     <td style="font-size:11px; color:#888;">${new Date(l.timestamp).toLocaleTimeString()}</td>
                     <td style="font-weight:600;">${l.user_msg}</td>
                     <td style="font-style:italic;">${l.bot_reply}</td>
-                    <td><span class="tag ${l.source}">${l.source}</span></td>
+                    <td><b style="color:${confColor}">${Math.round(l.confidence_score*100)}%</b></td>
+                    <td>${statusTag}</td>
                     <td><button onclick="correctAI(${l.id}, '${l.user_msg.replace(/'/g,"\\'")}')" class="btn btn-sm btn-outline">Correct AI</button></td>
                 `;
                 tbody.appendChild(row);
