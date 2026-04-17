@@ -531,11 +531,18 @@ class CorrectionIn(BaseModel):
     correction: str
 
 @app.post("/admin/logs/correct")
-async def correct_log(data: CorrectionIn, x_api_key: str = Header(...), db: Session = Depends(get_session)):
-    company = db.exec(select(Company).where(Company.api_key == x_api_key)).first()
-    if not company: raise HTTPException(status_code=403, detail="Invalid API Key")
+async def correct_log(data: CorrectionIn, request: Request, x_api_key: Optional[str] = Header(None), db: Session = Depends(get_session)):
+    company = get_current_company(request, db, x_api_key)
+    if not company: raise HTTPException(status_code=403, detail="Invalid Authentication")
     log = db.get(ChatLog, data.log_id)
     if not log or log.company_id != company.id: raise HTTPException(status_code=404, detail="Log not found")
+    
+    # Update log state
+    log.was_corrected = True
+    log.corrected_reply = data.correction
+    log.reviewed = True
+    log.needs_review = False
+    db.add(log)
     
     # Create a new FAQ rule from this correction (Human-in-the-loop)
     new_rule = FAQRule(
