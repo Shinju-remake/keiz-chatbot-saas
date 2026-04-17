@@ -18,15 +18,23 @@ def process_message_v3(company: Company, session_id: str, user_msg: str, db: Ses
     The Omni-Engine Brain:
     1. Check Human Takeover (If active, SILENCE AI)
     2. Check Keywords
-    3. Check AI (GPT-4o Mini)
+    3. Check AI (GPT-5.4 Nano)
     """
     
-    # [NEW] Human Takeover Check
+    # [NEW] Session Retrieval/Creation
     session_state = db.exec(
         select(ChatSession).where(ChatSession.company_id == company.id, ChatSession.session_id == session_id)
     ).first()
     
-    if session_state and session_state.is_human_takeover:
+    if not session_state:
+        session_state = ChatSession(company_id=company.id, session_id=session_id)
+        if session_id.startswith("wa_"):
+            session_state.customer_phone = session_id.replace("wa_", "")
+        db.add(session_state)
+    
+    session_state.last_active = datetime.utcnow()
+    
+    if session_state.is_human_takeover:
         # AI is silenced. Log the user message and return a flag.
         log_entry = ChatLog(
             company_id=company.id, session_id=session_id, user_msg=user_msg, bot_reply="[HUMAN_ACTIVE]", 
@@ -88,6 +96,10 @@ def process_message_v3(company: Company, session_id: str, user_msg: str, db: Ses
     
     # [RESERVATION SYSTEM] Parse and save if successful
     if reply and "[RESERVATION_SUCCESS]" in reply:
+        if session_state:
+            session_state.reengagement_status = "completed"
+            db.add(session_state)
+            
         try:
             # Extract JSON data from the hidden [DATA] tags
             match = re.search(r"\[DATA\](.*?)\[/DATA\]", reply, re.DOTALL)
@@ -200,8 +212,14 @@ async def send_whatsapp_reply(company: Company, to_number: str, text: str):
 
 async def trigger_pro_automation(company: Company, user_msg: str, session_id: str):
     """
-    Pro Tier: Trigger Make.com Webhook for lead tracking and human escalation.
+    Pro Tier: Trigger Make.com Webhook and AI Re-engagement scheduler.
     """
+    # Logic: Only schedule re-engagement for WhatsApp sessions that haven't completed.
+    # Implementation for MVP: Fire re-engagement check in 2 hours (Simulated).
+    if session_id.startswith("wa_"):
+        import asyncio
+        asyncio.create_task(schedule_reengagement(company.id, session_id))
+
     webhook_url = os.getenv("MAKE_WEBHOOK_URL")
     admin_email = os.getenv("ADMIN_EMAIL", "traore.m.2007@gmail.com")
     
@@ -225,3 +243,30 @@ async def trigger_pro_automation(company: Company, user_msg: str, session_id: st
     else:
         # Fallback to local log/email-sim if no webhook is set
         print(f"NOTICE: Webhook placeholder active. Escalation for '{user_msg}' logged to terminal.")
+
+async def schedule_reengagement(company_id: int, session_id: str):
+    """
+    Wait 2 hours (or minutes for testing) and send a friendly WhatsApp follow-up if 
+    the user hasn't completed their booking.
+    """
+    import asyncio
+    # For MVP test, we wait 10 seconds. Production would be 7200 (2 hours).
+    await asyncio.sleep(10) 
+    
+    from database import engine
+    with Session(engine) as db:
+        session = db.exec(
+            select(ChatSession).where(ChatSession.company_id == company_id, ChatSession.session_id == session_id)
+        ).first()
+        
+        if session and session.reengagement_status == "none" and session.customer_phone:
+            company = db.get(Company, company_id)
+            if company:
+                # Generate a soft re-engagement message
+                re_msg = f"Hello! We noticed you were interested in a reservation at {company.name}. Would you like to pick up where you left off? Our elite staff is standing by to assist."
+                print(f"🚀 [RE-ENGAGEMENT] Sending follow-up to {session.customer_phone}")
+                # Use current running loop to send reply
+                await send_whatsapp_reply(company, session.customer_phone, re_msg)
+                session.reengagement_status = "completed"
+                db.add(session)
+                db.commit()

@@ -87,6 +87,12 @@ def on_startup():
             try: conn.execute(text("ALTER TABLE chatlog ADD COLUMN corrected_reply TEXT;")); conn.commit()
             except: pass
             
+            # Columns for ChatSession (Re-engagement)
+            try: conn.execute(text("ALTER TABLE chatsession ADD COLUMN customer_phone TEXT;")); conn.commit()
+            except: pass
+            try: conn.execute(text("ALTER TABLE chatsession ADD COLUMN reengagement_status TEXT DEFAULT 'none';")); conn.commit()
+            except: pass
+            
         with Session(engine) as session:
             company = session.exec(select(Company)).first()
             if not company:

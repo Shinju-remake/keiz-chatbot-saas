@@ -42,7 +42,9 @@ class ChatSession(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     company_id: int = Field(foreign_key="company.id")
     session_id: str = Field(index=True, unique=True)
+    customer_phone: Optional[str] = None
     is_human_takeover: bool = Field(default=False)
+    reengagement_status: str = Field(default="none") # none, pending, completed, failed
     last_active: datetime = Field(default_factory=datetime.utcnow)
     
     company: Company = Relationship(back_populates="sessions")
