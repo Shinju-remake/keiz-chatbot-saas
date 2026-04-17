@@ -301,7 +301,7 @@
             }
             
             // If still no key, redirect to login
-            if (!API_KEY || API_KEY === "dev-api-key-123") {
+            if (!API_KEY) {
                 if (!window.location.origin.includes("localhost")) {
                     window.location.href = "/login";
                 }
