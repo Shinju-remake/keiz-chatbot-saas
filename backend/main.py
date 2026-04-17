@@ -163,6 +163,10 @@ async def get_demo(): return await get_demo_static()
 @app.get("/dashboard")
 async def get_dashboard(): return await get_dashboard_static()
 
+@app.get("/client-dashboard")
+async def get_client_dashboard():
+    return FileResponse(str(BASE_DIR / "admin" / "client_dashboard.html"))
+
 @app.get("/test")
 async def get_test(): return await get_test_static()
 
