@@ -21,10 +21,12 @@ try:
     from database import create_db_and_tables, get_session, engine
     from models import Company, FAQRule, ChatLog, Reservation, ChatSession, TrendInsight
     from utils import process_message_v3, send_whatsapp_reply
+    from rag_utils import index_knowledge_base
 except ImportError:
     from .database import create_db_and_tables, get_session, engine
     from .models import Company, FAQRule, ChatLog, Reservation, ChatSession, TrendInsight
     from .utils import process_message_v3, send_whatsapp_reply
+    from .rag_utils import index_knowledge_base
 
 load_dotenv()
 
@@ -384,7 +386,13 @@ async def update_settings(settings_in: SettingsUpdate, request: Request, x_api_k
     if settings_in.subdomain: company.subdomain = settings_in.subdomain.lower()
     if settings_in.primary_color: company.primary_color = settings_in.primary_color
     if settings_in.logo_url: company.logo_url = settings_in.logo_url
-    if settings_in.knowledge_base: company.knowledge_base = settings_in.knowledge_base
+    
+    if settings_in.knowledge_base: 
+        company.knowledge_base = settings_in.knowledge_base
+        # [NEW] Re-index knowledge base in background
+        import asyncio
+        asyncio.create_task(asyncio.to_thread(index_knowledge_base, company.id, company.knowledge_base))
+
     if settings_in.system_prompt: company.system_prompt = settings_in.system_prompt
     if settings_in.openai_api_key: company.openai_api_key = settings_in.openai_api_key
     if settings_in.whatsapp_phone_id: company.whatsapp_phone_id = settings_in.whatsapp_phone_id
@@ -414,6 +422,10 @@ async def upload_kb_pdf(request: Request, file: UploadFile = File(...), x_api_ke
         company.knowledge_base = extracted_text.strip()
         db.add(company)
         db.commit()
+        
+        # [NEW] Re-index knowledge base in background
+        import asyncio
+        asyncio.create_task(asyncio.to_thread(index_knowledge_base, company.id, company.knowledge_base))
         
         return {"status": "success", "extracted_length": len(extracted_text)}
     except Exception as e:

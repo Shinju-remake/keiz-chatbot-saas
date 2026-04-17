@@ -3,8 +3,10 @@ from typing import List, Optional
 from sqlmodel import Session, select
 try:
     from models import ChatLog, Company, FAQRule, Reservation, ChatSession
+    from rag_utils import search_kb
 except ImportError:
     from .models import ChatLog, Company, FAQRule, Reservation, ChatSession
+    from .rag_utils import search_kb
 import os
 import httpx
 import re
@@ -143,6 +145,10 @@ def get_ai_response(company: Company, session_id: str, user_msg: str, db: Sessio
             api_key=openai_key, 
             timeout=60.0
         )
+        
+        # [NEW] ADVANCED RAG: Perform semantic search for relevant context
+        rag_context = search_kb(company.id, user_msg)
+        
         history = db.exec(
             select(ChatLog)
             .where(ChatLog.company_id == company.id)
@@ -155,7 +161,7 @@ def get_ai_response(company: Company, session_id: str, user_msg: str, db: Sessio
         target_lang = lang_names.get(language, "English")
         
         # RAG / Knowledge Base Injection
-        kb_context = f"\nCOMPANY KNOWLEDGE BASE:\n{company.knowledge_base}\n" if company.knowledge_base else ""
+        kb_context = f"\nRELEVANT COMPANY KNOWLEDGE:\n{rag_context}\n" if rag_context else ""
         
         full_system_prompt = (
             company.system_prompt + 
