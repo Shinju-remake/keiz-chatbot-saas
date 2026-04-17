@@ -88,9 +88,10 @@
             </div>
         </div>
         <div id="shinju-chat-messages" style="display:flex; flex-direction:column;"></div>
-        <div id="shinju-chat-input-area">
-            <input type="text" id="shinju-chat-input" placeholder="${translations[currentLang].input}">
-            <button id="shinju-chat-send">${translations[currentLang].send}</button>
+        <div id="shinju-chat-input-area" style="display:flex; align-items:center; gap:5px; padding:10px; border-top:1px solid #eee; background:white;">
+            <input type="text" id="shinju-chat-input" placeholder="${translations[currentLang].input}" style="flex:1; border:none; outline:none; padding:8px;">
+            <button id="shinju-mic-btn" style="background:transparent; border:none; cursor:pointer; font-size:18px; padding:5px; color:#666;" title="Tap to Speak">🎤</button>
+            <button id="shinju-chat-send" style="background:var(--primary); color:white; border:none; padding:8px 15px; border-radius:15px; cursor:pointer; font-weight:bold;">${translations[currentLang].send}</button>
         </div>
     `;
     document.body.appendChild(container);
@@ -100,6 +101,60 @@
     const langSelect = document.getElementById("shinju-chat-lang-select");
     const headerTitle = document.getElementById("shinju-chat-title");
     const sendBtn = document.getElementById("shinju-chat-send");
+    const micBtn = document.getElementById("shinju-mic-btn");
+
+    // --- PHASE 5: VOICE CONCIERGE MVP ---
+    let isRecording = false;
+    let recognition;
+    
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        
+        recognition.onstart = () => {
+            isRecording = true;
+            micBtn.style.color = "red";
+            input.placeholder = "Listening...";
+        };
+        
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            input.value = transcript;
+            sendMessage(); // Auto-send when voice is captured
+        };
+        
+        recognition.onend = () => {
+            isRecording = false;
+            micBtn.style.color = "#666";
+            input.placeholder = translations[currentLang].input;
+        };
+        
+        micBtn.onclick = () => {
+            if (isRecording) {
+                recognition.stop();
+            } else {
+                recognition.lang = currentLang; // Use currently selected language
+                recognition.start();
+            }
+        };
+    } else {
+        micBtn.style.display = "none"; // Hide if not supported
+    }
+
+    function speakText(text) {
+        if ('speechSynthesis' in window) {
+            // Strip markdown, [DATA] tags, and extra symbols for a natural voice
+            const cleanText = text.replace(/\[DATA\].*?\[\/DATA\]/gs, "")
+                                  .replace(/\*\*/g, "")
+                                  .replace(/\[RESERVATION_SUCCESS\]/g, "Your reservation is successfully confirmed.");
+            
+            const utterance = new SpeechSynthesisUtterance(cleanText);
+            utterance.lang = currentLang;
+            window.speechSynthesis.speak(utterance);
+        }
+    }
+    // ------------------------------------
 
     // 4. Interaction Logic
     langSelect.onchange = (e) => {
@@ -169,6 +224,7 @@
             const data = await response.json();
             if (data.reply) {
                 appendMessage(data.reply, "bot");
+                speakText(data.reply); // --- PHASE 5: Trigger Voice Concierge ---
             } else {
                 appendMessage("Received an empty response.", "bot");
             }
