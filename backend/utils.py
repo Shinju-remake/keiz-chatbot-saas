@@ -160,21 +160,51 @@ def get_ai_response(company: Company, session_id: str, user_msg: str, db: Sessio
         lang_names = {"en": "English", "fr": "French", "es": "Spanish"}
         target_lang = lang_names.get(language, "English")
         
+        # --- PHASE 5: INTENT ROUTER ---
+        # Fast intent classification to route to the correct specialized agent
+        router_prompt = f"Analyze the user message and classify the core intent into EXACTLY ONE of these categories: 'SALES' (booking, reserving, pricing, buying), 'SUPPORT' (faq, location, menu, general questions). Message: '{user_msg}'"
+        intent_response = client.chat.completions.create(
+            model="gpt-5.4-nano",
+            messages=[{"role": "user", "content": router_prompt}],
+            max_completion_tokens=10,
+            temperature=0.1
+        )
+        intent = intent_response.choices[0].message.content.strip().upper()
+        
         # RAG / Knowledge Base Injection
         kb_context = f"\nRELEVANT COMPANY KNOWLEDGE:\n{rag_context}\n" if rag_context else ""
         
+        # --- MULTI-AGENT ORCHESTRATION ---
+        if "SALES" in intent:
+            # Sales Agent: Aggressive closing, concise, focuses on capturing lead data
+            agent_persona = (
+                "You are an elite Sales Concierge. Your primary objective is to secure a reservation/order. "
+                "Be extremely polite but highly focused on moving the user to the next step. "
+                "Your goal is to collect: Name, Date/Time, and Pax. "
+                "CRITICAL: If the user provides some of this information, do NOT ask for it again. "
+                "Instead, acknowledge what you have and elegantly ask for only the MISSING details. "
+                "When listing missing requirements, put each on its own NEW LINE using a dash. "
+                "Highlight missing questions with **double asterisks**. "
+                "Once ALL details are gathered, confirm the summary and say exactly: [RESERVATION_SUCCESS]. "
+                "Immediately after [RESERVATION_SUCCESS], append the hidden data block: "
+                "[DATA]{\"name\": \"Name\", \"date\": \"Date\", \"pax\": 4}[/DATA]"
+            )
+            print(f"🤖 [ROUTER] Routed session {session_id} to SALES Agent.")
+        else:
+            # Support Agent: Empathetic, detailed, focuses on RAG data extraction
+            agent_persona = (
+                "You are an empathetic Customer Support Specialist. Your primary objective is to provide detailed, "
+                "highly accurate answers using ONLY the provided RELEVANT COMPANY KNOWLEDGE. "
+                "If the answer is not in the knowledge base, apologize and offer to connect them with a human agent. "
+                "Do not push for a sale unless the user explicitly asks to book or buy."
+            )
+            print(f"🤖 [ROUTER] Routed session {session_id} to SUPPORT Agent.")
+            
         full_system_prompt = (
             company.system_prompt + 
             kb_context +
-            f"\nIMPORTANT: You MUST respond in {target_lang}. "
-            "You are an elite concierge. Your goal is to collect: Name, Date/Time, and Pax for reservations/orders. "
-            "CRITICAL: If the user provides some of this information, do NOT ask for it again. "
-            "Instead, acknowledge what you have and elegantly ask for only the MISSING details. "
-            "When listing missing requirements, put each on its own NEW LINE using a dash. "
-            "Highlight missing questions with **double asterisks**. "
-            "Once ALL details are gathered, confirm the summary and say exactly: [RESERVATION_SUCCESS]. "
-            "Immediately after [RESERVATION_SUCCESS], append the hidden data block: "
-            "[DATA]{\"name\": \"Name\", \"date\": \"Date\", \"pax\": 4}[/DATA]"
+            f"\nIMPORTANT: You MUST respond in {target_lang}. " +
+            agent_persona
         )
         
         messages = [{"role": "system", "content": full_system_prompt}]
