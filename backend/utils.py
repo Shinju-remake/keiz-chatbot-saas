@@ -147,7 +147,7 @@ def get_ai_response(company: Company, session_id: str, user_msg: str, db: Sessio
         )
         
         # [NEW] ADVANCED RAG: Perform semantic search for relevant context
-        rag_context = search_kb(company.id, user_msg)
+        rag_context = search_kb(company.id, user_msg, api_key=openai_key)
         
         history = db.exec(
             select(ChatLog)

@@ -391,7 +391,7 @@ async def update_settings(settings_in: SettingsUpdate, request: Request, x_api_k
         company.knowledge_base = settings_in.knowledge_base
         # [NEW] Re-index knowledge base in background
         import asyncio
-        asyncio.create_task(asyncio.to_thread(index_knowledge_base, company.id, company.knowledge_base))
+        asyncio.create_task(asyncio.to_thread(index_knowledge_base, company.id, company.knowledge_base, company.openai_api_key))
 
     if settings_in.system_prompt: company.system_prompt = settings_in.system_prompt
     if settings_in.openai_api_key: company.openai_api_key = settings_in.openai_api_key
@@ -425,7 +425,7 @@ async def upload_kb_pdf(request: Request, file: UploadFile = File(...), x_api_ke
         
         # [NEW] Re-index knowledge base in background
         import asyncio
-        asyncio.create_task(asyncio.to_thread(index_knowledge_base, company.id, company.knowledge_base))
+        asyncio.create_task(asyncio.to_thread(index_knowledge_base, company.id, company.knowledge_base, company.openai_api_key))
         
         return {"status": "success", "extracted_length": len(extracted_text)}
     except Exception as e:

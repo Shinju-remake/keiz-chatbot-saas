@@ -7,22 +7,26 @@ from typing import List, Optional
 CHROMA_PATH = os.path.join(os.path.dirname(__file__), "chroma_db")
 client = chromadb.PersistentClient(path=CHROMA_PATH)
 
-# Use a standard embedding function (HuggingFace local model)
-# This ensures it works without needing extra OpenAI credits for embeddings
-emb_fn = embedding_functions.SentenceTransformerEmbeddingFunction(model_name="all-MiniLM-L6-v2")
+# Switch to OpenAI Embeddings (Lightweight, No Torch/Sentence-Transformers needed on server)
+def get_emb_fn(company_api_key: Optional[str] = None):
+    api_key = company_api_key or os.getenv("OPENAI_API_KEY")
+    return embedding_functions.OpenAIEmbeddingFunction(
+        api_key=api_key,
+        model_name="text-embedding-3-small"
+    )
 
-def get_collection(company_id: int):
+def get_collection(company_id: int, api_key: Optional[str] = None):
     """
     Returns a unique collection for each company (tenant isolation).
     """
     collection_name = f"company_{company_id}_kb"
-    return client.get_or_create_collection(name=collection_name, embedding_function=emb_fn)
+    return client.get_or_create_collection(name=collection_name, embedding_function=get_emb_fn(api_key))
 
-def index_knowledge_base(company_id: int, text: str):
+def index_knowledge_base(company_id: int, text: str, api_key: Optional[str] = None):
     """
     Chunks the knowledge base text and indexes it in the vector DB.
     """
-    collection = get_collection(company_id)
+    collection = get_collection(company_id, api_key)
     
     # Simple chunking logic (by paragraph/new lines)
     chunks = [c.strip() for c in text.split("\n") if len(c.strip()) > 20]
@@ -33,7 +37,6 @@ def index_knowledge_base(company_id: int, text: str):
     metadatas = [{"company_id": company_id} for _ in chunks]
     
     # Delete old data for this company before re-indexing
-    # Note: In a large system, we would use more surgical updates
     try:
         collection.delete(where={"company_id": company_id})
     except:
@@ -44,14 +47,14 @@ def index_knowledge_base(company_id: int, text: str):
         ids=ids,
         metadatas=metadatas
     )
-    print(f"✅ RAG: Indexed {len(chunks)} chunks for Company {company_id}")
+    print(f"✅ RAG (OpenAI): Indexed {len(chunks)} chunks for Company {company_id}")
 
-def search_kb(company_id: int, query: str, n_results: int = 3) -> str:
+def search_kb(company_id: int, query: str, api_key: Optional[str] = None, n_results: int = 3) -> str:
     """
     Performs semantic search to find the most relevant context for a query.
     """
     try:
-        collection = get_collection(company_id)
+        collection = get_collection(company_id, api_key)
         results = collection.query(
             query_texts=[query],
             n_results=n_results
