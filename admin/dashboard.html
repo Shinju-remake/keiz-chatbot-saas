@@ -62,6 +62,7 @@
         <div class="nav-item" onclick="switchTab('reservations')">📅 Reservations</div>
         <div class="nav-item" onclick="switchTab('rules')">🛠️ FAQ Rules</div>
         <div class="nav-item" onclick="switchTab('knowledge')">🧠 Knowledge Base</div>
+        <div class="nav-item" onclick="switchTab('billing')">💳 Billing & Plans</div>
         <div class="nav-item" onclick="switchTab('settings')">🎨 Theme & Branding</div>
         <div class="nav-item" onclick="window.location.href='/'" style="margin-top:auto;">🚪 Logout</div>
     </div>
@@ -180,6 +181,60 @@
             </div>
         </div>
 
+        <!-- BILLING TAB -->
+        <div id="tab-billing" class="tab-content">
+            <div class="card">
+                <h2>Current Subscription</h2>
+                <div style="display:flex; justify-content:space-between; align-items:center; background:var(--gray); padding:20px; border-radius:12px;">
+                    <div>
+                        <p style="margin:0; font-size:0.8rem; color:#666;">Active Plan</p>
+                        <h3 id="current-plan-display" style="margin:5px 0 0; color:var(--primary); font-size:1.5rem;">PRO TIER</h3>
+                    </div>
+                    <div style="text-align:right;">
+                        <p style="margin:0; font-size:0.8rem; color:#666;">Status</p>
+                        <span class="tag" style="background:#e8f5e9; color:#2e7d32;">Active</span>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+                <!-- STARTER -->
+                <div class="card" style="text-align:center;">
+                    <h3>STARTER</h3>
+                    <div style="font-size:2rem; font-weight:900; margin:15px 0;">1,500€</div>
+                    <ul style="list-style:none; padding:0; font-size:0.9rem; color:#666; margin-bottom:20px;">
+                        <li style="margin-bottom:10px;">✓ Web Widget Only</li>
+                        <li style="margin-bottom:10px;">✓ 1,000 AI Messages/mo</li>
+                        <li>✓ Email Support</li>
+                    </ul>
+                    <button onclick="startCheckout('starter')" class="btn btn-outline" style="width:100%;">Select Plan</button>
+                </div>
+                <!-- PRO -->
+                <div class="card" style="text-align:center; border:2px solid var(--primary); position:relative;">
+                    <div style="position:absolute; top:-12px; left:50%; transform:translateX(-50%); background:var(--primary); color:white; padding:2px 15px; border-radius:20px; font-size:10px; font-weight:bold;">RECOMMENDED</div>
+                    <h3>PRO</h3>
+                    <div style="font-size:2rem; font-weight:900; margin:15px 0;">3,500€</div>
+                    <ul style="list-style:none; padding:0; font-size:0.9rem; color:#666; margin-bottom:20px;">
+                        <li style="margin-bottom:10px;">✓ Web + WhatsApp</li>
+                        <li style="margin-bottom:10px;">✓ Unlimited AI Messages</li>
+                        <li>✓ 24/7 Priority Support</li>
+                    </ul>
+                    <button onclick="startCheckout('pro')" class="btn" style="width:100%;">Upgrade Now</button>
+                </div>
+                <!-- ENTERPRISE -->
+                <div class="card" style="text-align:center;">
+                    <h3>ULTIMATE</h3>
+                    <div style="font-size:2rem; font-weight:900; margin:15px 0;">5,000€</div>
+                    <ul style="list-style:none; padding:0; font-size:0.9rem; color:#666; margin-bottom:20px;">
+                        <li style="margin-bottom:10px;">✓ Full Omni-Channel</li>
+                        <li style="margin-bottom:10px;">✓ Custom Agent Personality</li>
+                        <li>✓ Dedicated Account Manager</li>
+                    </ul>
+                    <button onclick="startCheckout('enterprise')" class="btn btn-outline" style="width:100%;">Select Plan</button>
+                </div>
+            </div>
+        </div>
+
         <!-- SETTINGS TAB (Branding) -->
         <div id="tab-settings" class="tab-content">
             <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
@@ -284,7 +339,8 @@
             if (tab === 'reservations') { navItems[1].classList.add('active'); fetchReservations(); }
             if (tab === 'rules') { navItems[2].classList.add('active'); fetchRules(); }
             if (tab === 'knowledge') { navItems[3].classList.add('active'); fetchSettings(); }
-            if (tab === 'settings') { navItems[4].classList.add('active'); fetchSettings(); }
+            if (tab === 'billing') { navItems[4].classList.add('active'); fetchSettings(); }
+            if (tab === 'settings') { navItems[5].classList.add('active'); fetchSettings(); }
         }
 
         async function fetchTrends() {
@@ -327,6 +383,21 @@
             }
         }
 
+        async function startCheckout(plan) {
+            try {
+                showToast(`Initializing secure ${plan.toUpperCase()} checkout...`);
+                const res = await fetch(`${API_BASE}/admin/billing/checkout`, {
+                    method: 'POST',
+                    headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" },
+                    body: JSON.stringify({ plan: plan })
+                });
+                const data = await res.json();
+                if (data.url) {
+                    window.location.href = data.url;
+                }
+            } catch (e) { alert("Checkout failed. Please contact support."); }
+        }
+
         async function fetchSettings() {
             try {
                 const response = await fetch(`${API_BASE}/admin/settings`, { headers: { "X-API-Key": API_KEY } });
@@ -337,6 +408,11 @@
                 document.getElementById("set-logo").value = s.logo_url || "";
                 document.getElementById("kb-content").value = s.knowledge_base || "";
                 document.getElementById("plan-badge").innerText = `${s.plan.toUpperCase()} TIER`;
+                
+                // Update Billing Tab display if it exists
+                const planDisplay = document.getElementById("current-plan-display");
+                if (planDisplay) planDisplay.innerText = `${s.plan.toUpperCase()} TIER`;
+
                 updatePreview();
             } catch (e) { console.error(e); }
         }

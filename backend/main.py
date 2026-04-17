@@ -249,9 +249,9 @@ class CheckoutSession(BaseModel):
     plan: str
 
 @app.post("/admin/billing/checkout")
-async def create_checkout_session(data: CheckoutSession, x_api_key: str = Header(...), db: Session = Depends(get_session)):
-    company = db.exec(select(Company).where(Company.api_key == x_api_key)).first()
-    if not company: raise HTTPException(status_code=403, detail="Invalid API Key")
+async def create_checkout_session(data: CheckoutSession, request: Request, x_api_key: Optional[str] = Header(None), db: Session = Depends(get_session)):
+    company = get_current_company(request, db, x_api_key)
+    if not company: raise HTTPException(status_code=403, detail="Invalid Authentication")
     
     # In a real app, you would use stripe.checkout.Session.create()
     # For this MVP, we simulate the redirection URL
