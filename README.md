@@ -4,12 +4,12 @@ A production-ready multitenant Chatbot SaaS platform with keyword-based FAQ and 
 
 ## 🚀 Features
 - **Shinju AI Universal Console:** Unified command center for multi-portal management.
-- **Hybrid Logic:** Keyword matching (zero-cost) with OpenAI fallback (high-intelligence).
-- **Multitenancy:** Each company has its own API key and isolated conversation logs.
-- **Clean URLs:** Access `/dashboard`, `/agency`, `/demo`, and `/test` with professional routing.
-- **Embeddable Widget:** A sleek, neon-purple chat widget with **EN/FR/ES** language support.
-- **Pro-Tier Automation:** Make.com Webhook bridge for lead tracking and human escalation.
-- **Mobile/iOS Ready:** Fully optimized for all modern mobile and desktop browsers.
+- **Advanced RAG Engine:** Semantic search via **ChromaDB** for enterprise-scale knowledge.
+- **Voice Concierge:** Native Speech-to-Text and Text-to-Speech interaction.
+- **Multi-Agent Orchestration:** Specialized Sales vs. Support agents with LLM Intent Routing.
+- **Automated Re-Engagement:** Proactive WhatsApp follow-ups for abandoned bookings.
+- **Multitenancy:** Subdomain-based routing for a true White-Label SaaS experience.
+- **Stripe Billing:** Integrated subscription portal for Starter, Pro, and Ultimate tiers.
 
 ## 🛠️ Tech Stack
 - **Backend:** FastAPI, SQLModel (SQLite/PostgreSQL compatible).
