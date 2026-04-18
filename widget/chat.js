@@ -1,26 +1,23 @@
 (function() {
     // 1. Initial Config
     const API_KEY = "dev-api-key-123"; 
-    // Use window.location.origin if served from same domain, otherwise fallback to Render URL
     const BASE_ORIGIN = window.location.origin.includes("localhost") || window.location.origin.includes("127.0.0.1") 
                         ? window.location.origin 
                         : "https://keiz-chatbot-saas-1.onrender.com";
     const BACKEND_URL = `${BASE_ORIGIN}/chat`;
 
-    // Session Memory Tracking
     let sessionId = localStorage.getItem("shinju_chat_session");
     if (!sessionId) {
         sessionId = "sess_" + Math.random().toString(36).substr(2, 9);
         localStorage.setItem("shinju_chat_session", sessionId);
     }
 
-    // 2. Inject CSS
+    // 2. Inject CSS with hard cache-busting
     const link = document.createElement("link");
     link.rel = "stylesheet";
-    link.href = "/widget/chat.css"; 
+    link.href = `/widget/chat.css?v=${new Date().getTime()}`; 
     document.head.appendChild(link);
 
-    // --- NEW: Fetch Dynamic Config ---
     async function applyBranding() {
         try {
             const res = await fetch(`${BASE_ORIGIN}/widget/config`, {
@@ -29,7 +26,6 @@
             const config = await res.json();
             if (config.primary_color) {
                 document.documentElement.style.setProperty('--primary', config.primary_color);
-                // Update elements already in DOM
                 const bubble = document.getElementById("shinju-chat-bubble");
                 const header = document.getElementById("shinju-chat-header");
                 const sendBtn = document.getElementById("shinju-chat-send");
@@ -51,24 +47,9 @@
     document.body.appendChild(bubble);
 
     const translations = {
-        "en": {
-            "header": "Shinju AI Support",
-            "input": "Type a message...",
-            "send": "Send",
-            "greeting": "Hello! I am Shinju AI. How can I help you today?"
-        },
-        "fr": {
-            "header": "Support Shinju AI",
-            "input": "Écrivez un message...",
-            "send": "Envoyer",
-            "greeting": "Bonjour! Je suis Shinju AI. Comment puis-je vous aider aujourd'hui ?"
-        },
-        "es": {
-            "header": "Soporte Shinju AI",
-            "input": "Escribe un mensaje...",
-            "send": "Enviar",
-            "greeting": "¡Hola! Soy Shinju AI. ¿Cómo puedo ayudarte hoy?"
-        }
+        "en": { "header": "Shinju AI Support", "input": "Type a message...", "send": "Send", "greeting": "Hello! I am Shinju AI. How can I help you today?" },
+        "fr": { "header": "Support Shinju AI", "input": "Écrivez un message...", "send": "Envoyer", "greeting": "Bonjour! Je suis Shinju AI. Comment puis-je vous aider aujourd'hui ?" },
+        "es": { "header": "Soporte Shinju AI", "input": "Escribe un mensaje...", "send": "Enviar", "greeting": "¡Hola! Soy Shinju AI. ¿Cómo puedo ayudarte hoy?" }
     };
 
     let currentLang = localStorage.getItem("shinju_chat_lang") || "en";
@@ -89,10 +70,10 @@
         </div>
         <div id="shinju-recording-status" style="display:none; background:#ff4d4d; color:white; text-align:center; font-size:10px; font-weight:bold; padding:5px; letter-spacing:1px; animation: flash 1s infinite alternate;">● VOICE ACTIVE - LISTENING...</div>
         <div id="shinju-chat-messages" style="display:flex; flex-direction:column;"></div>
-        <div id="shinju-chat-input-area" style="display:flex; align-items:center; gap:5px; padding:10px; border-top:1px solid #eee; background:white;">
-            <input type="text" id="shinju-chat-input" placeholder="${translations[currentLang].input}" style="flex:1; border:none; outline:none; padding:8px;">
-            <button id="shinju-mic-btn" style="background:transparent; border:none; cursor:pointer; font-size:18px; padding:5px; color:#666;" title="Tap to Speak">🎤</button>
-            <button id="shinju-chat-send" style="background:var(--primary); color:white; border:none; padding:8px 15px; border-radius:15px; cursor:pointer; font-weight:bold;">${translations[currentLang].send}</button>
+        <div id="shinju-chat-input-area">
+            <input type="text" id="shinju-chat-input" placeholder="${translations[currentLang].input}">
+            <button id="shinju-mic-btn" title="Tap to Speak">⚲</button>
+            <button id="shinju-chat-send">${translations[currentLang].send}</button>
         </div>
     `;
     document.body.appendChild(container);
@@ -103,99 +84,83 @@
     const headerTitle = document.getElementById("shinju-chat-title");
     const sendBtn = document.getElementById("shinju-chat-send");
     const micBtn = document.getElementById("shinju-mic-btn");
+    const statusBanner = document.getElementById("shinju-recording-status");
 
-    // --- PHASE 5: VOICE CONCIERGE MVP ---
+    // --- PHASE 5: VOICE CONCIERGE ---
     let isRecording = false;
     let recognition;
     
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
         recognition = new SpeechRecognition();
         recognition.continuous = false;
         
         recognition.onstart = () => {
             isRecording = true;
             micBtn.classList.add("recording");
-            const statusBanner = document.getElementById("shinju-recording-status");
-            if (statusBanner) statusBanner.style.setProperty("display", "block", "important");
+            statusBanner.style.setProperty("display", "block", "important");
             input.placeholder = "Listening...";
         };
         
         recognition.onresult = (event) => {
             const transcript = event.results[0][0].transcript;
             input.value = transcript;
-            sendMessage(); // Auto-send when voice is captured
+            sendMessage();
         };
         
         recognition.onend = () => {
             isRecording = false;
             micBtn.classList.remove("recording");
-            document.getElementById("shinju-recording-status").style.display = "none";
+            statusBanner.style.setProperty("display", "none", "important");
             input.placeholder = translations[currentLang].input;
         };
         
+        recognition.onerror = (e) => {
+            console.error("Speech Error", e);
+            recognition.stop();
+        };
+
         micBtn.onclick = () => {
             if (isRecording) {
                 recognition.stop();
             } else {
-                recognition.lang = currentLang; // Use currently selected language
+                recognition.lang = currentLang;
                 recognition.start();
             }
         };
     } else {
-        console.warn("Web Speech API not supported in this browser.");
-        // We keep the button but it will show an alert if clicked and not supported
         micBtn.onclick = () => { alert("Voice features are only available in modern browsers (Chrome/Safari) over HTTPS."); };
     }
 
     function speakText(text) {
         if ('speechSynthesis' in window) {
-            // Strip markdown, [DATA] tags, and extra symbols for a natural voice
-            const cleanText = text.replace(/\[DATA\].*?\[\/DATA\]/gs, "")
-                                  .replace(/\*\*/g, "")
-                                  .replace(/\[RESERVATION_SUCCESS\]/g, "Your reservation is successfully confirmed.");
-            
+            const cleanText = text.replace(/\[DATA\].*?\[\/DATA\]/gs, "").replace(/\*\*/g, "").replace(/\[RESERVATION_SUCCESS\]/g, "Your reservation is confirmed.");
             const utterance = new SpeechSynthesisUtterance(cleanText);
             utterance.lang = currentLang;
             window.speechSynthesis.speak(utterance);
         }
     }
-    // ------------------------------------
 
     // 4. Interaction Logic
     langSelect.onchange = (e) => {
         currentLang = e.target.value;
         localStorage.setItem("shinju_chat_lang", currentLang);
-        
-        // Update UI Text
         headerTitle.innerText = translations[currentLang].header;
         input.placeholder = translations[currentLang].input;
         sendBtn.innerText = translations[currentLang].send;
     };
 
-    bubble.onclick = () => {
-        container.style.display = "flex";
-        bubble.style.display = "none";
-    };
-
-    document.getElementById("shinju-chat-close").onclick = () => {
-        container.style.display = "none";
-        bubble.style.display = "flex";
-    };
+    bubble.onclick = () => { container.style.display = "flex"; bubble.style.display = "none"; };
+    document.getElementById("shinju-chat-close").onclick = () => { container.style.display = "none"; bubble.style.display = "flex"; };
 
     function appendMessage(text, sender) {
         const div = document.createElement("div");
         div.className = `shinju-message shinju-${sender}`;
-        
-        // Color-highlighting for AI questions (Pro UI feature)
         if (sender === "bot") {
-            // Replace **Question?** with <span class="shinju-highlight">Question?</span>
-            const highlightedText = text.replace(/\*\*(.*?)\*\*/g, '<span class="shinju-highlight">$1</span>');
-            div.innerHTML = highlightedText;
+            div.innerHTML = text.replace(/\*\*(.*?)\*\*/g, '<span class="shinju-highlight">$1</span>');
         } else {
             div.innerText = text;
         }
-        
         msgContainer.appendChild(div);
         msgContainer.scrollTop = msgContainer.scrollHeight;
     }
@@ -203,53 +168,26 @@
     async function sendMessage() {
         const text = input.value.trim();
         if (!text) return;
-
         appendMessage(text, "user");
         input.value = "";
-
         try {
             const response = await fetch(BACKEND_URL, {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-API-Key": API_KEY
-                },
-                body: JSON.stringify({ 
-                    message: text, 
-                    session_id: sessionId,
-                    language: currentLang
-                })
+                headers: { "Content-Type": "application/json", "X-API-Key": API_KEY },
+                body: JSON.stringify({ message: text, session_id: sessionId, language: currentLang })
             });
-
-            if (!response.ok) {
-                const errData = await response.json().catch(() => ({}));
-                appendMessage(`Error (${response.status}): ` + (errData.detail || "Server logic error"), "bot");
-                return;
-            }
-
             const data = await response.json();
             if (data.reply) {
                 appendMessage(data.reply, "bot");
-                speakText(data.reply); // --- PHASE 5: Trigger Voice Concierge ---
-            } else {
-                appendMessage("Received an empty response.", "bot");
+                speakText(data.reply);
             }
         } catch (error) {
-            console.error("Chat Error:", error);
             appendMessage("Sorry, I'm having trouble connecting to the server.", "bot");
         }
     }
 
-    document.getElementById("shinju-chat-send").onclick = sendMessage;
-    input.onkeypress = (e) => {
-        if (e.key === "Enter") sendMessage();
-    };
-
-    // Initial greeting
-    setTimeout(() => {
-        appendMessage(translations[currentLang].greeting, "bot");
-    }, 500);
-
-    // Apply branding from server
+    sendBtn.onclick = sendMessage;
+    input.onkeypress = (e) => { if (e.key === "Enter") sendMessage(); };
+    setTimeout(() => { appendMessage(translations[currentLang].greeting, "bot"); }, 500);
     applyBranding();
 })();
