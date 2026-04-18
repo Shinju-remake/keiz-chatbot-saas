@@ -87,6 +87,7 @@
                 <span style="cursor:pointer;" id="shinju-chat-close">✖</span>
             </div>
         </div>
+        <div id="shinju-recording-status" style="display:none; background:#ff4d4d; color:white; text-align:center; font-size:10px; font-weight:bold; padding:5px; letter-spacing:1px; animation: flash 1s infinite alternate;">● VOICE ACTIVE - LISTENING...</div>
         <div id="shinju-chat-messages" style="display:flex; flex-direction:column;"></div>
         <div id="shinju-chat-input-area" style="display:flex; align-items:center; gap:5px; padding:10px; border-top:1px solid #eee; background:white;">
             <input type="text" id="shinju-chat-input" placeholder="${translations[currentLang].input}" style="flex:1; border:none; outline:none; padding:8px;">
@@ -115,6 +116,7 @@
         recognition.onstart = () => {
             isRecording = true;
             micBtn.classList.add("recording");
+            document.getElementById("shinju-recording-status").style.display = "block";
             input.placeholder = "Listening...";
         };
         
@@ -127,6 +129,7 @@
         recognition.onend = () => {
             isRecording = false;
             micBtn.classList.remove("recording");
+            document.getElementById("shinju-recording-status").style.display = "none";
             input.placeholder = translations[currentLang].input;
         };
         
