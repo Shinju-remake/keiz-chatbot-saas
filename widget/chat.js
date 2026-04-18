@@ -78,7 +78,7 @@
         <div id="shinju-chat-messages" style="display:flex; flex-direction:column; flex:1; overflow-y:auto; padding:10px; background:#f9f9f9;"></div>
         <div id="shinju-chat-input-area" style="display:flex; align-items:center; gap:5px; padding:10px; border-top:1px solid #eee; background:white;">
             <input type="text" id="shinju-chat-input" placeholder="${translations[currentLang].input}" style="flex:1; border:none; outline:none; padding:8px; font-size:16px;">
-            <button id="shinju-mic-btn" style="background:transparent; border:none; cursor:pointer; font-size:20px; padding:5px 10px; color:#666;" title="Tap to Speak">⚲</button>
+            <button id="shinju-mic-btn" style="background:transparent; border:none; cursor:pointer; font-size:20px; padding:5px 10px; color:#666;" title="Tap to Speak">🎤</button>
             <button id="shinju-chat-send" style="background:var(--primary, #BB00FF); color:white; border:none; padding:8px 15px; border-radius:15px; cursor:pointer; font-weight:bold;">${translations[currentLang].send}</button>
         </div>
     `;
