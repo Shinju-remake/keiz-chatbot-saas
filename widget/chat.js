@@ -36,10 +36,12 @@
             const config = await res.json();
             if (config.primary_color) {
                 document.documentElement.style.setProperty('--primary', config.primary_color);
-                ["shinju-chat-bubble", "shinju-chat-header", "shinju-chat-send"].forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el) el.style.background = config.primary_color;
-                });
+                const b = document.getElementById("shinju-chat-bubble");
+                const h = document.getElementById("shinju-chat-header");
+                const s = document.getElementById("shinju-chat-send");
+                if (b) b.style.background = config.primary_color;
+                if (h) h.style.background = config.primary_color;
+                if (s) s.style.background = config.primary_color;
             }
         } catch (e) { console.error("Branding failed", e); }
     }
@@ -51,6 +53,12 @@
     };
 
     let currentLang = localStorage.getItem("shinju_chat_lang") || "en";
+
+    // 3. Build UI Elements
+    const bubble = document.createElement("div");
+    bubble.id = "shinju-chat-bubble";
+    bubble.innerHTML = "💬";
+    document.body.appendChild(bubble);
 
     const container = document.createElement("div");
     container.id = "shinju-chat-container";
@@ -70,19 +78,17 @@
         <div id="shinju-chat-messages" style="display:flex; flex-direction:column; flex:1; overflow-y:auto; padding:10px; background:#f9f9f9;"></div>
         <div id="shinju-chat-input-area" style="display:flex; align-items:center; gap:5px; padding:10px; border-top:1px solid #eee; background:white;">
             <input type="text" id="shinju-chat-input" placeholder="${translations[currentLang].input}" style="flex:1; border:none; outline:none; padding:8px; font-size:16px;">
-            <button id="shinju-mic-btn" style="background:transparent; border:none; cursor:pointer; font-size:20px; padding:5px 10px; color:#666;" title="Tap to Speak">🎤</button>
+            <button id="shinju-mic-btn" style="background:transparent; border:none; cursor:pointer; font-size:20px; padding:5px 10px; color:#666;" title="Tap to Speak">⚲</button>
             <button id="shinju-chat-send" style="background:var(--primary, #BB00FF); color:white; border:none; padding:8px 15px; border-radius:15px; cursor:pointer; font-weight:bold;">${translations[currentLang].send}</button>
         </div>
     `;
     document.body.appendChild(container);
 
-    const bubble = document.createElement("div");
-    bubble.id = "shinju-chat-bubble";
-    bubble.innerHTML = "💬";
-    document.body.appendChild(bubble);
-
     const msgContainer = document.getElementById("shinju-chat-messages");
     const input = document.getElementById("shinju-chat-input");
+    const langSelect = document.getElementById("shinju-chat-lang-select");
+    const headerTitle = document.getElementById("shinju-chat-title");
+    const sendBtn = document.getElementById("shinju-chat-send");
     const micBtn = document.getElementById("shinju-mic-btn");
     const statusBanner = document.getElementById("shinju-recording-status");
 
@@ -91,22 +97,31 @@
     if (SpeechRecognition) {
         const recognition = new SpeechRecognition();
         recognition.continuous = false;
+        
         recognition.onstart = () => {
             micBtn.classList.add("recording");
-            statusBanner.style.display = "block";
+            statusBanner.style.setProperty("display", "block", "important");
             statusBanner.classList.add("shinju-voice-active");
             input.placeholder = "Listening...";
         };
-        recognition.onresult = (e) => { input.value = e.results[0][0].transcript; sendMessage(); };
+        
+        recognition.onresult = (e) => {
+            input.value = e.results[0][0].transcript;
+            sendMessage();
+        };
+        
         recognition.onend = () => {
             micBtn.classList.remove("recording");
-            statusBanner.style.display = "none";
+            statusBanner.style.setProperty("display", "none", "important");
             input.placeholder = translations[currentLang].input;
         };
+        
+        recognition.onerror = () => { recognition.stop(); };
+
         micBtn.onclick = () => { try { recognition.start(); } catch(e) { recognition.stop(); } };
     } else {
         micBtn.onclick = () => { 
-            alert("Firefox User: Please enable 'media.webspeech.recognition.enable' in about:config to use Voice Concierge."); 
+            alert("Voice features are only available in modern browsers (Chrome/Safari) over HTTPS. Firefox users: Enable 'media.webspeech.recognition.enable' in about:config."); 
         };
     }
 
@@ -141,17 +156,26 @@
         const div = document.createElement("div");
         div.className = `shinju-message shinju-${sender}`;
         if (sender === "bot") {
-            const tag = identity ? `<div style="font-size:9px; font-weight:900; color:var(--primary); margin-bottom:5px; text-transform:uppercase;">● ${identity}</div>` : "";
+            const tag = identity ? `<div style="font-size:9px; font-weight:900; color:var(--primary); margin-bottom:5px; text-transform:uppercase; letter-spacing:1px;">● ${identity}</div>` : "";
             div.innerHTML = tag + text.replace(/\*\*(.*?)\*\*/g, '<span class="shinju-highlight">$1</span>');
         } else { div.innerText = text; }
         msgContainer.appendChild(div);
         msgContainer.scrollTop = msgContainer.scrollHeight;
     }
 
-    document.getElementById("shinju-chat-send").onclick = sendMessage;
+    langSelect.onchange = (e) => {
+        currentLang = e.target.value;
+        localStorage.setItem("shinju_chat_lang", currentLang);
+        headerTitle.innerText = translations[currentLang].header;
+        input.placeholder = translations[currentLang].input;
+        sendBtn.innerText = translations[currentLang].send;
+    };
+
+    sendBtn.onclick = sendMessage;
     input.onkeypress = (e) => { if (e.key === "Enter") sendMessage(); };
     bubble.onclick = () => { container.style.display = "flex"; bubble.style.display = "none"; };
     document.getElementById("shinju-chat-close").onclick = () => { container.style.display = "none"; bubble.style.display = "flex"; };
+    
     setTimeout(() => appendMessage(translations[currentLang].greeting, "bot"), 500);
     applyBranding();
 })();
