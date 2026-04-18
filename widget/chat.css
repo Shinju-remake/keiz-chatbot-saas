@@ -117,21 +117,21 @@
 }
 
 #shinju-mic-btn.recording {
-    color: #ff4d4d;
-    text-shadow: 0 0 10px #ff4d4d, 0 0 20px #ff4d4d;
-    animation: neonPulse 1s infinite alternate;
+    color: white !important;
+    background: #ff4d4d !important;
+    border-radius: 50%;
+    box-shadow: 0 0 15px #ff4d4d, 0 0 30px #ff4d4d;
+    animation: neonPulse 0.8s infinite alternate !important;
 }
 
 @keyframes neonPulse {
     from {
         transform: scale(1);
-        opacity: 1;
-        filter: drop-shadow(0 0 2px #ff4d4d);
+        box-shadow: 0 0 10px #ff4d4d;
     }
     to {
-        transform: scale(1.3);
-        opacity: 0.8;
-        filter: drop-shadow(0 0 12px #ff4d4d);
+        transform: scale(1.2);
+        box-shadow: 0 0 25px #ff4d4d, 0 0 40px #ff4d4d;
     }
 }
 

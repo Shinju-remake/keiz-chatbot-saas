@@ -116,7 +116,8 @@
         recognition.onstart = () => {
             isRecording = true;
             micBtn.classList.add("recording");
-            document.getElementById("shinju-recording-status").style.display = "block";
+            const statusBanner = document.getElementById("shinju-recording-status");
+            if (statusBanner) statusBanner.style.setProperty("display", "block", "important");
             input.placeholder = "Listening...";
         };
         
