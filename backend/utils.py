@@ -131,7 +131,7 @@ def process_message_v3(company: Company, session_id: str, user_msg: str, db: Ses
         import asyncio
         asyncio.create_task(trigger_pro_automation(company, user_msg, session_id))
 
-    return {"reply": reply, "source": source}
+    return {"reply": reply, "source": source, "agent_identity": agent_identity}
 
 def get_ai_response(company: Company, session_id: str, user_msg: str, db: Session, language: str = "en") -> str:
     openai_key = company.openai_api_key or os.getenv("OPENAI_API_KEY")
@@ -219,7 +219,12 @@ def get_ai_response(company: Company, session_id: str, user_msg: str, db: Sessio
             max_completion_tokens=250,
             temperature=0.7
         )
-        return response.choices[0].message.content.strip()
+        reply_text = response.choices[0].message.content.strip()
+        
+        return {
+            "reply": reply_text,
+            "agent_identity": "AI Sales Concierge" if "SALES" in intent else "AI Support Specialist"
+        }
     except Exception as e:
         print(f"OPENAI CLOUD ERROR: {e}")
         # Intelligent Fallback: Return a helpful message instead of crashing
@@ -301,6 +306,12 @@ async def schedule_reengagement(company_id: int, session_id: str):
                 # Generate a soft re-engagement message
                 re_msg = f"Hello! We noticed you were interested in a reservation at {company.name}. Would you like to pick up where you left off? Our elite staff is standing by to assist."
                 print(f"🚀 [RE-ENGAGEMENT] Sending follow-up to {session.customer_phone}")
+                # Use current running loop to send reply
+                await send_whatsapp_reply(company, session.customer_phone, re_msg)
+                session.reengagement_status = "completed"
+                db.add(session)
+                db.commit()
+GAGEMENT] Sending follow-up to {session.customer_phone}")
                 # Use current running loop to send reply
                 await send_whatsapp_reply(company, session.customer_phone, re_msg)
                 session.reengagement_status = "completed"

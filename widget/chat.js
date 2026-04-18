@@ -153,14 +153,18 @@
     bubble.onclick = () => { container.style.display = "flex"; bubble.style.display = "none"; };
     document.getElementById("shinju-chat-close").onclick = () => { container.style.display = "none"; bubble.style.display = "flex"; };
 
-    function appendMessage(text, sender) {
+    function appendMessage(text, sender, identity = null) {
         const div = document.createElement("div");
         div.className = `shinju-message shinju-${sender}`;
+        
         if (sender === "bot") {
-            div.innerHTML = text.replace(/\*\*(.*?)\*\*/g, '<span class="shinju-highlight">$1</span>');
+            const tag = identity ? `<div style="font-size:9px; font-weight:900; color:var(--primary); margin-bottom:5px; text-transform:uppercase; letter-spacing:1px;">● ${identity}</div>` : "";
+            const highlightedText = text.replace(/\*\*(.*?)\*\*/g, '<span class="shinju-highlight">$1</span>');
+            div.innerHTML = tag + highlightedText;
         } else {
             div.innerText = text;
         }
+        
         msgContainer.appendChild(div);
         msgContainer.scrollTop = msgContainer.scrollHeight;
     }
@@ -178,7 +182,7 @@
             });
             const data = await response.json();
             if (data.reply) {
-                appendMessage(data.reply, "bot");
+                appendMessage(data.reply, "bot", data.agent_identity);
                 speakText(data.reply);
             }
         } catch (error) {

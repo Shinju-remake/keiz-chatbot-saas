@@ -118,6 +118,7 @@ class ChatMessage(BaseModel):
 class ChatResponse(BaseModel):
     reply: Optional[str] = None
     source: str
+    agent_identity: Optional[str] = "Shinju AI Agent"
 
 @app.post("/chat", response_model=ChatResponse)
 @limiter.limit("60/minute")
@@ -125,7 +126,11 @@ async def chat_endpoint(request: Request, msg: ChatMessage, x_api_key: str = Hea
     company = db.exec(select(Company).where(Company.api_key == x_api_key)).first()
     if not company:
         raise HTTPException(status_code=403, detail="Invalid API Key")
+    
+    # Process message and get rich metadata
     result = process_message_v3(company, msg.session_id, msg.message, db, language=msg.language)
+    
+    # result now contains 'reply', 'source', and potentially 'agent_identity'
     return ChatResponse(**result)
 
 # --- THE UNIVERSAL CONSOLE ---
@@ -300,6 +305,26 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_session)):
     return {"status": "ok"}
 
 # --- ADMIN API ROUTES ---
+
+@app.get("/admin/stats")
+async def get_dashboard_stats(request: Request, x_api_key: Optional[str] = Header(None), db: Session = Depends(get_session)):
+    company = get_current_company(request, db, x_api_key)
+    if not company: raise HTTPException(status_code=403, detail="Invalid Authentication")
+    
+    # Calculate stats
+    active_chats = db.exec(select(ChatSession).where(ChatSession.company_id == company.id)).all()
+    total_res = db.exec(select(Reservation).where(Reservation.company_id == company.id)).all()
+    logs = db.exec(select(ChatLog).where(ChatLog.company_id == company.id)).all()
+    
+    needs_review = [l for l in logs if l.needs_review and not l.reviewed]
+    avg_conf = sum([l.confidence_score for l in logs]) / len(logs) if logs else 1.0
+    
+    return {
+        "active_chats": len(active_chats),
+        "total_reservations": len(total_res),
+        "needs_review": len(needs_review),
+        "avg_confidence": round(avg_conf * 100)
+    }
 
 @app.get("/admin/logs")
 async def get_logs(request: Request, x_api_key: Optional[str] = Header(None), db: Session = Depends(get_session)):

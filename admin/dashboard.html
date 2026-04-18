@@ -79,6 +79,26 @@
             </div>
         </div>
 
+        <!-- STATS OVERVIEW -->
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px;">
+            <div class="card" style="margin-bottom:0; padding: 20px; border-left: 4px solid var(--primary);">
+                <p style="font-size: 0.8rem; color: #666; margin-bottom: 5px;">Active Chats (24h)</p>
+                <h3 id="stat-active-chats" style="font-size: 1.8rem; margin: 0;">0</h3>
+            </div>
+            <div class="card" style="margin-bottom:0; padding: 20px; border-left: 4px solid #00ff88;">
+                <p style="font-size: 0.8rem; color: #666; margin-bottom: 5px;">Total Reservations</p>
+                <h3 id="stat-total-res" style="font-size: 1.8rem; margin: 0;">0</h3>
+            </div>
+            <div class="card" style="margin-bottom:0; padding: 20px; border-left: 4px solid #FFC107;">
+                <p style="font-size: 0.8rem; color: #666; margin-bottom: 5px;">AI Confidence Avg.</p>
+                <h3 id="stat-avg-conf" style="font-size: 1.8rem; margin: 0;">92%</h3>
+            </div>
+            <div class="card" style="margin-bottom:0; padding: 20px; border-left: 4px solid #F44336;">
+                <p style="font-size: 0.8rem; color: #666; margin-bottom: 5px;">Needs Review</p>
+                <h3 id="stat-needs-review" style="font-size: 1.8rem; margin: 0; color: #F44336;">0</h3>
+            </div>
+        </div>
+
         <!-- ANALYTICS TAB -->
         <div id="tab-analytics" class="tab-content active">
             <div class="card" style="background: linear-gradient(135deg, #BB00FF 0%, #7000FF 100%); color: white;">
@@ -310,6 +330,19 @@
             // Proceed with initialization
             fetchLogs(); 
             fetchSettings();
+            fetchStats();
+            fetchTrends();
+        }
+
+        async function fetchStats() {
+            try {
+                const res = await fetch(`${API_BASE}/admin/stats`, { headers: { "X-API-Key": API_KEY } });
+                const stats = await res.json();
+                document.getElementById("stat-active-chats").innerText = stats.active_chats;
+                document.getElementById("stat-total-res").innerText = stats.total_reservations;
+                document.getElementById("stat-needs-review").innerText = stats.needs_review;
+                document.getElementById("stat-avg-conf").innerText = stats.avg_confidence + "%";
+            } catch (e) { console.error(e); }
         }
 
         async function updateResStatus(id, newStatus) {
@@ -335,7 +368,7 @@
             
             // Highlight nav item
             const navItems = document.querySelectorAll('.nav-item');
-            if (tab === 'analytics') { navItems[0].classList.add('active'); fetchLogs(); fetchTrends(); }
+            if (tab === 'analytics') { navItems[0].classList.add('active'); fetchLogs(); fetchTrends(); fetchStats(); }
             if (tab === 'reservations') { navItems[1].classList.add('active'); fetchReservations(); }
             if (tab === 'rules') { navItems[2].classList.add('active'); fetchRules(); }
             if (tab === 'knowledge') { navItems[3].classList.add('active'); fetchSettings(); }
