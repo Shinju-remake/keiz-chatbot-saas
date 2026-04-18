@@ -393,7 +393,8 @@
                 });
                 const data = await res.json();
                 if (data.url) {
-                    window.location.href = data.url;
+                    // BREAK OUT of the Console iframe for secure checkout
+                    window.top.location.href = data.url;
                 }
             } catch (e) { alert("Checkout failed. Please contact support."); }
         }

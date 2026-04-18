@@ -254,12 +254,25 @@ async def create_checkout_session(data: CheckoutSession, request: Request, x_api
     if not company: raise HTTPException(status_code=403, detail="Invalid Authentication")
     
     # In a real app, you would use stripe.checkout.Session.create()
-    # For this MVP, we simulate the redirection URL
-    print(f"STRIPE: Creating {data.plan} session for {company.name}")
+    # For this MVP, we provide a local simulated success URL
+    print(f"STRIPE: Simulating {data.plan} checkout for {company.name}")
     
-    # Placeholder for the actual Stripe URL
-    stripe_url = f"https://checkout.stripe.com/pay/c_test_shinju_{data.plan}_{company.id}"
-    return {"url": stripe_url}
+    # Using a local success simulate route instead of fake stripe.com domain
+    sim_url = f"{request.base_url}admin/billing/simulate_success?plan={data.plan}&cid={company.id}"
+    return {"url": sim_url}
+
+@app.get("/admin/billing/simulate_success")
+async def simulate_stripe_success(plan: str, cid: int, db: Session = Depends(get_session)):
+    """
+    Simulates the callback from Stripe after a successful payment.
+    """
+    company = db.get(Company, cid)
+    if company:
+        company.plan = plan
+        db.add(company)
+        db.commit()
+        return FileResponse(str(BASE_DIR / "admin" / "dashboard.html")) # Send back to dashboard
+    return {"status": "error"}
 
 @app.post("/webhook/stripe")
 async def stripe_webhook(request: Request, db: Session = Depends(get_session)):
