@@ -93,16 +93,38 @@
     padding: 10px;
     border-top: 1px solid #ddd;
     display: flex;
+    align-items: center;
     background: white;
 }
 
 #shinju-chat-input {
     flex: 1;
-    border: 1px solid #ddd;
+    border: none !important;
     border-radius: 4px;
     padding: 10px;
     outline: none;
-    font-size: 16px; /* Prevents auto-zoom on iOS */
+    font-size: 16px;
+}
+
+#shinju-mic-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 20px;
+    padding: 5px 10px;
+    color: #888;
+    transition: 0.3s;
+}
+
+#shinju-mic-btn.recording {
+    color: #ff4d4d;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.2); opacity: 0.7; }
+    100% { transform: scale(1); opacity: 1; }
 }
 
 #shinju-chat-send {

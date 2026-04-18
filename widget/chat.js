@@ -114,7 +114,7 @@
         
         recognition.onstart = () => {
             isRecording = true;
-            micBtn.style.color = "red";
+            micBtn.classList.add("recording");
             input.placeholder = "Listening...";
         };
         
@@ -126,7 +126,7 @@
         
         recognition.onend = () => {
             isRecording = false;
-            micBtn.style.color = "#666";
+            micBtn.classList.remove("recording");
             input.placeholder = translations[currentLang].input;
         };
         
@@ -139,7 +139,9 @@
             }
         };
     } else {
-        micBtn.style.display = "none"; // Hide if not supported
+        console.warn("Web Speech API not supported in this browser.");
+        // We keep the button but it will show an alert if clicked and not supported
+        micBtn.onclick = () => { alert("Voice features are only available in modern browsers (Chrome/Safari) over HTTPS."); };
     }
 
     function speakText(text) {
