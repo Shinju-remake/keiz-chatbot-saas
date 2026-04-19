@@ -22,9 +22,9 @@
         .shinju-bot { background: #e0e0e0; color: #333; align-self: flex-start; }
         #shinju-chat-input-area { padding: 10px; border-top: 1px solid #ddd; display: flex; align-items: center; background: white; }
         #shinju-chat-input { flex: 1; border: none; padding: 10px; outline: none; font-size: 16px; }
-        #shinju-mic-btn { background: transparent; border: none; cursor: pointer; font-size: 20px; padding: 5px 10px; color: #888; transition: 0.3s; }
-        #shinju-mic-btn.recording { background: #ff4d4d !important; color: white !important; border-radius: 50%; box-shadow: 0 0 20px #ff4d4d; animation: shinju-pulse 1s infinite alternate !important; }
-        @keyframes shinju-pulse { from { transform: scale(1); } to { transform: scale(1.3); } }
+        #shinju-mic-btn { background: transparent; border: none; cursor: pointer; font-size: 20px; padding: 5px 10px; color: #888; transition: 0.3s; border-radius: 50%; }
+        #shinju-mic-btn.recording { background: #ff4d4d !important; color: white !important; box-shadow: 0 0 20px #ff4d4d; animation: shinju-pulse 1s infinite alternate !important; }
+        @keyframes shinju-pulse { from { transform: scale(1); } to { transform: scale(1.2); } }
         .shinju-highlight { color: #BB00FF; font-weight: 700; }
         .shinju-agent-tag { font-size:9px; font-weight:900; color:#BB00FF; margin-bottom:5px; text-transform:uppercase; }
     `;
@@ -98,23 +98,59 @@
             const data = await res.json();
             if (data.reply) {
                 appendMessage(data.reply, "bot", data.agent_identity);
-                if ('speechSynthesis' in window) {
-                    const utterance = new SpeechSynthesisUtterance(data.reply.replace(/\[DATA\].*?\[\/DATA\]/gs, "").replace(/\*\*/g, ""));
-                    utterance.lang = currentLang;
-                    window.speechSynthesis.speak(utterance);
-                }
+                // VOICE RESPONSE REMOVED PER USER REQUEST
             }
         } catch (e) { appendMessage("Connection lost.", "bot"); }
     }
 
-    // --- Voice Logic ---
+    // --- ENHANCED VOICE LOGIC ---
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let isRecording = false;
+
     if (SpeechRecognition) {
         const recognition = new SpeechRecognition();
-        recognition.onstart = () => { micBtn.classList.add("recording"); statusBanner.style.display = "block"; };
-        recognition.onresult = (e) => { input.value = e.results[0][0].transcript; sendMessage(); };
-        recognition.onend = () => { micBtn.classList.remove("recording"); statusBanner.style.display = "none"; };
-        micBtn.onclick = () => { try { recognition.start(); } catch(e) { recognition.stop(); } };
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = currentLang;
+
+        recognition.onstart = () => { 
+            isRecording = true;
+            micBtn.classList.add("recording"); 
+            statusBanner.style.display = "block"; 
+            input.placeholder = "Listening...";
+        };
+        
+        recognition.onresult = (e) => { 
+            const result = e.results[0][0].transcript;
+            input.value = result; 
+            sendMessage(); 
+        };
+        
+        recognition.onend = () => { 
+            isRecording = false;
+            micBtn.classList.remove("recording"); 
+            statusBanner.style.display = "none"; 
+            input.placeholder = translations[currentLang].input;
+        };
+
+        recognition.onerror = (e) => {
+            isRecording = false;
+            console.error("Mic Error:", e.error);
+            recognition.stop();
+        };
+
+        micBtn.onclick = () => { 
+            if (isRecording) {
+                recognition.stop();
+            } else {
+                recognition.lang = currentLang;
+                recognition.start();
+            }
+        };
+    } else {
+        micBtn.onclick = () => { 
+            alert("Speech recognition is not fully supported in this browser. Chrome or Safari recommended."); 
+        };
     }
 
     sendBtn.onclick = sendMessage;
@@ -131,4 +167,19 @@
     };
 
     setTimeout(() => appendMessage(translations[currentLang].greeting, "bot"), 500);
+
+    async function applyBranding() {
+        try {
+            const res = await fetch(`${BASE_ORIGIN}/widget/config`, { headers: { "X-API-Key": API_KEY } });
+            const config = await res.json();
+            if (config.primary_color) {
+                document.documentElement.style.setProperty('--primary', config.primary_color);
+                ["shinju-chat-bubble", "shinju-chat-header", "shinju-chat-send"].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.style.background = config.primary_color;
+                });
+            }
+        } catch (e) {}
+    }
+    applyBranding();
 })();
