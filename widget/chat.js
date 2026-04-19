@@ -116,11 +116,17 @@
             mediaRecorder.ondataavailable = (event) => { audioChunks.push(event.data); };
             
             mediaRecorder.onstop = async () => {
-                const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                // Detect supported mime type
+                const mimeType = mediaRecorder.mimeType || 'audio/webm';
+                const audioBlob = new Blob(audioChunks, { type: mimeType });
+                const extension = mimeType.split('/')[1].split(';')[0] || 'webm';
+                
                 const formData = new FormData();
-                formData.append('file', audioBlob, 'voice.wav');
+                formData.append('file', audioBlob, `voice.${extension}`);
                 
                 statusBanner.innerText = "● TRANSCRIBING...";
+                input.placeholder = "Processing your voice...";
+                
                 try {
                     const res = await fetch(TRANSCRIBE_URL, {
                         method: 'POST',
@@ -131,7 +137,10 @@
                     if (data.text) {
                         sendMessage(data.text);
                     }
-                } catch (e) { console.error("Transcription failed", e); }
+                } catch (e) { 
+                    console.error("Transcription failed", e); 
+                    appendMessage("Sorry, I couldn't hear that clearly. Please try again.", "bot");
+                }
                 
                 statusBanner.style.display = "none";
                 statusBanner.innerText = "● RECORDING AUDIO...";

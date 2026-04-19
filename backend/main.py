@@ -316,8 +316,10 @@ async def transcribe_audio(file: UploadFile = File(...), x_api_key: str = Header
         from openai import OpenAI
         client = OpenAI(api_key=openai_key.strip())
         
-        # Save temp file for Whisper
-        temp_filename = f"temp_{uuid.uuid4()}.wav"
+        # Determine extension from filename or default to webm
+        ext = "webm" if not file.filename else file.filename.split(".")[-1]
+        temp_filename = f"temp_{uuid.uuid4()}.{ext}"
+        
         with open(temp_filename, "wb") as f:
             f.write(await file.read())
             
