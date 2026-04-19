@@ -98,60 +98,61 @@
             const data = await res.json();
             if (data.reply) {
                 appendMessage(data.reply, "bot", data.agent_identity);
-                // VOICE RESPONSE REMOVED PER USER REQUEST
             }
         } catch (e) { appendMessage("Connection lost.", "bot"); }
     }
 
-    // --- ENHANCED VOICE LOGIC ---
+    // --- INSTANT FEEDBACK VOICE LOGIC ---
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     let isRecording = false;
+    let recognition = null;
 
     if (SpeechRecognition) {
-        const recognition = new SpeechRecognition();
+        recognition = new SpeechRecognition();
         recognition.continuous = false;
-        recognition.interimResults = false;
         recognition.lang = currentLang;
 
-        recognition.onstart = () => { 
-            isRecording = true;
-            micBtn.classList.add("recording"); 
-            statusBanner.style.display = "block"; 
-            input.placeholder = "Listening...";
-        };
-        
-        recognition.onresult = (e) => { 
-            const result = e.results[0][0].transcript;
-            input.value = result; 
-            sendMessage(); 
-        };
-        
+        recognition.onstart = () => { isRecording = true; };
+        recognition.onresult = (e) => { input.value = e.results[0][0].transcript; sendMessage(); };
         recognition.onend = () => { 
-            isRecording = false;
+            isRecording = false; 
             micBtn.classList.remove("recording"); 
-            statusBanner.style.display = "none"; 
+            statusBanner.style.display = "none";
             input.placeholder = translations[currentLang].input;
         };
-
         recognition.onerror = (e) => {
+            console.error("Speech Recognition Error:", e.error);
             isRecording = false;
-            console.error("Mic Error:", e.error);
-            recognition.stop();
-        };
-
-        micBtn.onclick = () => { 
-            if (isRecording) {
-                recognition.stop();
-            } else {
-                recognition.lang = currentLang;
-                recognition.start();
-            }
-        };
-    } else {
-        micBtn.onclick = () => { 
-            alert("Speech recognition is not fully supported in this browser. Chrome or Safari recommended."); 
+            micBtn.classList.remove("recording");
+            statusBanner.style.display = "none";
+            if (e.error === 'not-allowed') alert("Microphone access denied. Please enable mic permissions for this site.");
         };
     }
+
+    micBtn.onclick = () => {
+        if (!SpeechRecognition) {
+            alert("Firefox User: Please enable 'media.webspeech.recognition.enable' in about:config.");
+            return;
+        }
+
+        if (isRecording) {
+            recognition.stop();
+        } else {
+            try {
+                // FORCE UI FEEDBACK IMMEDIATELY
+                micBtn.classList.add("recording");
+                statusBanner.style.display = "block";
+                input.placeholder = "Listening...";
+                
+                recognition.lang = currentLang;
+                recognition.start();
+            } catch (e) {
+                console.error("Critical Mic Failure:", e);
+                micBtn.classList.remove("recording");
+                statusBanner.style.display = "none";
+            }
+        }
+    };
 
     sendBtn.onclick = sendMessage;
     input.onkeypress = (e) => { if (e.key === "Enter") sendMessage(); };
