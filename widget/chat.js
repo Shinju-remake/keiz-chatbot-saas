@@ -4,6 +4,7 @@
                         ? window.location.origin 
                         : "https://keiz-chatbot-saas-1.onrender.com";
     const BACKEND_URL = `${BASE_ORIGIN}/chat`;
+    const TRANSCRIBE_URL = `${BASE_ORIGIN}/transcribe`;
 
     let sessionId = localStorage.getItem("shinju_chat_session") || "sess_" + Math.random().toString(36).substr(2, 9);
     localStorage.setItem("shinju_chat_session", sessionId);
@@ -25,7 +26,6 @@
         #shinju-mic-btn { background: transparent; border: none; cursor: pointer; font-size: 20px; padding: 5px 10px; color: #888; transition: 0.3s; border-radius: 50%; }
         #shinju-mic-btn.recording { background: #ff4d4d !important; color: white !important; box-shadow: 0 0 20px #ff4d4d; animation: shinju-pulse 1s infinite alternate !important; }
         @keyframes shinju-pulse { from { transform: scale(1); } to { transform: scale(1.2); } }
-        .shinju-highlight { color: #BB00FF; font-weight: 700; }
         .shinju-agent-tag { font-size:9px; font-weight:900; color:#BB00FF; margin-bottom:5px; text-transform:uppercase; }
     `;
     document.head.appendChild(styleTag);
@@ -57,7 +57,7 @@
                 <span id="shinju-chat-close" style="cursor:pointer;">✖</span>
             </div>
         </div>
-        <div id="shinju-recording-status">● VOICE ACTIVE - LISTENING...</div>
+        <div id="shinju-recording-status">● RECORDING AUDIO...</div>
         <div id="shinju-chat-messages"></div>
         <div id="shinju-chat-input-area">
             <input type="text" id="shinju-chat-input" placeholder="${translations[currentLang].input}">
@@ -78,14 +78,14 @@
         div.className = `shinju-message shinju-${sender}`;
         if (sender === "bot") {
             const tag = identity ? `<div class="shinju-agent-tag">● ${identity}</div>` : "";
-            div.innerHTML = tag + text.replace(/\*\*(.*?)\*\*/g, '<span class="shinju-highlight">$1</span>');
+            div.innerHTML = tag + text.replace(/\*\*(.*?)\*\*/g, '<span style="color:#BB00FF; font-weight:700;">$1</span>');
         } else { div.innerText = text; }
         msgContainer.appendChild(div);
         msgContainer.scrollTop = msgContainer.scrollHeight;
     }
 
-    async function sendMessage() {
-        const text = input.value.trim();
+    async function sendMessage(overrideText = null) {
+        const text = overrideText || input.value.trim();
         if (!text) return;
         appendMessage(text, "user");
         input.value = "";
@@ -102,59 +102,63 @@
         } catch (e) { appendMessage("Connection lost.", "bot"); }
     }
 
-    // --- INSTANT FEEDBACK VOICE LOGIC ---
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    // --- UNIVERSAL VOICE ENGINE (WHISPER FALLBACK) ---
+    let mediaRecorder;
+    let audioChunks = [];
     let isRecording = false;
-    let recognition = null;
 
-    if (SpeechRecognition) {
-        recognition = new SpeechRecognition();
-        recognition.continuous = false;
-        recognition.lang = currentLang;
+    async function startRecording() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+            audioChunks = [];
+            
+            mediaRecorder.ondataavailable = (event) => { audioChunks.push(event.data); };
+            
+            mediaRecorder.onstop = async () => {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                const formData = new FormData();
+                formData.append('file', audioBlob, 'voice.wav');
+                
+                statusBanner.innerText = "● TRANSCRIBING...";
+                try {
+                    const res = await fetch(TRANSCRIBE_URL, {
+                        method: 'POST',
+                        headers: { "X-API-Key": API_KEY },
+                        body: formData
+                    });
+                    const data = await res.json();
+                    if (data.text) {
+                        sendMessage(data.text);
+                    }
+                } catch (e) { console.error("Transcription failed", e); }
+                
+                statusBanner.style.display = "none";
+                statusBanner.innerText = "● RECORDING AUDIO...";
+                micBtn.classList.remove("recording");
+                input.placeholder = translations[currentLang].input;
+            };
 
-        recognition.onstart = () => { isRecording = true; };
-        recognition.onresult = (e) => { input.value = e.results[0][0].transcript; sendMessage(); };
-        recognition.onend = () => { 
-            isRecording = false; 
-            micBtn.classList.remove("recording"); 
-            statusBanner.style.display = "none";
-            input.placeholder = translations[currentLang].input;
-        };
-        recognition.onerror = (e) => {
-            console.error("Speech Recognition Error:", e.error);
-            isRecording = false;
-            micBtn.classList.remove("recording");
-            statusBanner.style.display = "none";
-            if (e.error === 'not-allowed') alert("Microphone access denied. Please enable mic permissions for this site.");
-        };
+            mediaRecorder.start();
+            isRecording = true;
+            micBtn.classList.add("recording");
+            statusBanner.style.display = "block";
+            input.placeholder = "Listening...";
+        } catch (err) {
+            alert("Microphone access denied or not available.");
+        }
     }
 
     micBtn.onclick = () => {
-        if (!SpeechRecognition) {
-            alert("Firefox User: Please enable 'media.webspeech.recognition.enable' in about:config.");
-            return;
-        }
-
         if (isRecording) {
-            recognition.stop();
+            mediaRecorder.stop();
+            isRecording = false;
         } else {
-            try {
-                // FORCE UI FEEDBACK IMMEDIATELY
-                micBtn.classList.add("recording");
-                statusBanner.style.display = "block";
-                input.placeholder = "Listening...";
-                
-                recognition.lang = currentLang;
-                recognition.start();
-            } catch (e) {
-                console.error("Critical Mic Failure:", e);
-                micBtn.classList.remove("recording");
-                statusBanner.style.display = "none";
-            }
+            startRecording();
         }
     };
 
-    sendBtn.onclick = sendMessage;
+    sendBtn.onclick = () => sendMessage();
     input.onkeypress = (e) => { if (e.key === "Enter") sendMessage(); };
     bubble.onclick = () => { container.style.display = "flex"; bubble.style.display = "none"; };
     document.getElementById("shinju-chat-close").onclick = () => { container.style.display = "none"; bubble.style.display = "flex"; };
@@ -168,19 +172,4 @@
     };
 
     setTimeout(() => appendMessage(translations[currentLang].greeting, "bot"), 500);
-
-    async function applyBranding() {
-        try {
-            const res = await fetch(`${BASE_ORIGIN}/widget/config`, { headers: { "X-API-Key": API_KEY } });
-            const config = await res.json();
-            if (config.primary_color) {
-                document.documentElement.style.setProperty('--primary', config.primary_color);
-                ["shinju-chat-bubble", "shinju-chat-header", "shinju-chat-send"].forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el) el.style.background = config.primary_color;
-                });
-            }
-        } catch (e) {}
-    }
-    applyBranding();
 })();

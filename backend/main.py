@@ -304,6 +304,35 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_session)):
 
     return {"status": "ok"}
 
+@app.post("/transcribe")
+async def transcribe_audio(file: UploadFile = File(...), x_api_key: str = Header(...), db: Session = Depends(get_session)):
+    company = db.exec(select(Company).where(Company.api_key == x_api_key)).first()
+    if not company: raise HTTPException(status_code=403, detail="Invalid API Key")
+    
+    openai_key = company.openai_api_key or os.getenv("OPENAI_API_KEY")
+    if not openai_key: raise HTTPException(status_code=500, detail="OpenAI Key not configured")
+    
+    try:
+        from openai import OpenAI
+        client = OpenAI(api_key=openai_key.strip())
+        
+        # Save temp file for Whisper
+        temp_filename = f"temp_{uuid.uuid4()}.wav"
+        with open(temp_filename, "wb") as f:
+            f.write(await file.read())
+            
+        with open(temp_filename, "rb") as audio_file:
+            transcript = client.audio.transcriptions.create(
+                model="whisper-1", 
+                file=audio_file
+            )
+            
+        os.remove(temp_filename) # Cleanup
+        return {"text": transcript.text}
+    except Exception as e:
+        print(f"WHISPER ERROR: {e}")
+        raise HTTPException(status_code=500, detail="Transcription failed")
+
 # --- ADMIN API ROUTES ---
 
 @app.get("/admin/stats")
