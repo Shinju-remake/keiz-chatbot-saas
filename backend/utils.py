@@ -81,7 +81,15 @@ def get_ai_response(company: Company, session_id: str, user_msg: str, db: Sessio
     
     try:
         client = OpenAI(api_key=openai_key.strip(), timeout=30.0)
-        rag_context = search_kb(company.id, user_msg, api_key=openai_key)
+        
+        # [NEW] BRAIN-DIRECT BYPASS: Always include relevant menu text if asking about menu/prices
+        raw_kb = company.knowledge_base or ""
+        if any(kw in user_msg.lower() for kw in ["menu", "price", "order", "what do you have", "show me", "selection"]):
+            rag_context = f"DIRECT MENU DATA: {raw_kb[:2000]}" # prioritize raw menu data
+        else:
+            rag_context = search_kb(company.id, user_msg, api_key=openai_key)
+            if not rag_context and raw_kb: rag_context = raw_kb[:1000] # Fallback to start of KB
+        
         history = db.exec(select(ChatLog).where(ChatLog.company_id == company.id, ChatLog.session_id == session_id).order_by(ChatLog.timestamp.desc()).limit(6)).all()
         lang_names = {"en": "English", "fr": "French", "es": "Spanish"}
         target_lang = lang_names.get(language, "English")
