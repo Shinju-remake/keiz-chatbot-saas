@@ -31,12 +31,20 @@ def process_message_v3(company: Company, session_id: str, user_msg: str, db: Ses
     source = "keyword"
     agent_id = "Shinju Keyword Matcher"
 
+    # --- SYSTEM FAIL-SAFE: DIRECT MENU HANDLER ---
+    if any(kw in user_input for kw in ["menu", "serve", "selection", "food", "what do you have", "carte"]):
+        if company.knowledge_base:
+            reply = f"Here is our current selection:\n\n{company.knowledge_base[:1500]}\n\nWould you like to place an order or do you have questions about a specific item?"
+            source = "system_menu"
+            agent_id = "Shinju Menu Specialist"
+
     # 1. Database Keywords (Custom Business Rules)
-    rules = db.exec(select(FAQRule).where(FAQRule.company_id == company.id)).all()
-    for rule in sorted(rules, key=lambda r: len(r.keyword), reverse=True):
-        if rule.keyword.lower() in user_input:
-            reply = rule.response
-            break
+    if not reply:
+        rules = db.exec(select(FAQRule).where(FAQRule.company_id == company.id)).all()
+        for rule in sorted(rules, key=lambda r: len(r.keyword), reverse=True):
+            if rule.keyword.lower() in user_input:
+                reply = rule.response
+                break
             
     # 2. AI Fallback (Elite Brain / RAG)
     if not reply:
@@ -46,15 +54,10 @@ def process_message_v3(company: Company, session_id: str, user_msg: str, db: Ses
             agent_id = ai_result.get("agent_identity", "Shinju AI Brain")
             source = "ai"
         else:
-            # Final Fallback - Elegant & Dynamic
-            fallbacks = [
-                "I am here to guide your journey. Could you please specify if you are looking for our curated menu, reservation details, or perhaps our bespoke pricing?",
-                "I want to ensure you find exactly what you need. Are we discussing a new reservation, or would you like to explore our latest menu selections?",
-                "The Shinju experience is tailored to your needs. Shall we proceed with a booking, or do you have specific questions about our services?"
-            ]
-            reply = random.choice(fallbacks)
+            # Final Fallback - Specific to Fast Food
+            reply = "I'm having a brief connection issue with my central brain, but I can still take your order! Would you like to see the **menu** or provide your delivery address?"
             source = "fallback"
-            agent_id = "Shinju AI Navigator"
+            agent_id = "Shinju AI Fail-Safe"
 
     # Log interaction
     log_entry = ChatLog(company_id=company.id, session_id=session_id, user_msg=user_msg, bot_reply=reply, source=source, timestamp=datetime.utcnow())
