@@ -32,6 +32,17 @@ class Company(SQLModel, table=True):
     whatsapp_verify_token: Optional[str] = Field(default_factory=lambda: str(uuid.uuid4())[:8])
     whatsapp_access_token: Optional[str] = None
 
+    # Instagram DM Integration (Meta Graph API)
+    instagram_page_id: Optional[str] = None
+    instagram_access_token: Optional[str] = None
+
+    # Autonomous Email Integration
+    email_user: Optional[str] = None
+    email_password: Optional[str] = None
+    email_imap_server: Optional[str] = Field(default="imap.gmail.com")
+    email_smtp_server: Optional[str] = Field(default="smtp.gmail.com")
+    email_automation_enabled: bool = Field(default=False)
+
     rules: List["FAQRule"] = Relationship(back_populates="company")
     logs: List["ChatLog"] = Relationship(back_populates="company")
     reservations: List["Reservation"] = Relationship(back_populates="company")

@@ -111,7 +111,43 @@
         </div>
         
         <div id="tab-settings" class="tab-content">
-             <div class="card"><h2>Identity</h2><form id="branding-form"><input type="text" id="set-name" placeholder="Name" style="margin-bottom:10px;"><input type="text" id="set-subdomain" placeholder="Subdomain" style="margin-bottom:10px;"><button type="submit" class="btn">Update</button></form></div>
+             <div class="card">
+                <h2>Pro Branding</h2>
+                <form id="branding-form">
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:15px;">
+                        <div><label style="font-size:0.7rem; color:#888;">Company Name</label><input type="text" id="set-name" style="width:100%; padding:10px;"></div>
+                        <div><label style="font-size:0.7rem; color:#888;">Subdomain</label><input type="text" id="set-subdomain" style="width:100%; padding:10px;"></div>
+                    </div>
+                    <button type="submit" class="btn">Update Identity</button>
+                </form>
+             </div>
+
+             <div class="card">
+                <h2>WhatsApp & Instagram Pro</h2>
+                <form id="social-form">
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:15px;">
+                        <div><label style="font-size:0.7rem; color:#888;">WhatsApp Phone ID</label><input type="text" id="set-wa-id" style="width:100%; padding:10px;"></div>
+                        <div><label style="font-size:0.7rem; color:#888;">Instagram Page ID</label><input type="text" id="set-ig-id" style="width:100%; padding:10px;"></div>
+                    </div>
+                    <label style="font-size:0.7rem; color:#888;">Meta Access Token (System User)</label>
+                    <input type="password" id="set-meta-token" style="width:100%; padding:10px; margin-bottom:15px;">
+                    <button type="submit" class="btn">Link Social Accounts</button>
+                </form>
+             </div>
+
+             <div class="card">
+                <h2>Autonomous Email</h2>
+                <form id="email-form">
+                    <div style="margin-bottom:15px;">
+                        <label><input type="checkbox" id="set-email-enabled"> Enable Autonomous Email Agent</label>
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:15px;">
+                        <div><label style="font-size:0.7rem; color:#888;">Email / User</label><input type="text" id="set-email-user" style="width:100%; padding:10px;"></div>
+                        <div><label style="font-size:0.7rem; color:#888;">App Password</label><input type="password" id="set-email-pass" style="width:100%; padding:10px;"></div>
+                    </div>
+                    <button type="submit" class="btn">Save Email Config</button>
+                </form>
+             </div>
         </div>
     </div>
 
@@ -122,47 +158,69 @@
         async function switchTab(tab) {
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             document.querySelectorAll('.nav-item, .m-nav-item').forEach(i => i.classList.remove('active'));
-            document.getElementById(`tab-${tab}`).classList.add('active');
             
+            const tabEl = document.getElementById(`tab-${tab}`);
+            if(tabEl) tabEl.classList.add('active');
+            
+            // Highlight nav items
+            document.querySelectorAll(`.nav-item`).forEach(el => {
+                if(el.innerText.toLowerCase().includes(tab)) el.classList.add('active');
+            });
+
             if (tab === 'analytics') { fetchLogs(); fetchTrends(); fetchStats(); }
             if (tab === 'reservations') fetchReservations();
             if (tab === 'rules') fetchRules();
-            if (tab === 'billing' || tab === 'settings' || tab === 'knowledge') fetchSettings();
+            if (tab === 'settings') fetchSettings();
         }
 
-        async function fetchStats() {
-            const res = await fetch(`${API_BASE}/admin/stats`, { headers: {"X-API-Key": API_KEY} });
+        async function fetchSettings() {
+            const res = await fetch(`${API_BASE}/admin/settings`, { headers: {"X-API-Key": API_KEY} });
             const s = await res.json();
-            document.getElementById("stat-active-chats").innerText = s.active_chats;
-            document.getElementById("stat-total-res").innerText = s.total_reservations;
-            document.getElementById("stat-needs-review").innerText = s.needs_review;
-            document.getElementById("stat-avg-conf").innerText = s.avg_confidence + "%";
+            document.getElementById("set-name").value = s.name || "";
+            document.getElementById("set-subdomain").value = s.subdomain || "";
+            document.getElementById("set-wa-id").value = s.whatsapp_phone_id || "";
+            document.getElementById("set-ig-id").value = s.instagram_page_id || "";
+            document.getElementById("set-email-user").value = s.email_user || "";
+            document.getElementById("set-email-enabled").checked = s.email_automation_enabled || false;
         }
 
-        async function fetchLogs() {
-            const res = await fetch(`${API_BASE}/admin/logs`, { headers: {"X-API-Key": API_KEY} });
-            const logs = await res.json();
-            const tbody = document.getElementById("logs-body");
-            tbody.innerHTML = logs.map(l => `<tr><td>${new Date(l.timestamp).toLocaleTimeString()}</td><td>${l.user_msg}</td><td>${l.bot_reply}</td><td>${l.source}</td></tr>`).join('');
-        }
-
-        async function fetchTrends() {
-            const res = await fetch(`${API_BASE}/admin/analytics/trends`, { headers: {"X-API-Key": API_KEY} });
-            const d = await res.json();
-            const container = document.getElementById("trend-container");
-            if (d.trends) container.innerHTML = d.trends.map(t => `<div style="background:rgba(255,255,255,0.1);padding:10px;margin-bottom:10px;border-radius:8px;">${t.insight_text}</div>`).join('');
-        }
-
-        window.onload = async () => {
-            const res = await fetch(`${API_BASE}/widget/config`);
-            if (res.ok) {
-                const config = await res.json();
-                document.getElementById("company-title").innerText = config.name;
-                if (config.api_key && !API_KEY) { API_KEY = config.api_key; localStorage.setItem("shinju_admin_key", API_KEY); }
-            }
-            if (!API_KEY) window.location.href = "/login";
-            switchTab('analytics');
+        document.getElementById("branding-form").onsubmit = async (e) => {
+            e.preventDefault();
+            const data = {
+                name: document.getElementById("set-name").value,
+                subdomain: document.getElementById("set-subdomain").value
+            };
+            await updateSettings(data);
         };
-    </script>
+
+        document.getElementById("social-form").onsubmit = async (e) => {
+            e.preventDefault();
+            const data = {
+                whatsapp_phone_id: document.getElementById("set-wa-id").value,
+                instagram_page_id: document.getElementById("set-ig-id").value,
+                instagram_access_token: document.getElementById("set-meta-token").value
+            };
+            await updateSettings(data);
+        };
+
+        document.getElementById("email-form").onsubmit = async (e) => {
+            e.preventDefault();
+            const data = {
+                email_user: document.getElementById("set-email-user").value,
+                email_password: document.getElementById("set-email-pass").value,
+                email_automation_enabled: document.getElementById("set-email-enabled").checked
+            };
+            await updateSettings(data);
+        };
+
+        async function updateSettings(data) {
+            const res = await fetch(`${API_BASE}/admin/settings`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
+                body: JSON.stringify(data)
+            });
+            if (res.ok) alert("Settings synchronized successfully.");
+            else alert("Update failed.");
+        }
 </body>
 </html>

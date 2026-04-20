@@ -95,6 +95,22 @@ def on_startup():
             except: pass
             try: conn.execute(text("ALTER TABLE chatsession ADD COLUMN reengagement_status TEXT DEFAULT 'none';")); conn.commit()
             except: pass
+
+            # [NEW] Columns for Instagram/Email Pro Features
+            try: conn.execute(text("ALTER TABLE company ADD COLUMN instagram_page_id TEXT;")); conn.commit()
+            except: pass
+            try: conn.execute(text("ALTER TABLE company ADD COLUMN instagram_access_token TEXT;")); conn.commit()
+            except: pass
+            try: conn.execute(text("ALTER TABLE company ADD COLUMN email_user TEXT;")); conn.commit()
+            except: pass
+            try: conn.execute(text("ALTER TABLE company ADD COLUMN email_password TEXT;")); conn.commit()
+            except: pass
+            try: conn.execute(text("ALTER TABLE company ADD COLUMN email_imap_server TEXT DEFAULT 'imap.gmail.com';")); conn.commit()
+            except: pass
+            try: conn.execute(text("ALTER TABLE company ADD COLUMN email_smtp_server TEXT DEFAULT 'smtp.gmail.com';")); conn.commit()
+            except: pass
+            try: conn.execute(text("ALTER TABLE company ADD COLUMN email_automation_enabled BOOLEAN DEFAULT 0;")); conn.commit()
+            except: pass
             
         with Session(engine) as session:
             company = session.exec(select(Company)).first()
@@ -108,6 +124,12 @@ def on_startup():
                 session.add(company)
                 session.commit()
                 session.refresh(company)
+
+        # [NEW] Start Background Email Worker
+        import asyncio
+        from utils import email_automation_loop
+        asyncio.create_task(email_automation_loop())
+
     except Exception as e:
         print(f"STARTUP ERROR (Non-fatal): {e}")
 
@@ -435,6 +457,9 @@ async def get_settings(request: Request, x_api_key: Optional[str] = Header(None)
         "openai_api_key": company.openai_api_key, 
         "whatsapp_phone_id": company.whatsapp_phone_id, 
         "whatsapp_verify_token": company.whatsapp_verify_token,
+        "instagram_page_id": company.instagram_page_id,
+        "email_user": company.email_user,
+        "email_automation_enabled": company.email_automation_enabled,
         "plan": company.plan
     }
 
@@ -447,6 +472,13 @@ class SettingsUpdate(BaseModel):
     system_prompt: Optional[str] = None
     openai_api_key: Optional[str] = None
     whatsapp_phone_id: Optional[str] = None
+    instagram_page_id: Optional[str] = None
+    instagram_access_token: Optional[str] = None
+    email_user: Optional[str] = None
+    email_password: Optional[str] = None
+    email_imap_server: Optional[str] = None
+    email_smtp_server: Optional[str] = None
+    email_automation_enabled: Optional[bool] = None
 
 @app.post("/admin/settings")
 async def update_settings(settings_in: SettingsUpdate, request: Request, x_api_key: Optional[str] = Header(None), db: Session = Depends(get_session)):
@@ -457,16 +489,74 @@ async def update_settings(settings_in: SettingsUpdate, request: Request, x_api_k
     if settings_in.primary_color: company.primary_color = settings_in.primary_color
     if settings_in.logo_url: company.logo_url = settings_in.logo_url
     
+    # Pro Social & Email Settings
+    if settings_in.whatsapp_phone_id: company.whatsapp_phone_id = settings_in.whatsapp_phone_id
+    if settings_in.instagram_page_id: company.instagram_page_id = settings_in.instagram_page_id
+    if settings_in.instagram_access_token: company.instagram_access_token = settings_in.instagram_access_token
+    if settings_in.email_user: company.email_user = settings_in.email_user
+    if settings_in.email_password: company.email_password = settings_in.email_password
+    if settings_in.email_imap_server: company.email_imap_server = settings_in.email_imap_server
+    if settings_in.email_smtp_server: company.email_smtp_server = settings_in.email_smtp_server
+    if settings_in.email_automation_enabled is not None: company.email_automation_enabled = settings_in.email_automation_enabled
+
     if settings_in.knowledge_base: 
         company.knowledge_base = settings_in.knowledge_base
-        # [NEW] Re-index knowledge base in background
         import asyncio
         asyncio.create_task(asyncio.to_thread(index_knowledge_base, company.id, company.knowledge_base, company.openai_api_key))
 
     if settings_in.system_prompt: company.system_prompt = settings_in.system_prompt
     if settings_in.openai_api_key: company.openai_api_key = settings_in.openai_api_key
-    if settings_in.whatsapp_phone_id: company.whatsapp_phone_id = settings_in.whatsapp_phone_id
     db.add(company); db.commit(); return {"status": "success"}
+
+# --- UNIFIED META WEBHOOK (WhatsApp + Instagram) ---
+
+@app.post("/webhook/meta")
+async def handle_meta_webhook(request: Request, db: Session = Depends(get_session)):
+    """
+    Unified Meta Webhook for WhatsApp and Instagram DM events.
+    """
+    data = await request.json()
+    try:
+        entry = data["entry"][0]
+        
+        # 1. Handle WhatsApp
+        if "changes" in entry:
+            value = entry["changes"][0]["value"]
+            if "messages" in value:
+                message = value["messages"][0]
+                from_num = message["from"]
+                text = message["text"]["body"]
+                # Multitenancy resolution via phone_id
+                phone_id = value["metadata"]["display_phone_number"]
+                company = db.exec(select(Company).where(Company.whatsapp_phone_id == phone_id)).first()
+                if not company: company = db.exec(select(Company)).first() # Fallback
+                
+                if company:
+                    result = process_message_v3(company, f"wa_{from_num}", text, db)
+                    from utils import send_whatsapp_reply
+                    import asyncio
+                    asyncio.create_task(send_whatsapp_reply(company, from_num, result["reply"]))
+
+        # 2. Handle Instagram
+        elif "messaging" in entry:
+            messaging = entry["messaging"][0]
+            sender_id = messaging["sender"]["id"]
+            if "message" in messaging and "text" in messaging["message"]:
+                text = messaging["message"]["text"]
+                page_id = entry["id"]
+                company = db.exec(select(Company).where(Company.instagram_page_id == page_id)).first()
+                if not company: company = db.exec(select(Company)).first() # Fallback
+                
+                if company:
+                    result = process_message_v3(company, f"ig_{sender_id}", text, db)
+                    from utils import send_instagram_reply
+                    import asyncio
+                    asyncio.create_task(send_instagram_reply(company, sender_id, result["reply"]))
+                    
+        return {"status": "ok"}
+    except Exception as e:
+        print(f"META WEBHOOK ERROR: {e}")
+        return {"status": "error"}
 
 @app.post("/admin/kb/upload")
 async def upload_kb_pdf(request: Request, file: UploadFile = File(...), x_api_key: Optional[str] = Header(None), db: Session = Depends(get_session)):

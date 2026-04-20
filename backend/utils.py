@@ -130,6 +130,79 @@ async def send_whatsapp_reply(company: Company, to_number: str, text: str):
     payload = { "messaging_product": "whatsapp", "to": to_number, "type": "text", "text": {"body": text} }
     async with httpx.AsyncClient() as client: await client.post(url, headers=headers, json=payload)
 
+async def send_instagram_reply(company: Company, ig_sid: str, text: str):
+    """
+    Sends a reply via the Meta Graph API for Instagram DMs.
+    """
+    if not (company.instagram_page_id and company.instagram_access_token): return
+    url = f"https://graph.facebook.com/v17.0/{company.instagram_page_id}/messages"
+    headers = { "Authorization": f"Bearer {company.instagram_access_token}", "Content-Type": "application/json" }
+    payload = { "recipient": {"id": ig_sid}, "message": {"text": text} }
+    async with httpx.AsyncClient() as client: await client.post(url, headers=headers, json=payload)
+
+async def email_automation_loop():
+    """
+    Background worker to poll IMAP for new emails and reply via SMTP.
+    """
+    import imaplib, email, asyncio, time
+    from database import engine
+
+    while True:
+        try:
+            with Session(engine) as db:
+                companies = db.exec(select(Company).where(Company.email_automation_enabled == True)).all()
+                for company in companies:
+                    if not (company.email_user and company.email_password): continue
+                    
+                    # 1. Poll IMAP
+                    mail = imaplib.IMAP4_SSL(company.email_imap_server)
+                    mail.login(company.email_user, company.email_password)
+                    mail.select("inbox")
+                    status, messages = mail.search(None, '(UNSEEN)')
+                    
+                    for num in messages[0].split():
+                        status, data = mail.fetch(num, "(RFC822)")
+                        raw_email = data[0][1]
+                        msg = email.message_from_bytes(raw_email)
+                        
+                        sender = msg.get("From")
+                        subject = msg.get("Subject")
+                        body = ""
+                        if msg.is_multipart():
+                            for part in msg.walk():
+                                if part.get_content_type() == "text/plain":
+                                    body = part.get_payload(decode=True).decode()
+                                    break
+                        else:
+                            body = msg.get_payload(decode=True).decode()
+
+                        # 2. Process via AI
+                        session_id = f"email_{sender}"
+                        result = process_message_v3(company, session_id, f"[EMAIL_SUBJECT: {subject}] {body}", db)
+                        
+                        # 3. Send SMTP Reply
+                        if result.get("reply"):
+                            import smtplib
+                            from email.mime.text import MIMEText
+                            
+                            reply_msg = MIMEText(result["reply"])
+                            reply_msg["Subject"] = f"Re: {subject}"
+                            reply_msg["From"] = company.email_user
+                            reply_msg["To"] = sender
+                            
+                            with smtplib.SMTP_SSL(company.email_smtp_server, 465) as smtp:
+                                smtp.login(company.email_user, company.email_password)
+                                smtp.send_message(reply_msg)
+                        
+                        # Mark as read
+                        mail.store(num, '+FLAGS', '\\Seen')
+                    
+                    mail.logout()
+        except Exception as e:
+            print(f"EMAIL WORKER ERROR: {e}")
+            
+        await asyncio.sleep(60) # Poll every minute
+
 async def trigger_pro_automation(company: Company, user_msg: str, session_id: str):
     if session_id.startswith("wa_"):
         import asyncio
