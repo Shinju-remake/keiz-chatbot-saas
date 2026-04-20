@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 from sqlmodel import Session, select
 import os
+import uuid
 import pdfplumber
 import io
 from pathlib import Path

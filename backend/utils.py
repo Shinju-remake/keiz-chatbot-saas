@@ -61,13 +61,13 @@ def process_message_v3(company: Company, session_id: str, user_msg: str, db: Ses
         else:
             # Final Fallback
             fallback_msgs = {
-                "en": "I'm here to help! Could you please tell me more about what you're looking for (e.g., pricing, reservations, or menu)?",
-                "fr": "Je suis là pour vous aider ! Pourriez-vous m'en dire plus sur ce que vous cherchez (ex: prix, réservations, ou menu) ?",
-                "es": "¡Estoy aquí para ayudar! ¿Podría decirme más sobre lo que está buscando (por ejemplo, precios, reservas o menú)?"
+                "en": "I am here to guide your journey. Could you please specify if you are looking for our curated menu, reservation details, or perhaps our bespoke pricing?",
+                "fr": "Je suis là pour guider votre expérience. Pourriez-vous préciser si vous recherchez notre menu, des détails de réservation ou nos tarifs ?",
+                "es": "Estoy aquí para guiar su experiencia. ¿Podría especificar si busca nuestro menú, detalles de reserva o nuestras tarifas?"
             }
             reply = fallback_msgs.get(language, fallback_msgs["en"])
             source = "fallback"
-            agent_identity = "Shinju Guide"
+            agent_identity = "Shinju AI Navigator"
 
     # Log the interaction
     log_entry = ChatLog(
