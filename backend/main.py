@@ -21,12 +21,12 @@ from slowapi.errors import RateLimitExceeded
 try:
     from database import create_db_and_tables, get_session, engine
     from models import Company, FAQRule, ChatLog, Reservation, ChatSession, TrendInsight
-    from utils import process_message_v3, send_whatsapp_reply
+    from utils import process_message_v3, send_whatsapp_reply, email_automation_loop
     from rag_utils import index_knowledge_base
 except ImportError:
     from .database import create_db_and_tables, get_session, engine
     from .models import Company, FAQRule, ChatLog, Reservation, ChatSession, TrendInsight
-    from .utils import process_message_v3, send_whatsapp_reply
+    from .utils import process_message_v3, send_whatsapp_reply, email_automation_loop
     from .rag_utils import index_knowledge_base
 
 load_dotenv()
@@ -127,7 +127,6 @@ def on_startup():
 
         # [NEW] Start Background Email Worker
         import asyncio
-        from utils import email_automation_loop
         asyncio.create_task(email_automation_loop())
 
     except Exception as e:
