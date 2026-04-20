@@ -5,58 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shinju AI | Omni-Console V3</title>
     <style>
-        :root { --primary: #BB00FF; --dark: #1a1a1a; --gray: #f4f4f4; }
-        body { font-family: 'Inter', sans-serif; background: #fafafa; margin: 0; display: flex; color: #333; }
-        #sidebar { width: 260px; background: var(--dark); color: white; height: 100vh; padding: 25px; box-sizing: border-box; position: fixed; }
-        #sidebar h2 { color: var(--primary); margin-top: 0; font-size: 1.5rem; }
-        #sidebar hr { border: 0; border-top: 1px solid #444; margin: 20px 0; }
-        .nav-item { padding: 12px 15px; border-radius: 6px; cursor: pointer; transition: 0.2s; margin-bottom: 5px; display: flex; align-items: center; }
-        .nav-item:hover { background: #333; color: var(--primary); }
+        :root { --primary: #BB00FF; --dark: #0a0a0a; --gray: #f4f4f4; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background: #fafafa; color: #333; display: flex; height: 100vh; overflow: hidden; }
+        
+        #sidebar { width: 260px; background: var(--dark); color: white; height: 100vh; padding: 25px; position: fixed; z-index: 1000; }
+        #sidebar h2 { color: var(--primary); font-size: 1.4rem; margin-bottom: 5px; }
+        #sidebar hr { border: 0; border-top: 1px solid #333; margin: 20px 0; }
+        .nav-item { padding: 12px 15px; border-radius: 8px; cursor: pointer; transition: 0.2s; margin-bottom: 5px; color: #888; font-weight: 500; }
+        .nav-item:hover { background: #1a1a1a; color: white; }
         .nav-item.active { background: var(--primary); color: white; }
 
-        #content { flex: 1; margin-left: 260px; padding: 40px; overflow-y: auto; box-sizing: border-box; min-height: 100vh; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-        .header h1 { margin: 0; font-size: 1.8rem; }
-        
-        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 30px; }
-        .card h2 { margin-top: 0; color: var(--dark); border-bottom: 2px solid var(--gray); padding-bottom: 10px; margin-bottom: 20px; font-size: 1.2rem; }
+        #mobile-nav { display: none; position: fixed; bottom: 0; left: 0; width: 100%; height: 65px; background: var(--dark); border-top: 1px solid #333; z-index: 2000; justify-content: space-around; align-items: center; }
+        .m-nav-item { display: flex; flex-direction: column; align-items: center; color: #666; font-size: 0.6rem; text-decoration: none; }
+        .m-nav-item.active { color: var(--primary); }
+        .m-nav-item span { font-size: 1.2rem; margin-bottom: 2px; }
 
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 15px; text-align: left; border-bottom: 1px solid var(--gray); }
-        th { font-weight: 600; color: #666; font-size: 0.9rem; text-transform: uppercase; }
-        
-        .tag { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase; }
-        .tag.keyword { background: #e3f2fd; color: #1976d2; }
-        .tag.ai { background: #fff3e0; color: #ef6c00; }
+        #content { flex: 1; margin-left: 260px; padding: 40px; overflow-y: auto; height: 100vh; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; gap: 15px; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 25px; }
+        .card h2 { font-size: 1.1rem; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
 
-        .btn { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: 0.3s; }
-        .btn:hover { filter: brightness(1.2); }
-        .btn-sm { padding: 5px 10px; font-size: 12px; }
-        .btn-danger { background: #ff4d4d; }
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px; }
+        .stat-card { padding: 15px; border-left: 4px solid var(--primary); }
+        
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+        .tag { padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+
+        .btn { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; }
         .btn-outline { background: transparent; border: 1px solid var(--primary); color: var(--primary); }
-
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.9rem; }
-        input, textarea, select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-family: inherit; }
-        textarea { height: 80px; resize: vertical; }
-
+        
         .tab-content { display: none; }
         .tab-content.active { display: block; }
-        
-        #toast { position: fixed; bottom: 20px; right: 20px; background: #333; color: white; padding: 12px 25px; border-radius: 8px; display: none; z-index: 1000; }
 
-        /* Widget Preview */
-        .preview-widget {
-            border: 1px solid #ddd; border-radius: 12px; width: 200px; height: 300px; display: flex; flex-direction: column; overflow: hidden;
+        @media (max-width: 1024px) {
+            #sidebar { display: none; }
+            #mobile-nav { display: flex; }
+            #content { margin-left: 0; padding: 20px; padding-bottom: 100px; }
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+            .header { flex-direction: column; align-items: flex-start; }
+            .pricing-grid { grid-template-columns: 1fr !important; }
         }
-        .preview-header { height: 40px; background: var(--primary); color: white; padding: 10px; font-size: 12px; font-weight: bold; display: flex; align-items: center; justify-content: space-between; }
-        .preview-bubble { width: 40px; height: 40px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; align-self: flex-end; margin-top: 10px; }
     </style>
 </head>
 <body>
+    <div id="mobile-nav">
+        <div class="m-nav-item active" onclick="switchTab('analytics')"><span>📊</span>Data</div>
+        <div class="m-nav-item" onclick="switchTab('reservations')"><span>📅</span>Bookings</div>
+        <div class="m-nav-item" onclick="switchTab('rules')"><span>🛠️</span>Rules</div>
+        <div class="m-nav-item" onclick="switchTab('billing')"><span>💳</span>Billing</div>
+        <div class="m-nav-item" onclick="switchTab('settings')"><span>🎨</span>Brand</div>
+    </div>
+
     <div id="sidebar">
         <h2>Shinju AI</h2>
-        <p style="opacity:0.6; font-size:0.8rem;">Omni-Engine V3 (SAAS)</p>
+        <p style="opacity:0.5; font-size:0.7rem;">Elite Omni-Console</p>
         <hr>
         <div class="nav-item active" onclick="switchTab('analytics')">📊 Analytics</div>
         <div class="nav-item" onclick="switchTab('reservations')">📅 Reservations</div>
@@ -69,582 +73,96 @@
 
     <div id="content">
         <div class="header">
-            <h1 id="company-title">Dashboard - Shinju AI</h1>
-            <div style="display:flex; align-items:center; gap:15px;">
-                <span id="plan-badge" class="tag" style="background:#BB00FF; color:white;">PRO TIER</span>
-                <div id="status-indicator" style="display:flex; align-items:center;">
-                    <span style="width:10px; height:10px; background:#44ff44; border-radius:50%; margin-right:8px;"></span>
-                    <span style="font-size:0.9rem; font-weight:600;">System Online</span>
-                </div>
-            </div>
+            <h1 id="company-title">Omni-Console</h1>
+            <span id="plan-badge" class="tag" style="background:var(--primary); color:white;">PRO TIER</span>
         </div>
 
-        <!-- STATS OVERVIEW -->
-        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px;">
-            <div class="card" style="margin-bottom:0; padding: 20px; border-left: 4px solid var(--primary);">
-                <p style="font-size: 0.8rem; color: #666; margin-bottom: 5px;">Active Chats (24h)</p>
-                <h3 id="stat-active-chats" style="font-size: 1.8rem; margin: 0;">0</h3>
-            </div>
-            <div class="card" style="margin-bottom:0; padding: 20px; border-left: 4px solid #00ff88;">
-                <p style="font-size: 0.8rem; color: #666; margin-bottom: 5px;">Total Reservations</p>
-                <h3 id="stat-total-res" style="font-size: 1.8rem; margin: 0;">0</h3>
-            </div>
-            <div class="card" style="margin-bottom:0; padding: 20px; border-left: 4px solid #FFC107;">
-                <p style="font-size: 0.8rem; color: #666; margin-bottom: 5px;">AI Confidence Avg.</p>
-                <h3 id="stat-avg-conf" style="font-size: 1.8rem; margin: 0;">92%</h3>
-            </div>
-            <div class="card" style="margin-bottom:0; padding: 20px; border-left: 4px solid #F44336;">
-                <p style="font-size: 0.8rem; color: #666; margin-bottom: 5px;">Needs Review</p>
-                <h3 id="stat-needs-review" style="font-size: 1.8rem; margin: 0; color: #F44336;">0</h3>
-            </div>
+        <div class="stats-grid">
+            <div class="card stat-card"><p style="color:#888;font-size:0.7rem;">Active Chats</p><h3 id="stat-active-chats">0</h3></div>
+            <div class="card stat-card" style="border-color:#00ff88;"><p style="color:#888;font-size:0.7rem;">Reservations</p><h3 id="stat-total-res">0</h3></div>
+            <div class="card stat-card" style="border-color:#FFC107;"><p style="color:#888;font-size:0.7rem;">AI Confidence</p><h3 id="stat-avg-conf">92%</h3></div>
+            <div class="card stat-card" style="border-color:#F44336;"><p style="color:#888;font-size:0.7rem;">Review Needed</p><h3 id="stat-needs-review">0</h3></div>
         </div>
 
-        <!-- ANALYTICS TAB -->
         <div id="tab-analytics" class="tab-content active">
-            <div class="card" style="background: linear-gradient(135deg, #BB00FF 0%, #7000FF 100%); color: white;">
-                <h2 style="color: white; border-bottom: 1px solid rgba(255,255,255,0.2);">🧠 Proactive AI Insights</h2>
-                <div id="trend-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px;">
-                    <!-- Insights will be injected here -->
-                    <p id="trend-placeholder">Analyzing trends...</p>
-                </div>
+            <div class="card" style="background:linear-gradient(135deg, #BB00FF, #7000FF); color:white;">
+                <h2 style="color:white; border-color:rgba(255,255,255,0.2);">🧠 Proactive Trends</h2>
+                <div id="trend-container"><p>Analyzing data loops...</p></div>
             </div>
-
             <div class="card">
-                <h2>Live Conversation Logs</h2>
-                <div style="max-height: 600px; overflow-y: auto;">
-                    <table id="logs-table">
-                        <thead>
-                            <tr>
-                                <th>Time</th>
-                                <th>User Message</th>
-                                <th>Bot Reply</th>
-                                <th>Conf.</th>
-                                <th>Status</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="logs-body"></tbody>
-                    </table>
-                </div>
+                <h2>Recent Interactions</h2>
+                <div style="overflow-x:auto;"><table id="logs-table"><thead><tr><th>Time</th><th>User</th><th>AI</th><th>Status</th></tr></thead><tbody id="logs-body"></tbody></table></div>
             </div>
         </div>
 
-        <!-- RESERVATIONS TAB -->
         <div id="tab-reservations" class="tab-content">
-            <div class="card">
-                <h2>Customer Bookings</h2>
-                <table id="reservations-table">
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Date/Time</th>
-                            <th>Pax</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="reservations-body"></tbody>
-                </table>
-            </div>
+            <div class="card"><h2>Bookings</h2><table id="reservations-table"><thead><tr><th>Customer</th><th>Date</th><th>Pax</th></tr></thead><tbody id="reservations-body"></tbody></table></div>
         </div>
 
-        <!-- RULES TAB -->
         <div id="tab-rules" class="tab-content">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                <div class="card">
-                    <h2>Add / Update Rule</h2>
-                    <form id="rule-form">
-                        <div class="form-group">
-                            <label>Keyword / Trigger</label>
-                            <input type="text" id="rule-keyword" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Response</label>
-                            <textarea id="rule-response" required></textarea>
-                        </div>
-                        <button type="submit" class="btn" style="width:100%;">Save FAQ Rule</button>
-                    </form>
-                </div>
-                <div class="card">
-                    <h2>Active FAQ Rules</h2>
-                    <table id="rules-table">
-                        <thead>
-                            <tr>
-                                <th>Keyword</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="rules-body"></tbody>
-                    </table>
-                </div>
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:20px;">
+                <div class="card"><h2>Add Rule</h2><form id="rule-form"><input type="text" id="rule-keyword" placeholder="Trigger" required style="width:100%;padding:10px;margin-bottom:10px;"><textarea id="rule-response" placeholder="Reply" required style="width:100%;padding:10px;margin-bottom:10px;"></textarea><button type="submit" class="btn" style="width:100%;">Save</button></form></div>
+                <div class="card"><h2>Active Rules</h2><table id="rules-table"><thead><tr><th>Keyword</th><th>Action</th></tr></thead><tbody id="rules-body"></tbody></table></div>
             </div>
         </div>
 
-        <!-- KNOWLEDGE BASE TAB -->
-        <div id="tab-knowledge" class="tab-content">
-            <div class="card">
-                <h2>RAG Knowledge Base (AI Context)</h2>
-                <p style="color:#666; font-size:0.9rem; margin-bottom:20px;">Upload your menu, pricing list, or service manual (PDF) or paste raw text below.</p>
-                
-                <!-- PDF Upload Section -->
-                <div style="background:#f9f9f9; padding:20px; border-radius:12px; margin-bottom:30px; border:1px dashed #ccc;">
-                    <label>Upload Document (PDF Only)</label>
-                    <div style="display:flex; gap:10px; margin-top:10px;">
-                        <input type="file" id="kb-pdf-file" accept=".pdf" style="flex:1;">
-                        <button onclick="uploadPDF()" class="btn" style="background:#444;">Upload PDF</button>
-                    </div>
-                </div>
-
-                <form id="kb-form">
-                    <textarea id="kb-content" style="height:300px; font-family:monospace; font-size:13px;" placeholder="e.g., We offer Omakase for 120€, Vegan options available..."></textarea>
-                    <button type="submit" class="btn" style="margin-top:20px; width:100%;">Synchronize Raw Text</button>
-                </form>
-            </div>
-        </div>
-
-        <!-- BILLING TAB -->
         <div id="tab-billing" class="tab-content">
-            <div class="card">
-                <h2>Current Subscription</h2>
-                <div style="display:flex; justify-content:space-between; align-items:center; background:var(--gray); padding:20px; border-radius:12px;">
-                    <div>
-                        <p style="margin:0; font-size:0.8rem; color:#666;">Active Plan</p>
-                        <h3 id="current-plan-display" style="margin:5px 0 0; color:var(--primary); font-size:1.5rem;">PRO TIER</h3>
-                    </div>
-                    <div style="text-align:right;">
-                        <p style="margin:0; font-size:0.8rem; color:#666;">Status</p>
-                        <span class="tag" style="background:#e8f5e9; color:#2e7d32;">Active</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="billing-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
-                <!-- STARTER -->
-                <div class="card" style="text-align:center;">
-                    <h3>STARTER</h3>
-                    <div style="font-size:2rem; font-weight:900; margin:15px 0;">1,500€</div>
-                    <ul style="list-style:none; padding:0; font-size:0.9rem; color:#666; margin-bottom:20px;">
-                        <li style="margin-bottom:10px;">✓ Web Widget Only</li>
-                        <li style="margin-bottom:10px;">✓ 1,000 AI Messages/mo</li>
-                        <li>✓ Email Support</li>
-                    </ul>
-                    <button onclick="startCheckout('starter')" class="btn btn-outline" style="width:100%;">Select Plan</button>
-                </div>
-                <!-- PRO -->
-                <div class="card" style="text-align:center; border:2px solid var(--primary); position:relative;">
-                    <div style="position:absolute; top:-12px; left:50%; transform:translateX(-50%); background:var(--primary); color:white; padding:2px 15px; border-radius:20px; font-size:10px; font-weight:bold;">RECOMMENDED</div>
-                    <h3>PRO</h3>
-                    <div style="font-size:2rem; font-weight:900; margin:15px 0;">3,500€</div>
-                    <ul style="list-style:none; padding:0; font-size:0.9rem; color:#666; margin-bottom:20px;">
-                        <li style="margin-bottom:10px;">✓ Web + WhatsApp</li>
-                        <li style="margin-bottom:10px;">✓ Unlimited AI Messages</li>
-                        <li>✓ 24/7 Priority Support</li>
-                    </ul>
-                    <button onclick="startCheckout('pro')" class="btn" style="width:100%;">Upgrade Now</button>
-                </div>
-                <!-- ENTERPRISE -->
-                <div class="card" style="text-align:center;">
-                    <h3>ULTIMATE</h3>
-                    <div style="font-size:2rem; font-weight:900; margin:15px 0;">5,000€</div>
-                    <ul style="list-style:none; padding:0; font-size:0.9rem; color:#666; margin-bottom:20px;">
-                        <li style="margin-bottom:10px;">✓ Full Omni-Channel</li>
-                        <li style="margin-bottom:10px;">✓ Custom Agent Personality</li>
-                        <li>✓ Dedicated Account Manager</li>
-                    </ul>
-                    <button onclick="startCheckout('enterprise')" class="btn btn-outline" style="width:100%;">Select Plan</button>
-                </div>
-            </div>
+            <div class="card" style="text-align:center;"><h2>Active Subscription</h2><h1 id="current-plan-display" style="color:var(--primary);">PRO TIER</h1><button onclick="startCheckout('pro')" class="btn" style="margin-top:15px;">Manage Billing</button></div>
         </div>
-
-        <!-- SETTINGS TAB (Branding) -->
+        
         <div id="tab-settings" class="tab-content">
-            <div class="card-grid" style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
-                <div class="card">
-                    <h2>Branding & Identity</h2>
-                    <form id="branding-form">
-                        <div class="form-group">
-                            <label>Company Display Name</label>
-                            <input type="text" id="set-name">
-                        </div>
-                        <div class="form-group">
-                            <label>Subdomain (Tenant ID)</label>
-                            <input type="text" id="set-subdomain" placeholder="e.g., bistro">
-                        </div>
-                        <div class="form-group">
-                            <label>Primary Brand Color</label>
-                            <input type="color" id="set-color" style="height:45px; cursor:pointer;" onchange="updatePreview()">
-                        </div>
-                        <div class="form-group">
-                            <label>Logo URL</label>
-                            <input type="text" id="set-logo" placeholder="https://..." oninput="updatePreview()">
-                        </div>
-                        <button type="submit" class="btn">Update Branding</button>
-                    </form>
-                </div>
-                <div class="card">
-                    <h2>Live Preview</h2>
-                    <div id="preview-container" style="display:flex; flex-direction:column; align-items:center; gap:20px;">
-                        <div class="preview-widget">
-                            <div class="preview-header" id="prev-header">
-                                <span id="prev-title">Chat Support</span>
-                                <span>✖</span>
-                            </div>
-                            <div style="flex:1; background:#f9f9f9; padding:10px;">
-                                <div style="background:#e0e0e0; width:60%; height:20px; border-radius:4px; margin-bottom:10px;"></div>
-                                <div style="background:var(--primary); width:70%; height:30px; border-radius:4px; margin-left:auto; opacity:0.8;"></div>
-                            </div>
-                        </div>
-                        <div class="preview-bubble" id="prev-bubble">💬</div>
-                        <p style="font-size:11px; color:#666; text-align:center;">This is how your widget will look on your site.</p>
-                    </div>
-                </div>
-            </div>
+             <div class="card"><h2>Identity</h2><form id="branding-form"><input type="text" id="set-name" placeholder="Name" style="margin-bottom:10px;"><input type="text" id="set-subdomain" placeholder="Subdomain" style="margin-bottom:10px;"><button type="submit" class="btn">Update</button></form></div>
         </div>
     </div>
 
-    <div id="toast">Operation successful!</div>
-
     <script>
-        let API_KEY = localStorage.getItem("shinju_admin_key");
         const API_BASE = window.location.origin;
+        let API_KEY = localStorage.getItem("shinju_admin_key");
 
-        // --- NEW: Subdomain-Based Auto-Discovery ---
-        async function checkIdentity() {
-            // If no key, try to find company by subdomain
-            const res = await fetch(`${API_BASE}/widget/config`);
-            if (res.ok) {
-                const config = await res.json();
-                if (config.api_key) {
-                    API_KEY = config.api_key;
-                    localStorage.setItem("shinju_admin_key", API_KEY);
-                    console.log("Found identity via subdomain.");
-                }
-            }
-            
-            // If still no key, redirect to login
-            if (!API_KEY) {
-                if (!window.location.origin.includes("localhost")) {
-                    window.location.href = "/login";
-                }
-            }
-            
-            // Proceed with initialization
-            fetchLogs(); 
-            fetchSettings();
-            fetchStats();
-            fetchTrends();
-        }
-
-        async function fetchStats() {
-            try {
-                const res = await fetch(`${API_BASE}/admin/stats`, { headers: { "X-API-Key": API_KEY } });
-                const stats = await res.json();
-                document.getElementById("stat-active-chats").innerText = stats.active_chats;
-                document.getElementById("stat-total-res").innerText = stats.total_reservations;
-                document.getElementById("stat-needs-review").innerText = stats.needs_review;
-                document.getElementById("stat-avg-conf").innerText = stats.avg_confidence + "%";
-            } catch (e) { console.error(e); }
-        }
-
-        async function updateResStatus(id, newStatus) {
-            try {
-                // We'll create a quick endpoint for this or use a generic update
-                showToast(`Updating reservation to ${newStatus}...`);
-                // Simulate success for now as we final-polish
-                fetchReservations();
-            } catch (e) { console.error(e); }
-        }
-
-        function showToast(msg) {
-            const t = document.getElementById("toast");
-            t.innerText = msg;
-            t.style.display = "block";
-            setTimeout(() => t.style.display = "none", 3000);
-        }
-
-        function switchTab(tab) {
+        async function switchTab(tab) {
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             document.querySelectorAll('.nav-item, .m-nav-item').forEach(i => i.classList.remove('active'));
             document.getElementById(`tab-${tab}`).classList.add('active');
             
-            // Highlight nav items (Desktop + Mobile)
-            const navItems = document.querySelectorAll('.nav-item');
-            const mNavItems = document.querySelectorAll('.m-nav-item');
-            
-            if (tab === 'analytics') { navItems[0].classList.add('active'); mNavItems[0].classList.add('active'); fetchLogs(); fetchTrends(); fetchStats(); }
-            if (tab === 'reservations') { navItems[1].classList.add('active'); mNavItems[1].classList.add('active'); fetchReservations(); }
-            if (tab === 'rules') { navItems[2].classList.add('active'); mNavItems[2].classList.add('active'); fetchRules(); }
-            if (tab === 'knowledge') { navItems[3].classList.add('active'); fetchSettings(); }
-            if (tab === 'billing') { navItems[4].classList.add('active'); mNavItems[3].classList.add('active'); fetchSettings(); }
-            if (tab === 'settings') { navItems[5].classList.add('active'); mNavItems[4].classList.add('active'); fetchSettings(); }
+            if (tab === 'analytics') { fetchLogs(); fetchTrends(); fetchStats(); }
+            if (tab === 'reservations') fetchReservations();
+            if (tab === 'rules') fetchRules();
+            if (tab === 'billing' || tab === 'settings' || tab === 'knowledge') fetchSettings();
         }
 
-        async function fetchTrends() {
-            const container = document.getElementById("trend-container");
-            try {
-                const res = await fetch(`${API_BASE}/admin/analytics/trends`, { headers: { "X-API-Key": API_KEY } });
-                const data = await res.json();
-                
-                if (data.trends && data.trends.length > 0) {
-                    container.innerHTML = "";
-                    data.trends.forEach(t => {
-                        const card = document.createElement("div");
-                        card.style = "background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);";
-                        card.innerHTML = `
-                            <h4 style="margin:0; font-size:14px;">#${t.topic} (${t.frequency} hits)</h4>
-                            <p style="font-size:12px; margin:10px 0; opacity:0.9;">${t.insight_text}</p>
-                            <button onclick="applySuggestedRule('${t.suggested_rule}')" class="btn btn-sm" style="background:white; color:var(--primary); width:100%;">Apply Recommendation</button>
-                        `;
-                        container.appendChild(card);
-                    });
-                } else {
-                    container.innerHTML = "<p>No insights generated yet. Continue collecting user queries.</p>";
-                }
-            } catch (e) { console.error(e); }
-        }
-
-        async function applySuggestedRule(ruleStr) {
-            const match = ruleStr.match(/'(.*?)'.*?: (.*)/);
-            if (match) {
-                const keyword = match[1];
-                const response = match[2];
-                await fetch(`${API_BASE}/admin/rules`, {
-                    method: 'POST',
-                    headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" },
-                    body: JSON.stringify({ keyword, response })
-                });
-                showToast(`Rule for '${keyword}' applied!`);
-            } else {
-                alert("Please manually add this rule: " + ruleStr);
-            }
-        }
-
-        async function startCheckout(plan) {
-            try {
-                showToast(`Initializing secure ${plan.toUpperCase()} checkout...`);
-                const res = await fetch(`${API_BASE}/admin/billing/checkout`, {
-                    method: 'POST',
-                    headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" },
-                    body: JSON.stringify({ plan: plan })
-                });
-                const data = await res.json();
-                if (data.url) {
-                    // BREAK OUT of the Console iframe for secure checkout
-                    window.top.location.href = data.url;
-                }
-            } catch (e) { alert("Checkout failed. Please contact support."); }
-        }
-
-        async function fetchSettings() {
-            try {
-                const response = await fetch(`${API_BASE}/admin/settings`, { headers: { "X-API-Key": API_KEY } });
-                const s = await response.json();
-                document.getElementById("set-name").value = s.name || "";
-                document.getElementById("set-subdomain").value = s.subdomain || "";
-                document.getElementById("set-color").value = s.primary_color || "#BB00FF";
-                document.getElementById("set-logo").value = s.logo_url || "";
-                document.getElementById("kb-content").value = s.knowledge_base || "";
-                document.getElementById("plan-badge").innerText = `${s.plan.toUpperCase()} TIER`;
-                
-                // Update Billing Tab display if it exists
-                const planDisplay = document.getElementById("current-plan-display");
-                if (planDisplay) planDisplay.innerText = `${s.plan.toUpperCase()} TIER`;
-
-                updatePreview();
-            } catch (e) { console.error(e); }
-        }
-
-        function updatePreview() {
-            const color = document.getElementById("set-color").value;
-            document.documentElement.style.setProperty('--primary', color);
-            document.getElementById("prev-header").style.background = color;
-            document.getElementById("prev-bubble").style.background = color;
-        }
-
-        document.getElementById("branding-form").onsubmit = async (e) => {
-            e.preventDefault();
-            const data = {
-                name: document.getElementById("set-name").value,
-                subdomain: document.getElementById("set-subdomain").value,
-                primary_color: document.getElementById("set-color").value,
-                logo_url: document.getElementById("set-logo").value
-            };
-            await saveSettings(data);
-        };
-
-        document.getElementById("kb-form").onsubmit = async (e) => {
-            e.preventDefault();
-            const data = { knowledge_base: document.getElementById("kb-content").value };
-            await saveSettings(data);
-        };
-
-        async function uploadPDF() {
-            const fileInput = document.getElementById("kb-pdf-file");
-            if (!fileInput.files[0]) {
-                alert("Please select a PDF file first.");
-                return;
-            }
-
-            const formData = new FormData();
-            formData.append("file", fileInput.files[0]);
-
-            try {
-                showToast("Extracting intelligence from PDF...");
-                const res = await fetch(`${API_BASE}/admin/kb/upload`, {
-                    method: 'POST',
-                    headers: { "X-API-Key": API_KEY },
-                    body: formData
-                });
-                const result = await res.json();
-                if (res.ok) {
-                    showToast(`Success! Extracted ${result.extracted_length} characters.`);
-                    fetchSettings(); // Refresh text area
-                } else {
-                    alert(result.detail || "Upload failed.");
-                }
-            } catch (e) {
-                alert("Network error processing PDF.");
-            }
-        }
-
-        async function saveSettings(data) {
-            try {
-                const res = await fetch(`${API_BASE}/admin/settings`, {
-                    method: 'POST',
-                    headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" },
-                    body: JSON.stringify(data)
-                });
-                if(res.ok) showToast("Synchronized successfully!");
-            } catch (e) { showToast("Save failed."); }
+        async function fetchStats() {
+            const res = await fetch(`${API_BASE}/admin/stats`, { headers: {"X-API-Key": API_KEY} });
+            const s = await res.json();
+            document.getElementById("stat-active-chats").innerText = s.active_chats;
+            document.getElementById("stat-total-res").innerText = s.total_reservations;
+            document.getElementById("stat-needs-review").innerText = s.needs_review;
+            document.getElementById("stat-avg-conf").innerText = s.avg_confidence + "%";
         }
 
         async function fetchLogs() {
-            const res = await fetch(`${API_BASE}/admin/logs`, { headers: { "X-API-Key": API_KEY } });
+            const res = await fetch(`${API_BASE}/admin/logs`, { headers: {"X-API-Key": API_KEY} });
             const logs = await res.json();
             const tbody = document.getElementById("logs-body");
-            tbody.innerHTML = "";
-            logs.forEach(l => {
-                const row = document.createElement("tr");
-                const isWarning = l.needs_review && !l.reviewed;
-                if (isWarning) row.style.background = "#fff8e1";
-                
-                const confColor = l.confidence_score > 0.8 ? "#4CAF50" : (l.confidence_score > 0.5 ? "#FFC107" : "#F44336");
-                const statusTag = l.reviewed ? `<span class="tag" style="background:#e8f5e9; color:#2e7d32;">Reviewed</span>` : 
-                                 (l.needs_review ? `<span class="tag" style="background:#fff3e0; color:#ef6c00;">Review Needed</span>` : 
-                                 `<span class="tag" style="background:#f5f5f5; color:#757575;">Automated</span>`);
-
-                row.innerHTML = `
-                    <td style="font-size:11px; color:#888;">${new Date(l.timestamp).toLocaleTimeString()}</td>
-                    <td style="font-weight:600;">${l.user_msg}</td>
-                    <td style="font-style:italic;">${l.bot_reply}</td>
-                    <td><b style="color:${confColor}">${Math.round(l.confidence_score*100)}%</b></td>
-                    <td>${statusTag}</td>
-                    <td><button onclick="correctAI(${l.id}, '${l.user_msg.replace(/'/g,"\\'")}')" class="btn btn-sm btn-outline">Correct AI</button></td>
-                `;
-                tbody.appendChild(row);
-            });
+            tbody.innerHTML = logs.map(l => `<tr><td>${new Date(l.timestamp).toLocaleTimeString()}</td><td>${l.user_msg}</td><td>${l.bot_reply}</td><td>${l.source}</td></tr>`).join('');
         }
 
-        function correctAI(logId, userMsg) {
-            const correction = prompt(`The user said: "${userMsg}"\n\nHow should the AI respond to this in the future?`);
-            if (correction) {
-                fetch(`${API_BASE}/admin/logs/correct`, {
-                    method: 'POST',
-                    headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" },
-                    body: JSON.stringify({ log_id: logId, correction })
-                }).then(() => showToast("AI has been trained!"));
+        async function fetchTrends() {
+            const res = await fetch(`${API_BASE}/admin/analytics/trends`, { headers: {"X-API-Key": API_KEY} });
+            const d = await res.json();
+            const container = document.getElementById("trend-container");
+            if (d.trends) container.innerHTML = d.trends.map(t => `<div style="background:rgba(255,255,255,0.1);padding:10px;margin-bottom:10px;border-radius:8px;">${t.insight_text}</div>`).join('');
+        }
+
+        window.onload = async () => {
+            const res = await fetch(`${API_BASE}/widget/config`);
+            if (res.ok) {
+                const config = await res.json();
+                document.getElementById("company-title").innerText = config.name;
+                if (config.api_key && !API_KEY) { API_KEY = config.api_key; localStorage.setItem("shinju_admin_key", API_KEY); }
             }
-        }
-
-        // Standard logic for rules and reservations
-        async function fetchRules() {
-            const res = await fetch(`${API_BASE}/admin/rules`, { headers: { "X-API-Key": API_KEY } });
-            const rules = await res.json();
-            const tbody = document.getElementById("rules-body");
-            tbody.innerHTML = "";
-            rules.forEach(r => {
-                const row = document.createElement("tr");
-                row.innerHTML = `<td>${r.keyword}</td><td><button onclick="deleteRule(${r.id})" class="btn btn-sm btn-danger">X</button></td>`;
-                tbody.appendChild(row);
-            });
-        }
-
-        async function fetchReservations() {
-            const res = await fetch(`${API_BASE}/admin/reservations`, { headers: { "X-API-Key": API_KEY } });
-            const items = await res.json();
-            const tbody = document.getElementById("reservations-body");
-            tbody.innerHTML = "";
-            items.forEach(r => {
-                const row = document.createElement("tr");
-                row.innerHTML = `
-                    <td>${r.customer_name}</td>
-                    <td>${r.date_time}</td>
-                    <td>${r.pax}</td>
-                    <td><span class="tag" style="background:#eee; color:#333;">${r.status}</span></td>
-                    <td>
-                        <button onclick="updateResStatus(${r.id}, 'confirmed')" class="btn btn-sm" style="background:#00ff88; color:#000;">Confirm</button>
-                        <button onclick="updateResStatus(${r.id}, 'cancelled')" class="btn btn-sm btn-danger">Cancel</button>
-                    </td>
-                `;
-                tbody.appendChild(row);
-            });
-        }
-
-        document.getElementById("rule-form").onsubmit = async (e) => {
-            e.preventDefault();
-            const keyword = document.getElementById("rule-keyword").value;
-            const response = document.getElementById("rule-response").value;
-            await fetch(`${API_BASE}/admin/rules`, {
-                method: 'POST',
-                headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" },
-                body: JSON.stringify({ keyword, response })
-            });
-            showToast("Rule saved!");
-            fetchRules();
+            if (!API_KEY) window.location.href = "/login";
+            switchTab('analytics');
         };
-
-        async function deleteRule(id) {
-            await fetch(`${API_BASE}/admin/rules/${id}`, { method: 'DELETE', headers: { "X-API-Key": API_KEY } });
-            fetchRules();
-        }
-
-        window.onload = () => { checkIdentity(); };
-    </script>
-</body>
-</html>
-entById("rule-response").value;
-            await fetch(`${API_BASE}/admin/rules`, {
-                method: 'POST',
-                headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" },
-                body: JSON.stringify({ keyword, response })
-            });
-            showToast("Rule saved!");
-            fetchRules();
-        };
-
-        async function deleteRule(id) {
-            await fetch(`${API_BASE}/admin/rules/${id}`, { method: 'DELETE', headers: { "X-API-Key": API_KEY } });
-            fetchRules();
-        }
-
-        window.onload = () => { checkIdentity(); };
-    </script>
-</body>
-</html>
-n/rules`, {
-                method: 'POST',
-                headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" },
-                body: JSON.stringify({ keyword, response })
-            });
-            showToast("Rule saved!");
-            fetchRules();
-        };
-
-        async function deleteRule(id) {
-            await fetch(`${API_BASE}/admin/rules/${id}`, { method: 'DELETE', headers: { "X-API-Key": API_KEY } });
-            fetchRules();
-        }
-
-        window.onload = () => { checkIdentity(); };
     </script>
 </body>
 </html>
