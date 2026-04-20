@@ -31,21 +31,14 @@ def process_message_v3(company: Company, session_id: str, user_msg: str, db: Ses
     source = "keyword"
     agent_id = "Shinju Keyword Matcher"
 
-    # --- EMERGENCY KEYWORDS (Zero Latency) ---
-    if "menu" in user_input or "carte" in user_input:
-        reply = "Our curated menu features the finest seasonal selections. You can view our current offerings in the 'Menu' section of our portal, or I can describe our signature Omakase experience for you."
-    elif "reservation" in user_input or "book" in user_input or "réserver" in user_input:
-        reply = "I would be delighted to assist with your reservation. Please provide your **Name**, the **Date and Time** you wish to join us, and the number of **Guests** (Pax)."
-    
-    # 1. Database Keywords
-    if not reply:
-        rules = db.exec(select(FAQRule).where(FAQRule.company_id == company.id)).all()
-        for rule in sorted(rules, key=lambda r: len(r.keyword), reverse=True):
-            if rule.keyword.lower() in user_input:
-                reply = rule.response
-                break
+    # 1. Database Keywords (Custom Business Rules)
+    rules = db.exec(select(FAQRule).where(FAQRule.company_id == company.id)).all()
+    for rule in sorted(rules, key=lambda r: len(r.keyword), reverse=True):
+        if rule.keyword.lower() in user_input:
+            reply = rule.response
+            break
             
-    # 2. AI Fallback (Elite Brain)
+    # 2. AI Fallback (Elite Brain / RAG)
     if not reply:
         ai_result = get_ai_response(company, session_id, user_msg, db, language=language)
         if ai_result:
