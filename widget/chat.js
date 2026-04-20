@@ -30,6 +30,11 @@
         #shinju-mic-btn.recording { background: #ff4d4d !important; color: white !important; box-shadow: 0 0 15px rgba(255,77,77,0.6); animation: shinju-pulse 1s infinite alternate !important; }
         @keyframes shinju-pulse { from { transform: scale(1); } to { transform: scale(1.15); } }
         .shinju-highlight { color: #BB00FF; font-weight: 800; border-bottom: 1px dashed rgba(187,0,255,0.3); }
+
+        @media (max-width: 768px) {
+            #shinju-chat-bubble { bottom: 80px !important; right: 15px !important; width: 55px !important; height: 55px !important; }
+            #shinju-chat-container { width: 100% !important; height: calc(100% - 60px) !important; bottom: 60px !important; right: 0 !important; border-radius: 0 !important; }
+        }
     `;
     document.head.appendChild(styleTag);
 

@@ -21,6 +21,22 @@
             overflow-x: hidden;
         }
 
+        /* Nav */
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 40px;
+            position: absolute;
+            width: 100%;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-links { display: flex; gap: 30px; align-items: center; }
+        .nav-links a { color: var(--text-gray); text-decoration: none; font-size: 0.9rem; font-weight: 600; transition: 0.3s; }
+        .nav-links a:hover { color: var(--primary); }
+
         /* Hero Section */
         header.hero {
             min-height: 80vh;
@@ -29,12 +45,12 @@
             justify-content: center;
             align-items: center;
             text-align: center;
-            padding: 60px 20px;
+            padding: 100px 20px 60px;
             background: radial-gradient(circle at center, rgba(187, 0, 255, 0.1) 0%, transparent 70%);
         }
 
         h1 {
-            font-size: clamp(2.5rem, 8vw, 4rem);
+            font-size: clamp(2.2rem, 8vw, 4rem);
             font-weight: 900;
             letter-spacing: -2px;
             margin-bottom: 20px;
@@ -51,28 +67,25 @@
             margin-bottom: 40px;
         }
 
-        .btn-group {
-            display: flex;
-            gap: 20px;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
+        .btn-group { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; width: 100%; }
 
         .btn {
             background: var(--primary);
             color: white;
-            padding: 15px 40px;
+            padding: 15px 35px;
             border-radius: 50px;
             text-decoration: none;
             font-weight: 700;
             transition: 0.3s;
             box-shadow: 0 10px 30px rgba(187, 0, 255, 0.4);
             display: inline-block;
+            text-align: center;
         }
 
         .btn:hover { transform: translateY(-3px); box-shadow: 0 15px 40px rgba(187, 0, 255, 0.6); }
+        .btn-outline { background: transparent; border: 2px solid var(--primary); box-shadow: none; }
 
-        /* Solutions Section */
+        /* Sections */
         .section { padding: 80px 20px; max-width: 1200px; margin: 0 auto; }
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 30px; margin-top: 50px; }
         .card {
@@ -85,90 +98,62 @@
         .card:hover { border-color: var(--primary); transform: translateY(-10px); }
         .card h3 { color: var(--primary); margin-bottom: 15px; font-size: 1.5rem; }
 
-        /* Pricing Section */
-        .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; margin-top: 50px; }
+        /* Pricing */
+        .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 30px; margin-top: 50px; }
         .price-card {
-            background: #111;
-            padding: 50px 30px;
-            border-radius: 24px;
-            text-align: center;
-            border: 1px solid rgba(255,255,255,0.05);
-            position: relative;
-            display: flex;
-            flex-direction: column;
+            background: #111; padding: 50px 30px; border-radius: 24px; text-align: center; border: 1px solid rgba(255,255,255,0.05);
+            position: relative; display: flex; flex-direction: column;
         }
         .price-card.featured { border: 2px solid var(--primary); background: #161616; }
-        
-        @media (min-width: 1024px) {
-            .price-card.featured { transform: scale(1.05); z-index: 2; }
-        }
-
         .price { font-size: 3rem; font-weight: 800; margin: 20px 0; }
-        .price span { font-size: 1rem; color: var(--text-gray); }
         ul { list-style: none; margin: 30px 0; color: var(--text-gray); text-align: left; flex-grow: 1; }
         li { margin-bottom: 12px; display: flex; align-items: flex-start; }
-        li::before { content: "✓"; color: var(--primary); margin-right: 10px; font-weight: bold; flex-shrink: 0; }
+        li::before { content: "✓"; color: var(--primary); margin-right: 10px; font-weight: bold; }
 
-        /* Success Stories */
-        .story-container {
-            background: var(--card-bg);
-            border-radius: 30px;
-            margin-top: 50px;
-            padding: 60px 40px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 40px;
-            align-items: flex-start;
-        }
-
+        /* Success Story */
+        .story-container { background: var(--card-bg); border-radius: 30px; padding: 60px 40px; display: flex; flex-wrap: wrap; gap: 40px; border: 1px solid rgba(187, 0, 255, 0.2); }
         .story-content { flex: 1; min-width: 300px; }
-        .story-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
         .story-impact { flex: 1; min-width: 300px; border-left: 1px solid rgba(255,255,255,0.1); padding-left: 40px; }
 
-        @media (max-width: 768px) {
-            .story-impact { border-left: none; padding-left: 0; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 40px; }
-            .hero { padding-top: 100px; }
-        }
+        footer { padding: 50px; text-align: center; border-top: 1px solid rgba(255,255,255,0.1); color: var(--text-gray); font-size: 0.8rem; }
 
-        footer { padding: 50px; text-align: center; border-top: 1px solid rgba(255,255,255,0.1); color: var(--text-gray); font-size: 0.9rem; }
-    </style>
-</head>
-    <style>
-...
+        /* MOBILE OPTIMIZATION */
         @media (max-width: 768px) {
-            nav { padding: 15px 20px !important; background: var(--dark-bg); border-bottom: 1px solid rgba(255,255,255,0.05); }
-            nav .nav-links { display: none !important; }
-            nav .btn { display: block !important; padding: 8px 15px !important; font-size: 0.7rem !important; }
-            .hero h1 { font-size: 2.2rem; }
-            .section { padding: 40px 20px; }
-            .story-container { padding: 30px 20px; }
+            nav { padding: 15px 20px; background: rgba(10,10,10,0.8); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255,255,255,0.05); position: fixed; }
+            .nav-links { display: none; }
+            nav .btn { display: none; } /* Hide CTA in nav for cleaner mobile header */
+            .hero { padding-top: 140px; }
+            .btn-group { flex-direction: column; }
+            .btn { width: 100%; }
+            .story-impact { border-left: none; padding-left: 0; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 40px; }
+            .section { padding: 60px 20px; }
         }
     </style>
 </head>
 <body>
 
-    <nav style="display:flex; justify-content:space-between; align-items:center; padding: 20px 40px; position:absolute; width:100%; top:0; z-index:100;">
+    <nav>
         <div style="font-weight:900; font-size:1.5rem; letter-spacing:-1px;">SHINJU<span style="color:var(--primary);">AI</span></div>
-        <div class="nav-links" style="display:flex; gap:30px; align-items:center;">
-            <a href="#solutions" style="color:var(--text-gray); text-decoration:none; font-size:0.9rem; font-weight:600;">Solutions</a>
-            <a href="#pricing" style="color:var(--text-gray); text-decoration:none; font-size:0.9rem; font-weight:600;">Pricing</a>
-            <a href="/login" style="color:var(--text-gray); text-decoration:none; font-size:0.9rem; font-weight:600;">Login</a>
+        <div class="nav-links">
+            <a href="#solutions">Solutions</a>
+            <a href="#pricing">Pricing</a>
+            <a href="/login">Login</a>
         </div>
         <a href="/signup" class="btn" style="padding:10px 25px; font-size:0.8rem; box-shadow:none;">GET STARTED</a>
     </nav>
 
     <header class="hero">
-        <div style="color: var(--primary); font-weight: 800; font-size: 1.2rem; margin-bottom: 20px; letter-spacing: 2px;">SHINJU AI SOLUTIONS</div>
+        <div style="color: var(--primary); font-weight: 800; font-size: 1rem; margin-bottom: 20px; letter-spacing: 2px; text-transform: uppercase;">SHINJU AI SOLUTIONS</div>
         <h1>Automate Your Future.</h1>
         <p class="subtitle">Deploy elite AI agents that handle your customer service, reservations, and sales 24/7 without lifting a finger.</p>
         <div class="btn-group">
             <a href="/signup" class="btn">SIGN UP NOW</a>
-            <a href="/demo" class="btn" style="background:transparent; border: 2px solid var(--primary);">TRY LIVE DEMO</a>
+            <a href="/demo" class="btn btn-outline">TRY LIVE DEMO</a>
         </div>
     </header>
 
-    <div class="section">
-        <h2 style="text-align:center; font-size: 2.5rem;">The Shinju Omni-Engine</h2>
+    <div id="solutions" class="section">
+        <h2 style="text-align:center; font-size: 2.2rem;">The Shinju Omni-Engine</h2>
         <div class="grid">
             <div class="card">
                 <h3>Website Concierge</h3>
@@ -187,39 +172,36 @@
 
     <!-- SUCCESS STORIES SECTION -->
     <div class="section">
-        <div class="story-container" style="border: 1px solid rgba(187, 0, 255, 0.2); box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
+        <div class="story-container">
             <div class="story-content">
-                <div style="color: var(--primary); font-weight: 800; font-size: 0.9rem; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 2px;">Case Study: Luxury Gastronomy</div>
-                <h3 style="font-size: 2.5rem; margin-bottom: 20px; line-height: 1.2;">Shinju Bistro: The "Smart" Loop</h3>
-                <p style="color: var(--text-gray); margin-bottom: 25px; font-size: 1.1rem;">By deploying the <strong>Shinju AI Elite Concierge</strong>, we transformed a overwhelmed booking desk into an autonomous revenue machine. Using our proprietary <strong>JSON Extraction Layer</strong>, the AI now handles complex reservations end-to-end.</p>
-                <div class="story-stats">
-                    <div style="background: rgba(187, 0, 255, 0.05); padding: 20px; border-radius: 15px; border: 1px solid rgba(187, 0, 255, 0.1);">
-                        <div style="font-size: 2rem; font-weight: 900; color: var(--primary);">99.9%</div>
-                        <div style="font-size: 0.7rem; color: var(--text-gray); text-transform: uppercase; letter-spacing: 1px;">Success Rate</div>
+                <div style="color: var(--primary); font-weight: 800; font-size: 0.8rem; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 2px;">Case Study</div>
+                <h3 style="font-size: 2rem; margin-bottom: 20px; line-height: 1.2;">Shinju Bistro: The "Smart" Loop</h3>
+                <p style="color: var(--text-gray); margin-bottom: 25px;">By deploying the <strong>Shinju AI Elite Concierge</strong>, we transformed a booking desk into an autonomous revenue machine.</p>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
+                    <div style="background: rgba(187, 0, 255, 0.05); padding: 15px; border-radius: 12px; border: 1px solid rgba(187, 0, 255, 0.1);">
+                        <div style="font-size: 1.5rem; font-weight: 900; color: var(--primary);">99.9%</div>
+                        <div style="font-size: 0.6rem; color: var(--text-gray); text-transform: uppercase;">Success Rate</div>
                     </div>
-                    <div style="background: rgba(187, 0, 255, 0.05); padding: 20px; border-radius: 15px; border: 1px solid rgba(187, 0, 255, 0.1);">
-                        <div style="font-size: 2rem; font-weight: 900; color: var(--primary);">100%</div>
-                        <div style="font-size: 0.7rem; color: var(--text-gray); text-transform: uppercase; letter-spacing: 1px;">Autonomous Bookings</div>
+                    <div style="background: rgba(187, 0, 255, 0.05); padding: 15px; border-radius: 12px; border: 1px solid rgba(187, 0, 255, 0.1);">
+                        <div style="font-size: 1.5rem; font-weight: 900; color: var(--primary);">100%</div>
+                        <div style="font-size: 0.6rem; color: var(--text-gray); text-transform: uppercase;">Autonomous</div>
                     </div>
                 </div>
             </div>
             <div class="story-impact">
-                <h4 style="margin-bottom: 20px; color: white; font-size: 1.3rem; display: flex; align-items: center;">
-                    <span style="width: 8px; height: 8px; background: var(--primary); border-radius: 50%; margin-right: 12px;"></span>
-                    The Innovation:
-                </h4>
+                <h4 style="margin-bottom: 20px; color: white; font-size: 1.2rem;">The Innovation:</h4>
                 <ul style="margin: 0;">
-                    <li style="margin-bottom: 20px;">
-                        <div style="font-weight: 700; color: white; margin-bottom: 5px;">Autonomous Data Entry</div>
-                        <p style="font-size: 0.9rem;">AI extracts Name, Date, and Pax via hidden JSON tags, populating the PostgreSQL database instantly.</p>
+                    <li style="margin-bottom: 15px;">
+                        <div style="font-weight: 700; color: white; font-size:0.9rem;">Autonomous Data Entry</div>
+                        <p style="font-size: 0.8rem;">AI extracts Name, Date, and Pax via hidden JSON tags instantly.</p>
                     </li>
-                    <li style="margin-bottom: 20px;">
-                        <div style="font-weight: 700; color: white; margin-bottom: 5px;">Electric Purple Highlighting</div>
-                        <p style="font-size: 0.9rem;">Pro-tier UI highlights AI-generated questions in <strong>Electric Purple</strong> for maximum engagement.</p>
+                    <li style="margin-bottom: 15px;">
+                        <div style="font-weight: 700; color: white; font-size:0.9rem;">Electric Purple UI</div>
+                        <p style="font-size: 0.8rem;">Pro-tier highlighting for maximum user engagement.</p>
                     </li>
                     <li>
-                        <div style="font-weight: 700; color: white; margin-bottom: 5px;">WhatsApp Bridge</div>
-                        <p style="font-size: 0.9rem;">Seamless multi-channel synchronization between the Web Widget and WhatsApp Pro API.</p>
+                        <div style="font-weight: 700; color: white; font-size:0.9rem;">WhatsApp Bridge</div>
+                        <p style="font-size: 0.8rem;">Multi-channel sync between Widget and WhatsApp Pro API.</p>
                     </li>
                 </ul>
             </div>
@@ -227,54 +209,46 @@
     </div>
 
     <div id="pricing" class="section">
-        <h2 style="text-align:center; font-size: 2.5rem;">Investment Formulas</h2>
+        <h2 style="text-align:center; font-size: 2.2rem;">Investment Formulas</h2>
         <div class="pricing-grid">
-            <!-- STARTER -->
             <div class="price-card">
                 <h3>STARTER</h3>
                 <div class="price">1,500€</div>
                 <ul>
                     <li>Custom AI Chatbot (Web Widget)</li>
-                    <li>Keyword-Based Instant FAQ</li>
                     <li>Lead Capture System</li>
                     <li>2-Week Deployment</li>
                 </ul>
-                <a href="/signup?plan=starter" class="btn">GET STARTED</a>
+                <a href="/signup?plan=starter" class="btn btn-outline">GET STARTED</a>
             </div>
-
-            <!-- PRO -->
             <div class="price-card featured">
-                <div style="position:absolute; top:-15px; left:50%; transform:translateX(-50%); background:var(--primary); padding:5px 20px; border-radius:20px; font-size:12px; font-weight:800;">MOST POPULAR</div>
+                <div style="position:absolute; top:-15px; left:50%; transform:translateX(-50%); background:var(--primary); padding:5px 20px; border-radius:20px; font-size:10px; font-weight:800;">MOST POPULAR</div>
                 <h3>PRO</h3>
                 <div class="price">3,500€</div>
                 <ul>
-                    <li>Multi-Channel (Web + WhatsApp + Email)</li>
-                    <li>Omni-Engine Intelligence (GPT-5.4 Nano)</li>
-                    <li>Automated Reservation/Booking Logic</li>
-                    <li>3-Week Deployment</li>
+                    <li>Web + WhatsApp + Email</li>
+                    <li>GPT-5.4 Nano Intelligence</li>
+                    <li>Automated Reservations</li>
                 </ul>
                 <a href="/signup?plan=pro" class="btn">SCALE NOW</a>
             </div>
-
-            <!-- RETAINER -->
             <div class="price-card">
                 <h3>PREMIUM</h3>
-                <div class="price">500€<span>/month</span></div>
+                <div class="price">500€<span>/mo</span></div>
                 <ul>
                     <li>Continuous AI Optimization</li>
-                    <li>Answer Accuracy Improvement</li>
-                    <li>Monthly Reporting & Analytics</li>
-                    <li>Priority Tech Support</li>
+                    <li>Accuracy Improvement</li>
+                    <li>Monthly Analytics</li>
                 </ul>
-                <a href="/signup?plan=premium" class="btn">SUBSCRIBE</a>
+                <a href="/signup?plan=premium" class="btn btn-outline">SUBSCRIBE</a>
             </div>
         </div>
     </div>
 
     <div class="section" style="text-align:center;">
         <h2>Ready for a Free Audit?</h2>
-        <p style="color:var(--text-gray); margin: 20px 0 40px;">We'll analyze your current customer flow and show you exactly where you're losing revenue.</p>
-        <a href="mailto:traore.m.2007@gmail.com" class="btn" style="background:transparent; border: 2px solid var(--primary);">BOOK MY AUDIT</a>
+        <p style="color:var(--text-gray); margin: 20px 0 40px; font-size:0.9rem;">We'll analyze your current customer flow and show you where you're losing revenue.</p>
+        <a href="mailto:traore.m.2007@gmail.com" class="btn btn-outline">BOOK MY AUDIT</a>
     </div>
 
     <footer>
