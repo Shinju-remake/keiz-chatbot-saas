@@ -217,7 +217,7 @@
                 </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+            <div class="billing-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
                 <!-- STARTER -->
                 <div class="card" style="text-align:center;">
                     <h3>STARTER</h3>
@@ -257,7 +257,7 @@
 
         <!-- SETTINGS TAB (Branding) -->
         <div id="tab-settings" class="tab-content">
-            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
+            <div class="card-grid" style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
                 <div class="card">
                     <h2>Branding & Identity</h2>
                     <form id="branding-form">
@@ -363,17 +363,19 @@
 
         function switchTab(tab) {
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            document.querySelectorAll('.nav-item, .m-nav-item').forEach(i => i.classList.remove('active'));
             document.getElementById(`tab-${tab}`).classList.add('active');
             
-            // Highlight nav item
+            // Highlight nav items (Desktop + Mobile)
             const navItems = document.querySelectorAll('.nav-item');
-            if (tab === 'analytics') { navItems[0].classList.add('active'); fetchLogs(); fetchTrends(); fetchStats(); }
-            if (tab === 'reservations') { navItems[1].classList.add('active'); fetchReservations(); }
-            if (tab === 'rules') { navItems[2].classList.add('active'); fetchRules(); }
+            const mNavItems = document.querySelectorAll('.m-nav-item');
+            
+            if (tab === 'analytics') { navItems[0].classList.add('active'); mNavItems[0].classList.add('active'); fetchLogs(); fetchTrends(); fetchStats(); }
+            if (tab === 'reservations') { navItems[1].classList.add('active'); mNavItems[1].classList.add('active'); fetchReservations(); }
+            if (tab === 'rules') { navItems[2].classList.add('active'); mNavItems[2].classList.add('active'); fetchRules(); }
             if (tab === 'knowledge') { navItems[3].classList.add('active'); fetchSettings(); }
-            if (tab === 'billing') { navItems[4].classList.add('active'); fetchSettings(); }
-            if (tab === 'settings') { navItems[5].classList.add('active'); fetchSettings(); }
+            if (tab === 'billing') { navItems[4].classList.add('active'); mNavItems[3].classList.add('active'); fetchSettings(); }
+            if (tab === 'settings') { navItems[5].classList.add('active'); mNavItems[4].classList.add('active'); fetchSettings(); }
         }
 
         async function fetchTrends() {
@@ -592,6 +594,43 @@
             const keyword = document.getElementById("rule-keyword").value;
             const response = document.getElementById("rule-response").value;
             await fetch(`${API_BASE}/admin/rules`, {
+                method: 'POST',
+                headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" },
+                body: JSON.stringify({ keyword, response })
+            });
+            showToast("Rule saved!");
+            fetchRules();
+        };
+
+        async function deleteRule(id) {
+            await fetch(`${API_BASE}/admin/rules/${id}`, { method: 'DELETE', headers: { "X-API-Key": API_KEY } });
+            fetchRules();
+        }
+
+        window.onload = () => { checkIdentity(); };
+    </script>
+</body>
+</html>
+entById("rule-response").value;
+            await fetch(`${API_BASE}/admin/rules`, {
+                method: 'POST',
+                headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" },
+                body: JSON.stringify({ keyword, response })
+            });
+            showToast("Rule saved!");
+            fetchRules();
+        };
+
+        async function deleteRule(id) {
+            await fetch(`${API_BASE}/admin/rules/${id}`, { method: 'DELETE', headers: { "X-API-Key": API_KEY } });
+            fetchRules();
+        }
+
+        window.onload = () => { checkIdentity(); };
+    </script>
+</body>
+</html>
+n/rules`, {
                 method: 'POST',
                 headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" },
                 body: JSON.stringify({ keyword, response })
