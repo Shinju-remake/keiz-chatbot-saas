@@ -12,12 +12,12 @@
         #sidebar { width: 260px; background: var(--dark); color: white; height: 100vh; padding: 25px; position: fixed; z-index: 1000; }
         #sidebar h2 { color: var(--primary); font-size: 1.4rem; margin-bottom: 5px; }
         #sidebar hr { border: 0; border-top: 1px solid #333; margin: 20px 0; }
-        .nav-item { padding: 12px 15px; border-radius: 8px; cursor: pointer; transition: 0.2s; margin-bottom: 5px; color: #888; font-weight: 500; }
+        .nav-item { padding: 12px 15px; border-radius: 8px; cursor: pointer; transition: 0.2s; margin-bottom: 5px; color: #888; font-weight: 500; display: flex; align-items: center; gap: 10px; }
         .nav-item:hover { background: #1a1a1a; color: white; }
         .nav-item.active { background: var(--primary); color: white; }
 
         #mobile-nav { display: none; position: fixed; bottom: 0; left: 0; width: 100%; height: 65px; background: var(--dark); border-top: 1px solid #333; z-index: 2000; justify-content: space-around; align-items: center; }
-        .m-nav-item { display: flex; flex-direction: column; align-items: center; color: #666; font-size: 0.6rem; text-decoration: none; }
+        .m-nav-item { display: flex; flex-direction: column; align-items: center; color: #666; font-size: 0.6rem; text-decoration: none; cursor: pointer; }
         .m-nav-item.active { color: var(--primary); }
         .m-nav-item span { font-size: 1.2rem; margin-bottom: 2px; }
 
@@ -33,11 +33,15 @@
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
         .tag { padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
 
-        .btn { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; }
+        .btn { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: 0.3s; }
+        .btn:hover { opacity: 0.8; transform: translateY(-2px); }
         .btn-outline { background: transparent; border: 1px solid var(--primary); color: var(--primary); }
         
         .tab-content { display: none; }
         .tab-content.active { display: block; }
+
+        input, textarea, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 0.9rem; margin-bottom: 15px; }
+        input:focus, textarea:focus { border-color: var(--primary); outline: none; }
 
         @media (max-width: 1024px) {
             #sidebar { display: none; }
@@ -45,25 +49,24 @@
             #content { margin-left: 0; padding: 20px; padding-bottom: 100px; }
             .stats-grid { grid-template-columns: 1fr 1fr; }
             .header { flex-direction: column; align-items: flex-start; }
-            .pricing-grid { grid-template-columns: 1fr !important; }
         }
     </style>
 </head>
 <body>
     <div id="mobile-nav">
         <div class="m-nav-item active" onclick="switchTab('analytics')"><span>📊</span>Data</div>
-        <div class="m-nav-item" onclick="switchTab('reservations')"><span>📅</span>Bookings</div>
+        <div class="m-nav-item" onclick="switchTab('reservations')"><span>📅</span>Orders</div>
         <div class="m-nav-item" onclick="switchTab('rules')"><span>🛠️</span>Rules</div>
-        <div class="m-nav-item" onclick="switchTab('billing')"><span>💳</span>Billing</div>
-        <div class="m-nav-item" onclick="switchTab('settings')"><span>🎨</span>Brand</div>
+        <div class="m-nav-item" onclick="switchTab('knowledge')"><span>🧠</span>Brain</div>
+        <div class="m-nav-item" onclick="switchTab('settings')"><span>⚙️</span>Pro</div>
     </div>
 
     <div id="sidebar">
-        <h2>Shinju AI</h2>
-        <p style="opacity:0.5; font-size:0.7rem;">Elite Omni-Console</p>
+        <h2>SHINJU<span style="color:var(--primary);">AI</span></h2>
+        <p style="opacity:0.5; font-size:0.7rem;">Elite Omni-Console V3</p>
         <hr>
         <div class="nav-item active" onclick="switchTab('analytics')">📊 Analytics</div>
-        <div class="nav-item" onclick="switchTab('reservations')">📅 Reservations</div>
+        <div class="nav-item" onclick="switchTab('reservations')">📅 Delivery & Orders</div>
         <div class="nav-item" onclick="switchTab('rules')">🛠️ FAQ Rules</div>
         <div class="nav-item" onclick="switchTab('knowledge')">🧠 Knowledge Base</div>
         <div class="nav-item" onclick="switchTab('billing')">💳 Billing & Plans</div>
@@ -79,15 +82,16 @@
 
         <div class="stats-grid">
             <div class="card stat-card"><p style="color:#888;font-size:0.7rem;">Active Chats</p><h3 id="stat-active-chats">0</h3></div>
-            <div class="card stat-card" style="border-color:#00ff88;"><p style="color:#888;font-size:0.7rem;">Reservations</p><h3 id="stat-total-res">0</h3></div>
+            <div class="card stat-card" style="border-color:#00ff88;"><p style="color:#888;font-size:0.7rem;">Total Orders</p><h3 id="stat-total-res">0</h3></div>
             <div class="card stat-card" style="border-color:#FFC107;"><p style="color:#888;font-size:0.7rem;">AI Confidence</p><h3 id="stat-avg-conf">92%</h3></div>
             <div class="card stat-card" style="border-color:#F44336;"><p style="color:#888;font-size:0.7rem;">Review Needed</p><h3 id="stat-needs-review">0</h3></div>
         </div>
 
+        <!-- ANALYTICS TAB -->
         <div id="tab-analytics" class="tab-content active">
-            <div class="card" style="background:linear-gradient(135deg, #BB00FF, #7000FF); color:white;">
+            <div class="card" style="background:linear-gradient(135deg, #BB00FF, #7000FF); color:white; border:none;">
                 <h2 style="color:white; border-color:rgba(255,255,255,0.2);">🧠 Proactive Trends</h2>
-                <div id="trend-container"><p>Analyzing data loops...</p></div>
+                <div id="trend-container"><p>Analyzing fast-food data loops...</p></div>
             </div>
             <div class="card">
                 <h2>Recent Interactions</h2>
@@ -95,28 +99,53 @@
             </div>
         </div>
 
+        <!-- ORDERS/RESERVATIONS TAB -->
         <div id="tab-reservations" class="tab-content">
-            <div class="card"><h2>Bookings</h2><table id="reservations-table"><thead><tr><th>Customer</th><th>Date</th><th>Pax</th></tr></thead><tbody id="reservations-body"></tbody></table></div>
+            <div class="card"><h2>Order & Delivery Queue</h2><table id="reservations-table"><thead><tr><th>Customer</th><th>Date/Time</th><th>Pax/Items</th></tr></thead><tbody id="reservations-body"></tbody></table></div>
         </div>
 
+        <!-- RULES TAB -->
         <div id="tab-rules" class="tab-content">
             <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:20px;">
-                <div class="card"><h2>Add Rule</h2><form id="rule-form"><input type="text" id="rule-keyword" placeholder="Trigger" required style="width:100%;padding:10px;margin-bottom:10px;"><textarea id="rule-response" placeholder="Reply" required style="width:100%;padding:10px;margin-bottom:10px;"></textarea><button type="submit" class="btn" style="width:100%;">Save</button></form></div>
+                <div class="card"><h2>Add Instant Rule</h2><form id="rule-form"><input type="text" id="rule-keyword" placeholder="Keyword (e.g. 'vegan')" required><textarea id="rule-response" placeholder="AI Response" required></textarea><button type="submit" class="btn" style="width:100%;">Save Rule</button></form></div>
                 <div class="card"><h2>Active Rules</h2><table id="rules-table"><thead><tr><th>Keyword</th><th>Action</th></tr></thead><tbody id="rules-body"></tbody></table></div>
             </div>
         </div>
 
+        <!-- KNOWLEDGE BASE TAB -->
+        <div id="tab-knowledge" class="tab-content">
+            <div class="card">
+                <h2>🧠 Fast Food Brain (RAG)</h2>
+                <p style="color:#666; font-size:0.8rem; margin-bottom:20px;">Upload your menu, catering prices, or store policies. The AI will learn them instantly.</p>
+                <form id="kb-form">
+                    <textarea id="set-kb" placeholder="Paste menu text here..." style="height:200px;"></textarea>
+                    <button type="submit" class="btn">Update Brain</button>
+                </form>
+                <hr style="margin:25px 0; border:0; border-top:1px solid #eee;">
+                <h3>Upload PDF Menu</h3>
+                <input type="file" id="kb-pdf" accept=".pdf" style="margin-bottom:15px; display:block;">
+                <button onclick="uploadPDF()" class="btn btn-outline">Upload & Sync</button>
+            </div>
+        </div>
+
+        <!-- BILLING TAB -->
         <div id="tab-billing" class="tab-content">
-            <div class="card" style="text-align:center;"><h2>Active Subscription</h2><h1 id="current-plan-display" style="color:var(--primary);">PRO TIER</h1><button onclick="startCheckout('pro')" class="btn" style="margin-top:15px;">Manage Billing</button></div>
+            <div class="card" style="text-align:center;">
+                <h2>Active Subscription</h2>
+                <h1 id="current-plan-display" style="color:var(--primary); font-size:3rem; margin:20px 0;">PRO TIER</h1>
+                <p style="color:#666; margin-bottom:20px;">Monthly Retainer: €199/mo</p>
+                <button onclick="alert('Redirecting to Stripe...')" class="btn" style="padding:15px 40px;">Manage Billing</button>
+            </div>
         </div>
         
+        <!-- SETTINGS TAB -->
         <div id="tab-settings" class="tab-content">
              <div class="card">
-                <h2>Pro Branding</h2>
+                <h2>Identity & Branding</h2>
                 <form id="branding-form">
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:15px;">
-                        <div><label style="font-size:0.7rem; color:#888;">Company Name</label><input type="text" id="set-name" style="width:100%; padding:10px;"></div>
-                        <div><label style="font-size:0.7rem; color:#888;">Subdomain</label><input type="text" id="set-subdomain" style="width:100%; padding:10px;"></div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
+                        <div><label style="font-size:0.7rem; color:#888;">Hub Name</label><input type="text" id="set-name"></div>
+                        <div><label style="font-size:0.7rem; color:#888;">Subdomain</label><input type="text" id="set-subdomain"></div>
                     </div>
                     <button type="submit" class="btn">Update Identity</button>
                 </form>
@@ -125,25 +154,25 @@
              <div class="card">
                 <h2>WhatsApp & Instagram Pro</h2>
                 <form id="social-form">
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:15px;">
-                        <div><label style="font-size:0.7rem; color:#888;">WhatsApp Phone ID</label><input type="text" id="set-wa-id" style="width:100%; padding:10px;"></div>
-                        <div><label style="font-size:0.7rem; color:#888;">Instagram Page ID</label><input type="text" id="set-ig-id" style="width:100%; padding:10px;"></div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
+                        <div><label style="font-size:0.7rem; color:#888;">WhatsApp Phone ID</label><input type="text" id="set-wa-id"></div>
+                        <div><label style="font-size:0.7rem; color:#888;">Instagram Page ID</label><input type="text" id="set-ig-id"></div>
                     </div>
                     <label style="font-size:0.7rem; color:#888;">Meta Access Token (System User)</label>
-                    <input type="password" id="set-meta-token" style="width:100%; padding:10px; margin-bottom:15px;">
+                    <input type="password" id="set-meta-token">
                     <button type="submit" class="btn">Link Social Accounts</button>
                 </form>
              </div>
 
              <div class="card">
-                <h2>Autonomous Email</h2>
+                <h2>Autonomous Email Agent</h2>
                 <form id="email-form">
                     <div style="margin-bottom:15px;">
-                        <label><input type="checkbox" id="set-email-enabled"> Enable Autonomous Email Agent</label>
+                        <label style="display:flex; align-items:center; gap:10px;"><input type="checkbox" id="set-email-enabled" style="width:auto; margin:0;"> Enable Email Automation</label>
                     </div>
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:15px;">
-                        <div><label style="font-size:0.7rem; color:#888;">Email / User</label><input type="text" id="set-email-user" style="width:100%; padding:10px;"></div>
-                        <div><label style="font-size:0.7rem; color:#888;">App Password</label><input type="password" id="set-email-pass" style="width:100%; padding:10px;"></div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
+                        <div><label style="font-size:0.7rem; color:#888;">Email Address</label><input type="text" id="set-email-user"></div>
+                        <div><label style="font-size:0.7rem; color:#888;">App Password</label><input type="password" id="set-email-pass"></div>
                     </div>
                     <button type="submit" class="btn">Save Email Config</button>
                 </form>
@@ -164,53 +193,126 @@
             
             // Highlight nav items
             document.querySelectorAll(`.nav-item`).forEach(el => {
-                if(el.innerText.toLowerCase().includes(tab)) el.classList.add('active');
+                const text = el.innerText.toLowerCase();
+                if(text.includes(tab) || (tab === 'settings' && text.includes('theme'))) el.classList.add('active');
+            });
+            document.querySelectorAll(`.m-nav-item`).forEach(el => {
+                if(el.onclick.toString().includes(tab)) el.classList.add('active');
             });
 
             if (tab === 'analytics') { fetchLogs(); fetchTrends(); fetchStats(); }
             if (tab === 'reservations') fetchReservations();
             if (tab === 'rules') fetchRules();
-            if (tab === 'settings') fetchSettings();
+            if (tab === 'settings' || tab === 'knowledge' || tab === 'billing') fetchSettings();
+        }
+
+        async function fetchStats() {
+            try {
+                const res = await fetch(`${API_BASE}/admin/stats`, { headers: {"X-API-Key": API_KEY} });
+                const s = await res.json();
+                document.getElementById("stat-active-chats").innerText = s.active_chats;
+                document.getElementById("stat-total-res").innerText = s.total_reservations;
+                document.getElementById("stat-needs-review").innerText = s.needs_review;
+                document.getElementById("stat-avg-conf").innerText = s.avg_confidence + "%";
+            } catch(e) {}
+        }
+
+        async function fetchLogs() {
+            try {
+                const res = await fetch(`${API_BASE}/admin/logs`, { headers: {"X-API-Key": API_KEY} });
+                const logs = await res.json();
+                const tbody = document.getElementById("logs-body");
+                tbody.innerHTML = logs.map(l => `<tr><td>${new Date(l.timestamp).toLocaleTimeString()}</td><td>${l.user_msg}</td><td>${l.bot_reply}</td><td>${l.source}</td></tr>`).join('');
+            } catch(e) {}
+        }
+
+        async function fetchTrends() {
+            try {
+                const res = await fetch(`${API_BASE}/admin/analytics/trends`, { headers: {"X-API-Key": API_KEY} });
+                const d = await res.json();
+                const container = document.getElementById("trend-container");
+                if (d.trends) container.innerHTML = d.trends.map(t => `<div style="background:rgba(255,255,255,0.1);padding:10px;margin-bottom:10px;border-radius:8px;font-size:0.8rem;">${t.insight_text}</div>`).join('');
+            } catch(e) {}
+        }
+
+        async function fetchReservations() {
+            try {
+                const res = await fetch(`${API_BASE}/admin/reservations`, { headers: {"X-API-Key": API_KEY} });
+                const data = await res.json();
+                document.getElementById("reservations-body").innerHTML = data.map(r => `<tr><td>${r.customer_name}</td><td>${r.date_time}</td><td>${r.pax} Items</td></tr>`).join('');
+            } catch(e) {}
+        }
+
+        async function fetchRules() {
+            try {
+                const res = await fetch(`${API_BASE}/admin/rules`, { headers: {"X-API-Key": API_KEY} });
+                const data = await res.json();
+                document.getElementById("rules-body").innerHTML = data.map(r => `<tr><td>${r.keyword}</td><td><button onclick="deleteRule(${r.id})" style="color:red; background:none; border:none; cursor:pointer;">Delete</button></td></tr>`).join('');
+            } catch(e) {}
+        }
+
+        async function deleteRule(id) {
+            if(!confirm("Delete this rule?")) return;
+            await fetch(`${API_BASE}/admin/rules/${id}`, { method: 'DELETE', headers: {"X-API-Key": API_KEY} });
+            fetchRules();
         }
 
         async function fetchSettings() {
-            const res = await fetch(`${API_BASE}/admin/settings`, { headers: {"X-API-Key": API_KEY} });
-            const s = await res.json();
-            document.getElementById("set-name").value = s.name || "";
-            document.getElementById("set-subdomain").value = s.subdomain || "";
-            document.getElementById("set-wa-id").value = s.whatsapp_phone_id || "";
-            document.getElementById("set-ig-id").value = s.instagram_page_id || "";
-            document.getElementById("set-email-user").value = s.email_user || "";
-            document.getElementById("set-email-enabled").checked = s.email_automation_enabled || false;
+            try {
+                const res = await fetch(`${API_BASE}/admin/settings`, { headers: {"X-API-Key": API_KEY} });
+                const s = await res.json();
+                document.getElementById("set-name").value = s.name || "";
+                document.getElementById("set-subdomain").value = s.subdomain || "";
+                document.getElementById("set-wa-id").value = s.whatsapp_phone_id || "";
+                document.getElementById("set-ig-id").value = s.instagram_page_id || "";
+                document.getElementById("set-email-user").value = s.email_user || "";
+                document.getElementById("set-email-enabled").checked = s.email_automation_enabled || false;
+                document.getElementById("set-kb").value = s.knowledge_base || "";
+                document.getElementById("plan-badge").innerText = (s.plan || "free").toUpperCase() + " TIER";
+                document.getElementById("current-plan-display").innerText = (s.plan || "free").toUpperCase() + " TIER";
+            } catch(e) {}
         }
 
         document.getElementById("branding-form").onsubmit = async (e) => {
             e.preventDefault();
-            const data = {
-                name: document.getElementById("set-name").value,
-                subdomain: document.getElementById("set-subdomain").value
-            };
-            await updateSettings(data);
+            await updateSettings({ name: document.getElementById("set-name").value, subdomain: document.getElementById("set-subdomain").value });
         };
+
+        document.getElementById("kb-form").onsubmit = async (e) => {
+            e.preventDefault();
+            await updateSettings({ knowledge_base: document.getElementById("set-kb").value });
+        };
+
+        async function uploadPDF() {
+            const file = document.getElementById("kb-pdf").files[0];
+            if(!file) return alert("Select a PDF first.");
+            const formData = new FormData();
+            formData.append("file", file);
+            const res = await fetch(`${API_BASE}/admin/kb/upload`, {
+                method: 'POST',
+                headers: { 'X-API-Key': API_KEY },
+                body: formData
+            });
+            if(res.ok) alert("PDF Knowledge indexed.");
+            else alert("Upload failed.");
+        }
 
         document.getElementById("social-form").onsubmit = async (e) => {
             e.preventDefault();
-            const data = {
+            await updateSettings({
                 whatsapp_phone_id: document.getElementById("set-wa-id").value,
                 instagram_page_id: document.getElementById("set-ig-id").value,
                 instagram_access_token: document.getElementById("set-meta-token").value
-            };
-            await updateSettings(data);
+            });
         };
 
         document.getElementById("email-form").onsubmit = async (e) => {
             e.preventDefault();
-            const data = {
+            await updateSettings({
                 email_user: document.getElementById("set-email-user").value,
                 email_password: document.getElementById("set-email-pass").value,
                 email_automation_enabled: document.getElementById("set-email-enabled").checked
-            };
-            await updateSettings(data);
+            });
         };
 
         async function updateSettings(data) {
@@ -219,8 +321,33 @@
                 headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
                 body: JSON.stringify(data)
             });
-            if (res.ok) alert("Settings synchronized successfully.");
+            if (res.ok) alert("Settings synchronized.");
             else alert("Update failed.");
         }
+
+        document.getElementById("rule-form").onsubmit = async (e) => {
+            e.preventDefault();
+            const res = await fetch(`${API_BASE}/admin/rules`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
+                body: JSON.stringify({
+                    keyword: document.getElementById("rule-keyword").value,
+                    response: document.getElementById("rule-response").value
+                })
+            });
+            if(res.ok) { alert("Rule added."); fetchRules(); e.target.reset(); }
+        };
+
+        window.onload = async () => {
+            const res = await fetch(`${API_BASE}/widget/config`);
+            if (res.ok) {
+                const config = await res.json();
+                document.getElementById("company-title").innerText = config.name;
+                if (config.api_key && !API_KEY) { API_KEY = config.api_key; localStorage.setItem("shinju_admin_key", API_KEY); }
+            }
+            if (!API_KEY) window.location.href = "/login";
+            switchTab('analytics');
+        };
+    </script>
 </body>
 </html>
