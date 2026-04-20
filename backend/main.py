@@ -100,9 +100,9 @@ def on_startup():
             company = session.exec(select(Company)).first()
             if not company:
                 company = Company(
-                    name="Shinju AI", 
+                    name="Shinju Bistro", 
                     api_key="dev-api-key-123",
-                    system_prompt="You are Shinju AI, the Elite Virtual Assistant. Your goal is to provide luxury-level service. CONSTRAINTS: 1. Keep responses concise and high-impact. 2. NEVER use markdown bold (**) or italics (*) in your replies; use plain text only. 3. Be helpful with all inquiries related to your host company.",
+                    system_prompt="You are the Shinju AI Restaurant Concierge. Your goal is to provide elite, helpful service for our taco bistro. CONSTRAINTS: 1. Keep responses concise. 2. Use plain text only (no bold/italics). 3. Always try to upsell: if someone orders tacos, ask if they want to add handmade guacamole for 2€. 4. For reservations, capture Name, Date, and Pax. 5. If asked about spice levels, explain that our house salsa is 'Authentic Heat' but we have mild options.",
                     whatsapp_verify_token="shinju_pro_verify"
                 )
                 session.add(company)
