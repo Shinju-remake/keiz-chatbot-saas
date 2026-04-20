@@ -284,17 +284,40 @@
         };
 
         async function uploadPDF() {
-            const file = document.getElementById("kb-pdf").files[0];
-            if(!file) return alert("Select a PDF first.");
+            const fileInput = document.getElementById("kb-pdf");
+            const file = fileInput.files[0];
+            const btn = document.querySelector("button[onclick='uploadPDF()']");
+            
+            if(!file) return alert("Please select a PDF file first.");
+            
+            btn.innerText = "INDEXING...";
+            btn.disabled = true;
+
             const formData = new FormData();
             formData.append("file", file);
-            const res = await fetch(`${API_BASE}/admin/kb/upload`, {
-                method: 'POST',
-                headers: { 'X-API-Key': API_KEY },
-                body: formData
-            });
-            if(res.ok) alert("PDF Knowledge indexed.");
-            else alert("Upload failed.");
+
+            try {
+                const res = await fetch(`${API_BASE}/admin/kb/upload`, {
+                    method: 'POST',
+                    headers: { 'X-API-Key': API_KEY },
+                    body: formData
+                });
+                
+                const result = await res.json();
+                
+                if (res.ok) {
+                    alert(`Success! Indexed ${result.extracted_length} characters of knowledge.`);
+                    fetchSettings(); // Refresh KB text area
+                } else {
+                    alert("Upload failed: " + (result.detail || "Server Error"));
+                }
+            } catch (e) {
+                alert("Network error during upload. Check your connection.");
+            } finally {
+                btn.innerText = "Upload & Sync";
+                btn.disabled = false;
+                fileInput.value = ""; // Reset
+            }
         }
 
         document.getElementById("social-form").onsubmit = async (e) => {
@@ -339,13 +362,26 @@
         };
 
         window.onload = async () => {
+            // Priority 1: Check LocalStorage for explicit login
+            if (!API_KEY) API_KEY = localStorage.getItem("shinju_admin_key");
+            
+            // Priority 2: Auto-discover via config if on a subdomain
             const res = await fetch(`${API_BASE}/widget/config`);
             if (res.ok) {
                 const config = await res.json();
                 document.getElementById("company-title").innerText = config.name;
-                if (config.api_key && !API_KEY) { API_KEY = config.api_key; localStorage.setItem("shinju_admin_key", API_KEY); }
+                if (config.api_key && !API_KEY) { 
+                    API_KEY = config.api_key; 
+                    localStorage.setItem("shinju_admin_key", API_KEY); 
+                }
             }
-            if (!API_KEY) window.location.href = "/login";
+
+            if (!API_KEY) {
+                console.error("No API Key found. Redirecting to login.");
+                window.location.href = "/login";
+                return;
+            }
+
             switchTab('analytics');
         };
     </script>
