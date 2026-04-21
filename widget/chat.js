@@ -89,10 +89,41 @@
     function appendMessage(text, sender, identity = null) {
         const div = document.createElement("div");
         div.className = `shinju-message shinju-${sender}`;
+        
         if (sender === "bot") {
             const tag = identity ? `<div class="shinju-agent-tag">● ${identity}</div>` : "";
-            div.innerHTML = tag + text.replace(/\*\*(.*?)\*\*/g, '<span class="shinju-highlight">$1</span>');
-        } else { div.innerText = text; }
+            
+            // [NEW] Rich UI Card Detection
+            if (text.includes("[MENU_DATA]")) {
+                const menuContent = text.replace("[MENU_DATA]", "").split("---")[1] || text;
+                const items = menuContent.split("\n").filter(line => line.includes(":") || line.includes("€"));
+                
+                let html = `${tag}<div style="margin-bottom:10px;">Here is our <b>Premium Selection</b>:</div>`;
+                html += `<div style="display:grid; gap:10px; margin-top:10px;">`;
+                
+                items.forEach(item => {
+                    const parts = item.replace("- ", "").split(":");
+                    if (parts.length >= 2) {
+                        const name = parts[0].trim();
+                        const desc = parts[1].trim();
+                        html += `
+                            <div style="background:white; padding:12px; border-radius:10px; border-left:4px solid #BB00FF; box-shadow:0 2px 5px rgba(0,0,0,0.05); color:#333;">
+                                <div style="font-weight:900; color:#BB00FF; display:flex; justify-content:space-between;">
+                                    <span>${name}</span>
+                                </div>
+                                <div style="font-size:11px; color:#666; margin-top:4px;">${desc}</div>
+                            </div>
+                        `;
+                    }
+                });
+                html += `</div><div style="margin-top:10px; font-size:12px; color:#888;">Tap an item to learn more or ask me to order!</div>`;
+                div.innerHTML = html;
+            } else {
+                div.innerHTML = tag + text.replace(/\*\*(.*?)\*\*/g, '<span class="shinju-highlight">$1</span>');
+            }
+        } else { 
+            div.innerText = text; 
+        }
         msgContainer.appendChild(div);
         msgContainer.scrollTop = msgContainer.scrollHeight;
     }

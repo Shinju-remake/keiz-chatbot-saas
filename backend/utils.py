@@ -34,7 +34,7 @@ def process_message_v3(company: Company, session_id: str, user_msg: str, db: Ses
     # --- SYSTEM FAIL-SAFE: DIRECT MENU HANDLER ---
     if any(kw in user_input for kw in ["menu", "serve", "selection", "food", "what do you have", "carte"]):
         if company.knowledge_base:
-            reply = f"Here is our current selection:\n\n{company.knowledge_base[:1500]}\n\nWould you like to place an order or do you have questions about a specific item?"
+            reply = f"[MENU_DATA]{company.knowledge_base}"
             source = "system_menu"
             agent_id = "Shinju Menu Specialist"
 
