@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Header, Depends, Request, UploadFile, File
+from fastapi import FastAPI, HTTPException, Header, Depends, Request, UploadFile, File, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -275,8 +275,6 @@ async def verify_meta(request: Request, db: Session = Depends(get_session)):
             return int(challenge)
     
     raise HTTPException(status_code=403, detail="Verification failed")
-
-from fastapi import BackgroundTasks
 
 @app.post("/webhook/meta")
 async def handle_meta_webhook(request: Request, background_tasks: BackgroundTasks, db: Session = Depends(get_session)):
