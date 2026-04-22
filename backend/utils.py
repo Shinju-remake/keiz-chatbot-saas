@@ -308,6 +308,78 @@ def transcribe_audio(audio_content: bytes, company: Company) -> str:
         print(f"WHISPER ERROR: {e}")
         return ""
 
+async def email_automation_loop():
+    """
+    Background worker to poll IMAP for new emails and reply via SMTP.
+    """
+    import imaplib, email, asyncio, time
+    from database import engine
+
+    while True:
+        try:
+            with Session(engine) as db:
+                companies = db.exec(select(Company).where(Company.email_automation_enabled == True)).all()
+                for company in companies:
+                    if not (company.email_user and company.email_password): continue
+                    
+                    # 1. Poll IMAP
+                    mail = imaplib.IMAP4_SSL(company.email_imap_server)
+                    mail.login(company.email_user, company.email_password)
+                    mail.select("inbox")
+                    status, messages = mail.search(None, '(UNSEEN)')
+                    
+                    for num in messages[0].split():
+                        status, data = mail.fetch(num, "(RFC822)")
+                        raw_email = data[0][1]
+                        msg = email.message_from_bytes(raw_email)
+                        
+                        sender = msg.get("From")
+                        subject = msg.get("Subject")
+                        body = ""
+                        if msg.is_multipart():
+                            for part in msg.walk():
+                                if part.get_content_type() == "text/plain":
+                                    body = part.get_payload(decode=True).decode()
+                                    break
+                        else:
+                            body = msg.get_payload(decode=True).decode()
+
+                        # 2. Process via AI
+                        session_id = f"email_{sender}"
+                        result = process_message_v3(company, session_id, f"[EMAIL_SUBJECT: {subject}] {body}", db)
+                        
+                        # 3. Send SMTP Reply
+                        if result.get("reply"):
+                            import smtplib
+                            from email.mime.text import MIMEText
+                            
+                            reply_msg = MIMEText(result["reply"])
+                            reply_msg["Subject"] = f"Re: {subject}"
+                            reply_msg["From"] = company.email_user
+                            reply_msg["To"] = sender
+                            
+                            with smtplib.SMTP_SSL(company.email_smtp_server, 465) as smtp:
+                                smtp.login(company.email_user, company.email_password)
+                                smtp.send_message(reply_msg)
+                        
+                        # Mark as read
+                        mail.store(num, '+FLAGS', '\\Seen')
+                    
+                    mail.logout()
+        except Exception as e:
+            print(f"EMAIL WORKER ERROR: {e}")
+            
+        await asyncio.sleep(60) # Poll every minute
+
+async def trigger_pro_automation(company: Company, user_msg: str, session_id: str):
+    if session_id.startswith("wa_"):
+        import asyncio
+        asyncio.create_task(schedule_reengagement(company.id, session_id))
+    webhook_url = os.getenv("MAKE_WEBHOOK_URL")
+    if webhook_url and "placeholder" not in webhook_url:
+        payload = { "company": company.name, "msg": user_msg, "sid": session_id }
+        async with httpx.AsyncClient() as client: await client.post(webhook_url, json=payload)
+
 async def schedule_reengagement(company_id: int, session_id: str):
     import asyncio
     await asyncio.sleep(10)
