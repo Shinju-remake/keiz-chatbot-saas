@@ -145,7 +145,9 @@ def process_message_v3(company: Company, session_id: str, user_msg: str, db: Ses
 
 def get_ai_response(company: Company, session_id: str, user_msg: str, db: Session, language: str = "en", image_url: Optional[str] = None) -> dict:
     openai_key = decrypt_field(company.openai_api_key) or os.getenv("OPENAI_API_KEY")
-    if not openai_key: return None
+    if not openai_key:
+        print(f"⚠️ AI ERROR: Missing OpenAI Key for Company {company.name}")
+        return None
     
     try:
         client = OpenAI(api_key=openai_key.strip(), timeout=30.0)
@@ -155,7 +157,11 @@ def get_ai_response(company: Company, session_id: str, user_msg: str, db: Sessio
         if any(kw in user_msg.lower() for kw in ["menu", "price", "order", "what do you have", "show me", "selection"]) or image_url:
             rag_context = f"DIRECT MENU DATA: {raw_kb[:2000]}" # prioritize raw menu data
         else:
-            rag_context = search_kb(company.id, user_msg, api_key=openai_key)
+            try:
+                rag_context = search_kb(company.id, user_msg, api_key=openai_key)
+            except Exception as e:
+                print(f"⚠️ RAG Search Error: {e}")
+                rag_context = ""
             if not rag_context and raw_kb: rag_context = raw_kb[:1000] # Fallback to start of KB
         
         history = db.exec(select(ChatLog).where(ChatLog.company_id == company.id, ChatLog.session_id == session_id).order_by(ChatLog.timestamp.desc()).limit(6)).all()
