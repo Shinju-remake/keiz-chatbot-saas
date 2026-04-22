@@ -83,7 +83,8 @@ def process_message_v3(company: Company, session_id: str, user_msg: str, db: Ses
             else:
                 # Final Fallback - Specific to Fast Food
                 trace_id = f"REF-{datetime.utcnow().strftime('%H%M%S')}"
-                reply = f"I'm having a brief connection issue with my central brain [{trace_id}]. (ERROR: get_ai_response returned None)"
+                openai_check = "Key_Present" if (decrypt_field(company.openai_api_key) or os.getenv("OPENAI_API_KEY")) else "Key_MISSING"
+                reply = f"I'm having a brief connection issue with my central brain [{trace_id}]. (TRACE: get_ai_response was None | {openai_check})"
                 source = "fallback"
                 agent_id = "Shinju AI Fail-Safe"
         except Exception as e:
@@ -244,7 +245,10 @@ def get_ai_response(company: Company, session_id: str, user_msg: str, db: Sessio
             response = client.chat.completions.create(model="gpt-4o-mini", messages=messages, tools=tools, tool_choice="auto", max_tokens=300, temperature=0.7)
         except Exception as e:
             print(f"⚠️ GPT-4o-Mini Error: {e}. Falling back to GPT-4o.")
-            response = client.chat.completions.create(model="gpt-4o", messages=messages, tools=tools, tool_choice="auto", max_tokens=300, temperature=0.7)
+            try:
+                response = client.chat.completions.create(model="gpt-4o", messages=messages, tools=tools, tool_choice="auto", max_tokens=300, temperature=0.7)
+            except Exception as e2:
+                raise Exception(f"OpenAI Multi-Model Failure: [Mini: {str(e)}] [Main: {str(e2)}]")
             
         message = response.choices[0].message
         full_reply = message.content or ""
