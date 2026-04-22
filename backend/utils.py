@@ -269,8 +269,8 @@ def get_ai_response(company: Company, session_id: str, user_msg: str, db: Sessio
 
         return {"reply": full_reply.strip(), "agent_identity": agent_id}
     except Exception as e:
-        print(f"❌ CRITICAL OPENAI ERROR: {e}")
-        return None
+        # Re-raise so process_message_v3 catches it and shows the user the real error
+        raise e
 
 async def send_whatsapp_reply(company: Company, to_number: str, text: str):
     access_token = decrypt_field(company.whatsapp_access_token)
