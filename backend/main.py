@@ -9,6 +9,8 @@ import os
 import uuid
 import pdfplumber
 import io
+import hmac
+import hashlib
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -21,12 +23,12 @@ from slowapi.errors import RateLimitExceeded
 try:
     from database import create_db_and_tables, get_session, engine
     from models import Company, FAQRule, ChatLog, Reservation, ChatSession, TrendInsight
-    from utils import process_message_v3, send_whatsapp_reply, email_automation_loop
+    from utils import process_message_v3, send_whatsapp_reply, email_automation_loop, encrypt_field
     from rag_utils import index_knowledge_base
 except ImportError:
     from .database import create_db_and_tables, get_session, engine
     from .models import Company, FAQRule, ChatLog, Reservation, ChatSession, TrendInsight
-    from .utils import process_message_v3, send_whatsapp_reply, email_automation_loop
+    from .utils import process_message_v3, send_whatsapp_reply, email_automation_loop, encrypt_field
     from .rag_utils import index_knowledge_base
 
 load_dotenv()
@@ -147,7 +149,10 @@ def on_startup():
                     api_key="dev-api-key-123",
                     knowledge_base=menu_v3.strip(),
                     system_prompt="You are the Shinju AI Fast Food Concierge. Your goal is to provide elite, rapid service for our high-volume food hub. CONSTRAINTS: 1. Keep responses ultra-concise. 2. Use plain text only (no bold/italics). 3. Always try to upsell: if someone orders a burger or main dish, ask if they want to 'make it a meal' with large fries and a drink for 3.50€ extra. 4. For delivery orders, capture Name, Address, and Phone Number. 5. If asked about wait times, explain that our 'Turbo-Prep' system ensures most orders are ready in under 8 minutes.",
-                    whatsapp_verify_token="shinju_pro_verify"
+                    whatsapp_verify_token="shinju_pro_verify",
+                    whatsapp_access_token=encrypt_field(os.getenv("WHATSAPP_ACCESS_TOKEN")),
+                    instagram_access_token=encrypt_field(os.getenv("INSTAGRAM_ACCESS_TOKEN")),
+                    openai_api_key=encrypt_field(os.getenv("OPENAI_API_KEY"))
                 )
                 session.add(company)
                 session.commit()
@@ -256,11 +261,23 @@ async def verify_meta(request: Request, db: Session = Depends(get_session)):
     
     raise HTTPException(status_code=403, detail="Verification failed")
 
+from fastapi import BackgroundTasks
+
 @app.post("/webhook/meta")
-async def handle_meta_webhook(request: Request, db: Session = Depends(get_session)):
+async def handle_meta_webhook(request: Request, background_tasks: BackgroundTasks, db: Session = Depends(get_session)):
     """
-    Unified Meta Webhook for WhatsApp and Instagram DM events.
+    Unified Meta Webhook for WhatsApp and Instagram DM events with Signature Verification.
     """
+    body = await request.body()
+    signature = request.headers.get("X-Hub-Signature-256")
+    app_secret = os.getenv("META_APP_SECRET")
+    
+    if app_secret and signature:
+        actual_sig = signature.replace("sha256=", "")
+        expected_sig = hmac.new(app_secret.encode(), body, hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(actual_sig, expected_sig):
+            raise HTTPException(status_code=403, detail="Invalid signature")
+
     data = await request.json()
     try:
         entry = data["entry"][0]
@@ -271,17 +288,41 @@ async def handle_meta_webhook(request: Request, db: Session = Depends(get_sessio
             if "messages" in value:
                 message = value["messages"][0]
                 from_num = message["from"]
-                text = message["text"]["body"]
+                
                 # Multitenancy resolution via phone_id
                 phone_id = value["metadata"]["display_phone_number"]
                 company = db.exec(select(Company).where(Company.whatsapp_phone_id == phone_id)).first()
                 if not company: company = db.exec(select(Company)).first() # Fallback
                 
                 if company:
-                    result = process_message_v3(company, f"wa_{from_num}", text, db)
-                    from utils import send_whatsapp_reply
-                    import asyncio
-                    asyncio.create_task(send_whatsapp_reply(company, from_num, result["reply"]))
+                    text = ""
+                    image_url = None
+                    msg_type = message.get("type", "text")
+                    
+                    if msg_type == "text":
+                        text = message["text"]["body"]
+                    elif msg_type == "audio":
+                        from utils import download_whatsapp_media, transcribe_audio
+                        audio_id = message["audio"]["id"]
+                        audio_bytes = await download_whatsapp_media(audio_id, company)
+                        if audio_bytes:
+                            text = transcribe_audio(audio_bytes, company)
+                            text = f"[VOICE NOTE] {text}"
+                    elif msg_type == "image":
+                        import base64
+                        from utils import download_whatsapp_media
+                        image_id = message["image"]["id"]
+                        image_bytes = await download_whatsapp_media(image_id, company)
+                        mime_type = message["image"].get("mime_type", "image/jpeg")
+                        if image_bytes:
+                            b64 = base64.b64encode(image_bytes).decode("utf-8")
+                            image_url = f"data:{mime_type};base64,{b64}"
+                            text = "[IMAGE RECEIVED]"
+                    
+                    if text or image_url:
+                        result = process_message_v3(company, f"wa_{from_num}", text, db, image_url=image_url)
+                        from utils import send_whatsapp_reply
+                        background_tasks.add_task(send_whatsapp_reply, company, from_num, result.get("reply", ""))
 
         # 2. Handle Instagram
         elif "messaging" in entry:
@@ -296,8 +337,7 @@ async def handle_meta_webhook(request: Request, db: Session = Depends(get_sessio
                 if company:
                     result = process_message_v3(company, f"ig_{sender_id}", text, db)
                     from utils import send_instagram_reply
-                    import asyncio
-                    asyncio.create_task(send_instagram_reply(company, sender_id, result["reply"]))
+                    background_tasks.add_task(send_instagram_reply, company, sender_id, result["reply"])
                     
         return {"status": "ok"}
     except Exception as e:
@@ -357,7 +397,7 @@ async def public_signup(data: SignupIn, db: Session = Depends(get_session)):
     new_company = Company(
         name=data.name,
         subdomain=data.subdomain.lower(),
-        openai_api_key=data.openai_key,
+        openai_api_key=encrypt_field(data.openai_key),
         plan=data.plan,
         system_prompt=f"You are the AI Assistant for {data.name}. Luxury-level service is mandatory."
     )

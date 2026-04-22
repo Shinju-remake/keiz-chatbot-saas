@@ -12,11 +12,28 @@ import httpx
 import re
 import json
 import smtplib
+import io
+import base64
 from email.mime.text import MIMEText
 from datetime import datetime
 import random
+from cryptography.fernet import Fernet
 
-def process_message_v3(company: Company, session_id: str, user_msg: str, db: Session, language: str = "en") -> dict:
+ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY")
+cipher_suite = Fernet(ENCRYPTION_KEY.encode()) if ENCRYPTION_KEY else None
+
+def encrypt_field(value: str) -> Optional[str]:
+    if not value or not cipher_suite: return value
+    return cipher_suite.encrypt(value.encode()).decode()
+
+def decrypt_field(value: str) -> Optional[str]:
+    if not value or not cipher_suite: return value
+    try:
+        return cipher_suite.decrypt(value.encode()).decode()
+    except:
+        return value # Return as-is if decryption fails (e.g. not encrypted yet)
+
+def process_message_v3(company: Company, session_id: str, user_msg: str, db: Session, language: str = "en", image_url: Optional[str] = None) -> dict:
     session_state = db.exec(select(ChatSession).where(ChatSession.company_id == company.id, ChatSession.session_id == session_id)).first()
     if not session_state:
         session_state = ChatSession(company_id=company.id, session_id=session_id)
@@ -48,7 +65,7 @@ def process_message_v3(company: Company, session_id: str, user_msg: str, db: Ses
             
     # 2. AI Fallback (Elite Brain / RAG)
     if not reply:
-        ai_result = get_ai_response(company, session_id, user_msg, db, language=language)
+        ai_result = get_ai_response(company, session_id, user_msg, db, language=language, image_url=image_url)
         if ai_result:
             reply = ai_result.get("reply")
             agent_id = ai_result.get("agent_identity", "Shinju AI Brain")
@@ -63,23 +80,37 @@ def process_message_v3(company: Company, session_id: str, user_msg: str, db: Ses
     log_entry = ChatLog(company_id=company.id, session_id=session_id, user_msg=user_msg, bot_reply=reply, source=source, timestamp=datetime.utcnow())
     db.add(log_entry); db.commit()
     
-    # [RESERVATION SUCCESS PARSING]
-    if reply and "[RESERVATION_SUCCESS]" in reply:
+    # [RESERVATION TOOL CALL PARSING]
+    if reply and "[RESERVATION_TOOL_CALL]" in reply:
         if session_state: session_state.reengagement_status = "completed"; db.add(session_state)
         try:
-            match = re.search(r"\[DATA\](.*?)\[/DATA\]", reply, re.DOTALL)
-            if match:
-                data = json.loads(match.group(1).strip())
-                new_res = Reservation(company_id=company.id, customer_name=data.get("name", "Unknown"),
-                                    date_time=data.get("date", "Unknown"), pax=int(data.get("pax", 1)), status="confirmed")
-                db.add(new_res); db.commit()
-                reply = re.sub(r"\[DATA\].*?\[/DATA\]", "", reply, flags=re.DOTALL).strip()
-        except: pass
+            parts = reply.split("[RESERVATION_TOOL_CALL]")
+            reply_text = parts[0].strip()
+            data_str = parts[1].strip()
+            data = json.loads(data_str)
+            
+            new_res = Reservation(
+                company_id=company.id, 
+                customer_name=data.get("name", "Unknown"),
+                date_time=data.get("date_time", data.get("date", "Unknown")), 
+                pax=int(data.get("pax", 1)), 
+                status="confirmed"
+            )
+            db.add(new_res); db.commit()
+            
+            # If AI didn't provide a confirmation text, generate one
+            if not reply_text:
+                reply = f"Great! I've confirmed your reservation for {new_res.customer_name} on {new_res.date_time} for {new_res.pax} people."
+            else:
+                reply = reply_text
+        except Exception as e:
+            print(f"RESERVATION ERROR: {e}")
+            pass
 
     return {"reply": reply, "source": source, "agent_identity": agent_id}
 
-def get_ai_response(company: Company, session_id: str, user_msg: str, db: Session, language: str = "en") -> dict:
-    openai_key = company.openai_api_key or os.getenv("OPENAI_API_KEY")
+def get_ai_response(company: Company, session_id: str, user_msg: str, db: Session, language: str = "en", image_url: Optional[str] = None) -> dict:
+    openai_key = decrypt_field(company.openai_api_key) or os.getenv("OPENAI_API_KEY")
     if not openai_key: return None
     
     try:
@@ -87,7 +118,7 @@ def get_ai_response(company: Company, session_id: str, user_msg: str, db: Sessio
         
         # [NEW] BRAIN-DIRECT BYPASS: Always include relevant menu text if asking about menu/prices
         raw_kb = company.knowledge_base or ""
-        if any(kw in user_msg.lower() for kw in ["menu", "price", "order", "what do you have", "show me", "selection"]):
+        if any(kw in user_msg.lower() for kw in ["menu", "price", "order", "what do you have", "show me", "selection"]) or image_url:
             rag_context = f"DIRECT MENU DATA: {raw_kb[:2000]}" # prioritize raw menu data
         else:
             rag_context = search_kb(company.id, user_msg, api_key=openai_key)
@@ -101,7 +132,6 @@ def get_ai_response(company: Company, session_id: str, user_msg: str, db: Sessio
             f"{company.system_prompt}\n"
             f"IDENTITIES: Switch between 'Sales Concierge' (for bookings) and 'Support Specialist' (for info).\n"
             f"KNOWLEDGE: {rag_context}\n"
-            f"FORMAT: Start with [SALES] or [SUPPORT]. If SALES, capture Name, Date, Pax. If all info gathered, confirm with [RESERVATION_SUCCESS] and JSON block.\n"
             f"LANGUAGE: Respond ONLY in {target_lang}."
         )
         
@@ -109,28 +139,63 @@ def get_ai_response(company: Company, session_id: str, user_msg: str, db: Sessio
         for h in reversed(history):
             messages.append({"role": "user", "content": h.user_msg})
             messages.append({"role": "assistant", "content": h.bot_reply})
-        messages.append({"role": "user", "content": user_msg})
+            
+        user_content = [{"type": "text", "text": user_msg}]
+        if image_url:
+            user_content.append({"type": "image_url", "image_url": {"url": image_url}})
+            
+        messages.append({"role": "user", "content": user_content})
+        
+        tools = [
+            {
+                "type": "function",
+                "function": {
+                    "name": "create_reservation",
+                    "description": "Creates a new table reservation for the customer.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "name": {"type": "string", "description": "The name of the customer."},
+                            "date_time": {"type": "string", "description": "The date and time of the reservation (e.g. 2024-05-20 19:00)."},
+                            "pax": {"type": "integer", "description": "The number of people (pax)."}
+                        },
+                        "required": ["name", "date_time", "pax"]
+                    }
+                }
+            }
+        ]
         
         # --- MODEL FALLBACK CHAIN ---
         try:
-            response = client.chat.completions.create(model="gpt-4o-mini", messages=messages, max_tokens=300, temperature=0.7)
+            response = client.chat.completions.create(model="gpt-4o-mini", messages=messages, tools=tools, tool_choice="auto", max_tokens=300, temperature=0.7)
         except:
-            response = client.chat.completions.create(model="gpt-4o", messages=messages, max_tokens=300, temperature=0.7)
+            response = client.chat.completions.create(model="gpt-4o", messages=messages, tools=tools, tool_choice="auto", max_tokens=300, temperature=0.7)
             
-        full_reply = response.choices[0].message.content.strip()
+        message = response.choices[0].message
+        full_reply = message.content or ""
+        
+        if message.tool_calls:
+            tool_call = message.tool_calls[0]
+            if tool_call.function.name == "create_reservation":
+                args = json.loads(tool_call.function.arguments)
+                # Inject a marker for process_message_v3 to handle
+                full_reply += f"\n[RESERVATION_TOOL_CALL]{json.dumps(args)}"
+
         agent_id = "AI Support Specialist"
-        if full_reply.startswith("[SALES]"): agent_id = "AI Sales Concierge"; full_reply = full_reply.replace("[SALES]", "").strip()
+        if "[RESERVATION_TOOL_CALL]" in full_reply: agent_id = "AI Sales Concierge"
+        elif full_reply.startswith("[SALES]"): agent_id = "AI Sales Concierge"; full_reply = full_reply.replace("[SALES]", "").strip()
         elif full_reply.startswith("[SUPPORT]"): full_reply = full_reply.replace("[SUPPORT]", "").strip()
 
-        return {"reply": full_reply, "agent_identity": agent_id}
+        return {"reply": full_reply.strip(), "agent_identity": agent_id}
     except Exception as e:
         print(f"❌ OPENAI ERROR: {e}")
         return None
 
 async def send_whatsapp_reply(company: Company, to_number: str, text: str):
-    if not (company.whatsapp_phone_id and company.whatsapp_access_token): return
+    access_token = decrypt_field(company.whatsapp_access_token)
+    if not (company.whatsapp_phone_id and access_token): return
     url = f"https://graph.facebook.com/v17.0/{company.whatsapp_phone_id}/messages"
-    headers = { "Authorization": f"Bearer {company.whatsapp_access_token}", "Content-Type": "application/json" }
+    headers = { "Authorization": f"Bearer {access_token}", "Content-Type": "application/json" }
     payload = { "messaging_product": "whatsapp", "to": to_number, "type": "text", "text": {"body": text} }
     async with httpx.AsyncClient() as client: await client.post(url, headers=headers, json=payload)
 
@@ -138,9 +203,10 @@ async def send_instagram_reply(company: Company, ig_sid: str, text: str):
     """
     Sends a reply via the Meta Graph API for Instagram DMs.
     """
-    if not (company.instagram_page_id and company.instagram_access_token): return
+    access_token = decrypt_field(company.instagram_access_token)
+    if not (company.instagram_page_id and access_token): return
     url = f"https://graph.facebook.com/v17.0/{company.instagram_page_id}/messages"
-    headers = { "Authorization": f"Bearer {company.instagram_access_token}", "Content-Type": "application/json" }
+    headers = { "Authorization": f"Bearer {access_token}", "Content-Type": "application/json" }
     payload = { "recipient": {"id": ig_sid}, "message": {"text": text} }
     async with httpx.AsyncClient() as client: await client.post(url, headers=headers, json=payload)
 
@@ -215,6 +281,45 @@ async def trigger_pro_automation(company: Company, user_msg: str, session_id: st
     if webhook_url and "placeholder" not in webhook_url:
         payload = { "company": company.name, "msg": user_msg, "sid": session_id }
         async with httpx.AsyncClient() as client: await client.post(webhook_url, json=payload)
+
+async def download_whatsapp_media(media_id: str, company: Company) -> Optional[bytes]:
+    access_token = decrypt_field(company.whatsapp_access_token)
+    if not access_token: return None
+    
+    url = f"https://graph.facebook.com/v17.0/{media_id}/"
+    headers = {"Authorization": f"Bearer {access_token}"}
+    
+    async with httpx.AsyncClient() as client:
+        res = await client.get(url, headers=headers)
+        if res.status_code == 200:
+            media_url = res.json().get("url")
+            if media_url:
+                media_res = await client.get(media_url, headers=headers)
+                if media_res.status_code == 200:
+                    return media_res.content
+    return None
+
+def transcribe_audio(audio_content: bytes, company: Company) -> str:
+    """
+    Transcribes audio bytes using OpenAI Whisper.
+    """
+    openai_key = decrypt_field(company.openai_api_key) or os.getenv("OPENAI_API_KEY")
+    if not openai_key: return ""
+    
+    try:
+        client = OpenAI(api_key=openai_key.strip())
+        # Whisper requires a file-like object with a name
+        audio_file = io.BytesIO(audio_content)
+        audio_file.name = "audio.ogg" # Meta usually sends ogg/opus
+        
+        transcript = client.audio.transcriptions.create(
+            model="whisper-1", 
+            file=audio_file
+        )
+        return transcript.text
+    except Exception as e:
+        print(f"WHISPER ERROR: {e}")
+        return ""
 
 async def schedule_reengagement(company_id: int, session_id: str):
     import asyncio
