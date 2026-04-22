@@ -81,9 +81,11 @@ def process_message_v3(company: Company, session_id: str, user_msg: str, db: Ses
             source = "ai"
         else:
             # Final Fallback - Specific to Fast Food
-            reply = "I'm having a brief connection issue with my central brain, but I can still take your order! Would you like to see the **menu** or provide your delivery address?"
+            trace_id = f"REF-{datetime.utcnow().strftime('%H%M%S')}"
+            reply = f"I'm having a brief connection issue with my central brain [{trace_id}], but I can still take your order! Would you like to see the menu or provide your delivery address?"
             source = "fallback"
             agent_id = "Shinju AI Fail-Safe"
+
 
     # Log interaction
     log_entry = ChatLog(company_id=company.id, session_id=session_id, user_msg=user_msg, bot_reply=reply, source=source, timestamp=datetime.utcnow())
@@ -144,9 +146,16 @@ def process_message_v3(company: Company, session_id: str, user_msg: str, db: Ses
     return {"reply": reply, "source": source, "agent_identity": agent_id}
 
 def get_ai_response(company: Company, session_id: str, user_msg: str, db: Session, language: str = "en", image_url: Optional[str] = None) -> dict:
-    openai_key = decrypt_field(company.openai_api_key) or os.getenv("OPENAI_API_KEY")
+    # 1. Resolve Key (Try Decrypted -> Try Raw DB -> Try Env)
+    db_key = company.openai_api_key
+    openai_key = decrypt_field(db_key) if db_key else None
+    
+    # Validation: If key doesn't look like an OpenAI key, it's likely an undecryptable blob
+    if not openai_key or not str(openai_key).startswith("sk-"):
+        openai_key = os.getenv("OPENAI_API_KEY")
+        
     if not openai_key:
-        print(f"⚠️ AI ERROR: Missing OpenAI Key for Company {company.name}")
+        print(f"⚠️ AI ERROR: No valid OpenAI Key found for {company.name}")
         return None
     
     try:
@@ -154,7 +163,8 @@ def get_ai_response(company: Company, session_id: str, user_msg: str, db: Sessio
         
         # [NEW] BRAIN-DIRECT BYPASS: Always include relevant menu text if asking about menu/prices
         raw_kb = company.knowledge_base or ""
-        if any(kw in user_msg.lower() for kw in ["menu", "price", "order", "what do you have", "show me", "selection"]) or image_url:
+        user_input_lower = user_msg.lower()
+        if any(kw in user_input_lower for kw in ["menu", "price", "order", "what do you have", "show me", "selection"]) or image_url:
             rag_context = f"DIRECT MENU DATA: {raw_kb[:2000]}" # prioritize raw menu data
         else:
             try:
@@ -177,8 +187,9 @@ def get_ai_response(company: Company, session_id: str, user_msg: str, db: Sessio
         
         messages = [{"role": "system", "content": master_prompt}]
         for h in reversed(history):
-            messages.append({"role": "user", "content": h.user_msg})
-            messages.append({"role": "assistant", "content": h.bot_reply})
+            if h.user_msg and h.bot_reply:
+                messages.append({"role": "user", "content": h.user_msg})
+                messages.append({"role": "assistant", "content": h.bot_reply})
             
         user_content = [{"type": "text", "text": user_msg}]
         if image_url:
@@ -196,8 +207,8 @@ def get_ai_response(company: Company, session_id: str, user_msg: str, db: Sessio
                         "type": "object",
                         "properties": {
                             "name": {"type": "string", "description": "The name of the customer."},
-                            "date_time": {"type": "string", "description": "The date and time of the reservation (e.g. 2024-05-20 19:00)."},
-                            "pax": {"type": "integer", "description": "The number of people (pax)."}
+                            "date_time": {"type": "string", "description": "The date and time (e.g. 2024-05-20 19:00)."},
+                            "pax": {"type": "integer", "description": "Number of people."}
                         },
                         "required": ["name", "date_time", "pax"]
                     }
@@ -212,9 +223,9 @@ def get_ai_response(company: Company, session_id: str, user_msg: str, db: Sessio
                         "type": "object",
                         "properties": {
                             "name": {"type": "string", "description": "The name of the customer."},
-                            "items": {"type": "string", "description": "List of food items and options."},
-                            "address": {"type": "string", "description": "Full delivery address."},
-                            "total_price": {"type": "number", "description": "Calculated total price in EUR."}
+                            "items": {"type": "string", "description": "List of food items."},
+                            "address": {"type": "string", "description": "Delivery address."},
+                            "total_price": {"type": "number", "description": "Total price in EUR."}
                         },
                         "required": ["name", "items", "address", "total_price"]
                     }
@@ -225,7 +236,8 @@ def get_ai_response(company: Company, session_id: str, user_msg: str, db: Sessio
         # --- MODEL FALLBACK CHAIN ---
         try:
             response = client.chat.completions.create(model="gpt-4o-mini", messages=messages, tools=tools, tool_choice="auto", max_tokens=300, temperature=0.7)
-        except:
+        except Exception as e:
+            print(f"⚠️ GPT-4o-Mini Error: {e}. Falling back to GPT-4o.")
             response = client.chat.completions.create(model="gpt-4o", messages=messages, tools=tools, tool_choice="auto", max_tokens=300, temperature=0.7)
             
         message = response.choices[0].message
@@ -247,7 +259,7 @@ def get_ai_response(company: Company, session_id: str, user_msg: str, db: Sessio
 
         return {"reply": full_reply.strip(), "agent_identity": agent_id}
     except Exception as e:
-        print(f"❌ OPENAI ERROR: {e}")
+        print(f"❌ CRITICAL OPENAI ERROR: {e}")
         return None
 
 async def send_whatsapp_reply(company: Company, to_number: str, text: str):

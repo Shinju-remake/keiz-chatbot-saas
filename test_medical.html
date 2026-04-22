@@ -1,0 +1,38 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sana Oris Dental - 24/7 Medical Concierge (Demo)</title>
+    <style>
+        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f7f9fb; color: #333; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .medical-card { background-color: #fff; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); text-align: center; max-width: 500px; border-top: 6px solid #008080; }
+        h1 { color: #008080; margin-bottom: 5px; font-weight: 300; letter-spacing: 1px; }
+        p { font-size: 1.1rem; line-height: 1.6; color: #555; }
+        .trust-badge { display: inline-block; border: 1px solid #008080; color: #008080; padding: 5px 15px; border-radius: 50px; font-size: 0.8rem; margin-top: 15px; text-transform: uppercase; font-weight: bold; }
+        .emergency { color: #d93025; font-size: 0.9rem; margin-top: 20px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="medical-card">
+        <h1>Sana Oris</h1>
+        <p>Advanced Dentistry & Implantology</p>
+        <div class="trust-badge">Verified Medical AI Concierge</div>
+        <p>Welcome to our 24/7 patient inquiry portal. Our AI can answer your questions about <strong>Implants</strong>, <strong>Veneers</strong>, and <strong>Financing</strong> while we are in surgery.</p>
+        <p>Click the chat icon to begin your consultation.</p>
+        <div class="emergency">Urgent? The AI can escalate to our duty secretary instantly.</div>
+    </div>
+    <script>
+        (function() {
+            var s = document.createElement('script');
+            s.src = 'projects/chatbot_saas/widget/shinju-widget.js';
+            s.async = true;
+            s.onload = function() {
+                window.ShinjuAI.init({ apiKey: 'sana-oris-key-2026', primaryColor: '#008080', subdomain: 'sana-oris' });
+            };
+            document.head.appendChild(s);
+        })();
+    </script>
+</body>
+</html>

@@ -160,12 +160,13 @@ def on_startup():
             else:
                 if not company.knowledge_base:
                     company.knowledge_base = menu_v3.strip()
-                # Always sync keys from env if they are missing in DB
-                if not company.openai_api_key and os.getenv("OPENAI_API_KEY"):
+                
+                # [CRITICAL] Force sync keys from environment to ensure decryption consistency
+                if os.getenv("OPENAI_API_KEY"):
                     company.openai_api_key = encrypt_field(os.getenv("OPENAI_API_KEY"))
-                if not company.whatsapp_access_token and os.getenv("WHATSAPP_ACCESS_TOKEN"):
+                if os.getenv("WHATSAPP_ACCESS_TOKEN"):
                     company.whatsapp_access_token = encrypt_field(os.getenv("WHATSAPP_ACCESS_TOKEN"))
-                if not company.instagram_access_token and os.getenv("INSTAGRAM_ACCESS_TOKEN"):
+                if os.getenv("INSTAGRAM_ACCESS_TOKEN"):
                     company.instagram_access_token = encrypt_field(os.getenv("INSTAGRAM_ACCESS_TOKEN"))
                 
                 session.add(company)
