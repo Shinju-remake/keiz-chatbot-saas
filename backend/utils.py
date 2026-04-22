@@ -14,7 +14,7 @@ try:
 except ImportError:
     from .models import ChatLog, Company, FAQRule, Reservation, ChatSession, Order
     from .rag_utils import search_kb
-from openai import OpenAI
+from openai import AsyncOpenAI
 from datetime import datetime
 import random
 from cryptography.fernet import Fernet
@@ -39,10 +39,9 @@ def decrypt_field(value: str) -> Optional[str]:
     try:
         return cipher_suite.decrypt(value.encode()).decode()
     except Exception as e:
-        # If decryption fails, it might be plain text or encrypted with a different key
         return value 
 
-def process_message_v3(company: Company, session_id: str, user_msg: str, db: Session, language: str = "en", image_url: Optional[str] = None) -> dict:
+async def process_message_v3(company: Company, session_id: str, user_msg: str, db: Session, language: str = "en", image_url: Optional[str] = None) -> dict:
     session_state = db.exec(select(ChatSession).where(ChatSession.company_id == company.id, ChatSession.session_id == session_id)).first()
     if not session_state:
         session_state = ChatSession(company_id=company.id, session_id=session_id)
@@ -75,13 +74,12 @@ def process_message_v3(company: Company, session_id: str, user_msg: str, db: Ses
     # 2. AI Fallback (Elite Brain / RAG)
     if not reply:
         try:
-            ai_result = get_ai_response(company, session_id, user_msg, db, language=language, image_url=image_url)
+            ai_result = await get_ai_response(company, session_id, user_msg, db, language=language, image_url=image_url)
             if ai_result:
                 reply = ai_result.get("reply")
                 agent_id = ai_result.get("agent_identity", "Shinju AI Brain")
                 source = "ai"
             else:
-                # Final Fallback - Specific to Fast Food
                 trace_id = f"REF-{datetime.utcnow().strftime('%H%M%S')}"
                 openai_check = "Key_Present" if (decrypt_field(company.openai_api_key) or os.getenv("OPENAI_API_KEY")) else "Key_MISSING"
                 reply = f"I'm having a brief connection issue with my central brain [{trace_id}]. (TRACE: get_ai_response was None | {openai_check})"
@@ -92,7 +90,6 @@ def process_message_v3(company: Company, session_id: str, user_msg: str, db: Ses
             reply = f"I encountered an internal error [{trace_id}]: {str(e)}"
             source = "fallback"
             agent_id = "Shinju AI Error-Guard"
-
 
     # Log interaction
     log_entry = ChatLog(company_id=company.id, session_id=session_id, user_msg=user_msg, bot_reply=reply, source=source, timestamp=datetime.utcnow())
@@ -152,12 +149,10 @@ def process_message_v3(company: Company, session_id: str, user_msg: str, db: Ses
 
     return {"reply": reply, "source": source, "agent_identity": agent_id}
 
-def get_ai_response(company: Company, session_id: str, user_msg: str, db: Session, language: str = "en", image_url: Optional[str] = None) -> dict:
-    # 1. Resolve Key (Try Decrypted -> Try Raw DB -> Try Env)
+async def get_ai_response(company: Company, session_id: str, user_msg: str, db: Session, language: str = "en", image_url: Optional[str] = None) -> dict:
     db_key = company.openai_api_key
     openai_key = decrypt_field(db_key) if db_key else None
     
-    # Validation: If key doesn't look like an OpenAI key, it's likely an undecryptable blob
     if not openai_key or not str(openai_key).startswith("sk-"):
         openai_key = os.getenv("OPENAI_API_KEY")
         
@@ -166,20 +161,19 @@ def get_ai_response(company: Company, session_id: str, user_msg: str, db: Sessio
         return None
     
     try:
-        client = OpenAI(api_key=openai_key.strip(), timeout=30.0)
+        client = AsyncOpenAI(api_key=openai_key.strip(), timeout=30.0)
         
-        # [NEW] BRAIN-DIRECT BYPASS: Always include relevant menu text if asking about menu/prices
         raw_kb = company.knowledge_base or ""
         user_input_lower = user_msg.lower()
         if any(kw in user_input_lower for kw in ["menu", "price", "order", "what do you have", "show me", "selection"]) or image_url:
-            rag_context = f"DIRECT MENU DATA: {raw_kb[:2000]}" # prioritize raw menu data
+            rag_context = f"DIRECT MENU DATA: {raw_kb[:2000]}"
         else:
             try:
                 rag_context = search_kb(company.id, user_msg, api_key=openai_key)
             except Exception as e:
                 print(f"⚠️ RAG Search Error: {e}")
                 rag_context = ""
-            if not rag_context and raw_kb: rag_context = raw_kb[:1000] # Fallback to start of KB
+            if not rag_context and raw_kb: rag_context = raw_kb[:1000]
         
         history = db.exec(select(ChatLog).where(ChatLog.company_id == company.id, ChatLog.session_id == session_id).order_by(ChatLog.timestamp.desc()).limit(6)).all()
         lang_names = {"en": "English", "fr": "French", "es": "Spanish"}
@@ -240,13 +234,12 @@ def get_ai_response(company: Company, session_id: str, user_msg: str, db: Sessio
             }
         ]
         
-        # --- MODEL FALLBACK CHAIN ---
         try:
-            response = client.chat.completions.create(model="gpt-4o-mini", messages=messages, tools=tools, tool_choice="auto", max_tokens=300, temperature=0.7)
+            response = await client.chat.completions.create(model="gpt-4o-mini", messages=messages, tools=tools, tool_choice="auto", max_tokens=300, temperature=0.7)
         except Exception as e:
             print(f"⚠️ GPT-4o-Mini Error: {e}. Falling back to GPT-4o.")
             try:
-                response = client.chat.completions.create(model="gpt-4o", messages=messages, tools=tools, tool_choice="auto", max_tokens=300, temperature=0.7)
+                response = await client.chat.completions.create(model="gpt-4o", messages=messages, tools=tools, tool_choice="auto", max_tokens=300, temperature=0.7)
             except Exception as e2:
                 raise Exception(f"OpenAI Multi-Model Failure: [Mini: {str(e)}] [Main: {str(e2)}]")
             
@@ -269,7 +262,6 @@ def get_ai_response(company: Company, session_id: str, user_msg: str, db: Sessio
 
         return {"reply": full_reply.strip(), "agent_identity": agent_id}
     except Exception as e:
-        # Re-raise so process_message_v3 catches it and shows the user the real error
         raise e
 
 async def send_whatsapp_reply(company: Company, to_number: str, text: str):
@@ -289,9 +281,6 @@ async def send_instagram_reply(company: Company, ig_sid: str, text: str):
     async with httpx.AsyncClient() as client: await client.post(url, headers=headers, json=payload)
 
 async def send_post_interaction_confirmation(company: Company, session_id: str, type: str = "order"):
-    """
-    Luxury Follow-up: Sends a proactive confirmation message 5 seconds after a success event.
-    """
     import asyncio
     await asyncio.sleep(5)
     
@@ -327,6 +316,9 @@ def transcribe_audio(audio_content: bytes, company: Company) -> str:
     if not openai_key: return ""
     
     try:
+        # Note: Whisper doesn't have a direct async method in the legacy way, 
+        # but we can use AsyncOpenAI's version if available or run in thread.
+        from openai import OpenAI
         client = OpenAI(api_key=openai_key.strip())
         audio_file = io.BytesIO(audio_content)
         audio_file.name = "audio.ogg"
@@ -341,9 +333,6 @@ def transcribe_audio(audio_content: bytes, company: Company) -> str:
         return ""
 
 async def email_automation_loop():
-    """
-    Background worker to poll IMAP for new emails and reply via SMTP.
-    """
     import imaplib, email, asyncio, time
     from database import engine
 
@@ -354,7 +343,6 @@ async def email_automation_loop():
                 for company in companies:
                     if not (company.email_user and company.email_password): continue
                     
-                    # 1. Poll IMAP
                     mail = imaplib.IMAP4_SSL(company.email_imap_server)
                     mail.login(company.email_user, company.email_password)
                     mail.select("inbox")
@@ -376,15 +364,10 @@ async def email_automation_loop():
                         else:
                             body = msg.get_payload(decode=True).decode()
 
-                        # 2. Process via AI
                         session_id = f"email_{sender}"
-                        result = process_message_v3(company, session_id, f"[EMAIL_SUBJECT: {subject}] {body}", db)
+                        result = await process_message_v3(company, session_id, f"[EMAIL_SUBJECT: {subject}] {body}", db)
                         
-                        # 3. Send SMTP Reply
                         if result.get("reply"):
-                            import smtplib
-                            from email.mime.text import MIMEText
-                            
                             reply_msg = MIMEText(result["reply"])
                             reply_msg["Subject"] = f"Re: {subject}"
                             reply_msg["From"] = company.email_user
@@ -394,14 +377,13 @@ async def email_automation_loop():
                                 smtp.login(company.email_user, company.email_password)
                                 smtp.send_message(reply_msg)
                         
-                        # Mark as read
                         mail.store(num, '+FLAGS', '\\Seen')
                     
                     mail.logout()
         except Exception as e:
             print(f"EMAIL WORKER ERROR: {e}")
             
-        await asyncio.sleep(60) # Poll every minute
+        await asyncio.sleep(60)
 
 async def trigger_pro_automation(company: Company, user_msg: str, session_id: str):
     if session_id.startswith("wa_"):

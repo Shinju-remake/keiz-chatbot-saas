@@ -197,7 +197,7 @@ async def chat_endpoint(request: Request, msg: ChatMessage, background_tasks: Ba
         raise HTTPException(status_code=403, detail="Invalid API Key")
     
     # Process message and get rich metadata
-    result = process_message_v3(company, msg.session_id, msg.message, db, language=msg.language)
+    result = await process_message_v3(company, msg.session_id, msg.message, db, language=msg.language)
     
     # [NEW] Proactive Luxury Follow-up for Web Chat
     if result.get("reply") and ("[RESERVATION_TOOL_CALL]" in result["reply"] or "[ORDER_TOOL_CALL]" in result["reply"]):
@@ -334,7 +334,7 @@ async def handle_meta_webhook(request: Request, background_tasks: BackgroundTask
                             text = "[IMAGE RECEIVED]"
                     
                     if text or image_url:
-                        result = process_message_v3(company, f"wa_{from_num}", text, db, image_url=image_url)
+                        result = await process_message_v3(company, f"wa_{from_num}", text, db, image_url=image_url)
                         from utils import send_whatsapp_reply, send_post_interaction_confirmation
                         background_tasks.add_task(send_whatsapp_reply, company, from_num, result.get("reply", ""))
                         
@@ -354,7 +354,7 @@ async def handle_meta_webhook(request: Request, background_tasks: BackgroundTask
                 if not company: company = db.exec(select(Company)).first() # Fallback
                 
                 if company:
-                    result = process_message_v3(company, f"ig_{sender_id}", text, db)
+                    result = await process_message_v3(company, f"ig_{sender_id}", text, db)
                     from utils import send_instagram_reply, send_post_interaction_confirmation
                     background_tasks.add_task(send_instagram_reply, company, sender_id, result["reply"])
                     
