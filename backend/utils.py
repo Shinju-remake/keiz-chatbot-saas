@@ -74,17 +74,23 @@ def process_message_v3(company: Company, session_id: str, user_msg: str, db: Ses
             
     # 2. AI Fallback (Elite Brain / RAG)
     if not reply:
-        ai_result = get_ai_response(company, session_id, user_msg, db, language=language, image_url=image_url)
-        if ai_result:
-            reply = ai_result.get("reply")
-            agent_id = ai_result.get("agent_identity", "Shinju AI Brain")
-            source = "ai"
-        else:
-            # Final Fallback - Specific to Fast Food
-            trace_id = f"REF-{datetime.utcnow().strftime('%H%M%S')}"
-            reply = f"I'm having a brief connection issue with my central brain [{trace_id}], but I can still take your order! Would you like to see the menu or provide your delivery address?"
+        try:
+            ai_result = get_ai_response(company, session_id, user_msg, db, language=language, image_url=image_url)
+            if ai_result:
+                reply = ai_result.get("reply")
+                agent_id = ai_result.get("agent_identity", "Shinju AI Brain")
+                source = "ai"
+            else:
+                # Final Fallback - Specific to Fast Food
+                trace_id = f"REF-{datetime.utcnow().strftime('%H%M%S')}"
+                reply = f"I'm having a brief connection issue with my central brain [{trace_id}]. (ERROR: get_ai_response returned None)"
+                source = "fallback"
+                agent_id = "Shinju AI Fail-Safe"
+        except Exception as e:
+            trace_id = f"EXC-{datetime.utcnow().strftime('%H%M%S')}"
+            reply = f"I encountered an internal error [{trace_id}]: {str(e)}"
             source = "fallback"
-            agent_id = "Shinju AI Fail-Safe"
+            agent_id = "Shinju AI Error-Guard"
 
 
     # Log interaction
