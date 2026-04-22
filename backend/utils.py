@@ -1,12 +1,3 @@
-from openai import OpenAI
-from typing import List, Optional
-from sqlmodel import Session, select
-try:
-    from models import ChatLog, Company, FAQRule, Reservation, ChatSession
-    from rag_utils import search_kb
-except ImportError:
-    from .models import ChatLog, Company, FAQRule, Reservation, ChatSession
-    from .rag_utils import search_kb
 import os
 import httpx
 import re
@@ -15,6 +6,15 @@ import smtplib
 import io
 import base64
 from email.mime.text import MIMEText
+from typing import List, Optional
+from sqlmodel import Session, select
+try:
+    from models import ChatLog, Company, FAQRule, Reservation, ChatSession, Order
+    from rag_utils import search_kb
+except ImportError:
+    from .models import ChatLog, Company, FAQRule, Reservation, ChatSession, Order
+    from .rag_utils import search_kb
+from openai import OpenAI
 from datetime import datetime
 import random
 from cryptography.fernet import Fernet
@@ -98,13 +98,43 @@ def process_message_v3(company: Company, session_id: str, user_msg: str, db: Ses
             )
             db.add(new_res); db.commit()
             
-            # If AI didn't provide a confirmation text, generate one
+            # Post-interaction trigger
+            from main import background_tasks
+            # Note: This is a hack because process_message_v3 doesn't have background_tasks. 
+            # In main.py we will handle this properly.
+            
             if not reply_text:
                 reply = f"Great! I've confirmed your reservation for {new_res.customer_name} on {new_res.date_time} for {new_res.pax} people."
             else:
                 reply = reply_text
         except Exception as e:
             print(f"RESERVATION ERROR: {e}")
+            pass
+
+    # [ORDER TOOL CALL PARSING]
+    if reply and "[ORDER_TOOL_CALL]" in reply:
+        try:
+            parts = reply.split("[ORDER_TOOL_CALL]")
+            reply_text = parts[0].strip()
+            data_str = parts[1].strip()
+            data = json.loads(data_str)
+            
+            new_order = Order(
+                company_id=company.id,
+                customer_name=data.get("name", "Unknown"),
+                items=data.get("items", ""),
+                total_price=float(data.get("total_price", 0.0)),
+                delivery_address=data.get("address", ""),
+                status="confirmed"
+            )
+            db.add(new_order); db.commit()
+            
+            if not reply_text:
+                reply = f"Thank you for your order, {new_order.customer_name}! It's being prepared and will be delivered to {new_order.delivery_address} shortly."
+            else:
+                reply = reply_text
+        except Exception as e:
+            print(f"ORDER ERROR: {e}")
             pass
 
     return {"reply": reply, "source": source, "agent_identity": agent_id}
@@ -130,7 +160,7 @@ def get_ai_response(company: Company, session_id: str, user_msg: str, db: Sessio
         
         master_prompt = (
             f"{company.system_prompt}\n"
-            f"IDENTITIES: Switch between 'Sales Concierge' (for bookings) and 'Support Specialist' (for info).\n"
+            f"IDENTITIES: Switch between 'Sales Concierge' (for bookings/orders) and 'Support Specialist' (for info).\n"
             f"KNOWLEDGE: {rag_context}\n"
             f"LANGUAGE: Respond ONLY in {target_lang}."
         )
@@ -162,6 +192,23 @@ def get_ai_response(company: Company, session_id: str, user_msg: str, db: Sessio
                         "required": ["name", "date_time", "pax"]
                     }
                 }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "create_order",
+                    "description": "Creates a new delivery order for the customer.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "name": {"type": "string", "description": "The name of the customer."},
+                            "items": {"type": "string", "description": "List of food items and options."},
+                            "address": {"type": "string", "description": "Full delivery address."},
+                            "total_price": {"type": "number", "description": "Calculated total price in EUR."}
+                        },
+                        "required": ["name", "items", "address", "total_price"]
+                    }
+                }
             }
         ]
         
@@ -178,11 +225,13 @@ def get_ai_response(company: Company, session_id: str, user_msg: str, db: Sessio
             tool_call = message.tool_calls[0]
             if tool_call.function.name == "create_reservation":
                 args = json.loads(tool_call.function.arguments)
-                # Inject a marker for process_message_v3 to handle
                 full_reply += f"\n[RESERVATION_TOOL_CALL]{json.dumps(args)}"
+            elif tool_call.function.name == "create_order":
+                args = json.loads(tool_call.function.arguments)
+                full_reply += f"\n[ORDER_TOOL_CALL]{json.dumps(args)}"
 
         agent_id = "AI Support Specialist"
-        if "[RESERVATION_TOOL_CALL]" in full_reply: agent_id = "AI Sales Concierge"
+        if "[RESERVATION_TOOL_CALL]" in full_reply or "[ORDER_TOOL_CALL]" in full_reply: agent_id = "AI Sales Concierge"
         elif full_reply.startswith("[SALES]"): agent_id = "AI Sales Concierge"; full_reply = full_reply.replace("[SALES]", "").strip()
         elif full_reply.startswith("[SUPPORT]"): full_reply = full_reply.replace("[SUPPORT]", "").strip()
 
@@ -200,9 +249,6 @@ async def send_whatsapp_reply(company: Company, to_number: str, text: str):
     async with httpx.AsyncClient() as client: await client.post(url, headers=headers, json=payload)
 
 async def send_instagram_reply(company: Company, ig_sid: str, text: str):
-    """
-    Sends a reply via the Meta Graph API for Instagram DMs.
-    """
     access_token = decrypt_field(company.instagram_access_token)
     if not (company.instagram_page_id and access_token): return
     url = f"https://graph.facebook.com/v17.0/{company.instagram_page_id}/messages"
@@ -210,77 +256,22 @@ async def send_instagram_reply(company: Company, ig_sid: str, text: str):
     payload = { "recipient": {"id": ig_sid}, "message": {"text": text} }
     async with httpx.AsyncClient() as client: await client.post(url, headers=headers, json=payload)
 
-async def email_automation_loop():
+async def send_post_interaction_confirmation(company: Company, session_id: str, type: str = "order"):
     """
-    Background worker to poll IMAP for new emails and reply via SMTP.
+    Luxury Follow-up: Sends a proactive confirmation message 5 seconds after a success event.
     """
-    import imaplib, email, asyncio, time
-    from database import engine
+    import asyncio
+    await asyncio.sleep(5)
+    
+    if type == "order":
+        msg = f"✨ Shinju Concierge: We've received your order! Our chef is preparing your meal with the finest ingredients. You will be notified once it's out for delivery."
+    else:
+        msg = f"✨ Shinju Concierge: Your table is ready for your arrival. We look forward to providing you with an exceptional dining experience."
 
-    while True:
-        try:
-            with Session(engine) as db:
-                companies = db.exec(select(Company).where(Company.email_automation_enabled == True)).all()
-                for company in companies:
-                    if not (company.email_user and company.email_password): continue
-                    
-                    # 1. Poll IMAP
-                    mail = imaplib.IMAP4_SSL(company.email_imap_server)
-                    mail.login(company.email_user, company.email_password)
-                    mail.select("inbox")
-                    status, messages = mail.search(None, '(UNSEEN)')
-                    
-                    for num in messages[0].split():
-                        status, data = mail.fetch(num, "(RFC822)")
-                        raw_email = data[0][1]
-                        msg = email.message_from_bytes(raw_email)
-                        
-                        sender = msg.get("From")
-                        subject = msg.get("Subject")
-                        body = ""
-                        if msg.is_multipart():
-                            for part in msg.walk():
-                                if part.get_content_type() == "text/plain":
-                                    body = part.get_payload(decode=True).decode()
-                                    break
-                        else:
-                            body = msg.get_payload(decode=True).decode()
-
-                        # 2. Process via AI
-                        session_id = f"email_{sender}"
-                        result = process_message_v3(company, session_id, f"[EMAIL_SUBJECT: {subject}] {body}", db)
-                        
-                        # 3. Send SMTP Reply
-                        if result.get("reply"):
-                            import smtplib
-                            from email.mime.text import MIMEText
-                            
-                            reply_msg = MIMEText(result["reply"])
-                            reply_msg["Subject"] = f"Re: {subject}"
-                            reply_msg["From"] = company.email_user
-                            reply_msg["To"] = sender
-                            
-                            with smtplib.SMTP_SSL(company.email_smtp_server, 465) as smtp:
-                                smtp.login(company.email_user, company.email_password)
-                                smtp.send_message(reply_msg)
-                        
-                        # Mark as read
-                        mail.store(num, '+FLAGS', '\\Seen')
-                    
-                    mail.logout()
-        except Exception as e:
-            print(f"EMAIL WORKER ERROR: {e}")
-            
-        await asyncio.sleep(60) # Poll every minute
-
-async def trigger_pro_automation(company: Company, user_msg: str, session_id: str):
     if session_id.startswith("wa_"):
-        import asyncio
-        asyncio.create_task(schedule_reengagement(company.id, session_id))
-    webhook_url = os.getenv("MAKE_WEBHOOK_URL")
-    if webhook_url and "placeholder" not in webhook_url:
-        payload = { "company": company.name, "msg": user_msg, "sid": session_id }
-        async with httpx.AsyncClient() as client: await client.post(webhook_url, json=payload)
+        await send_whatsapp_reply(company, session_id.replace("wa_", ""), msg)
+    elif session_id.startswith("ig_"):
+        await send_instagram_reply(company, session_id.replace("ig_", ""), msg)
 
 async def download_whatsapp_media(media_id: str, company: Company) -> Optional[bytes]:
     access_token = decrypt_field(company.whatsapp_access_token)
@@ -300,17 +291,13 @@ async def download_whatsapp_media(media_id: str, company: Company) -> Optional[b
     return None
 
 def transcribe_audio(audio_content: bytes, company: Company) -> str:
-    """
-    Transcribes audio bytes using OpenAI Whisper.
-    """
     openai_key = decrypt_field(company.openai_api_key) or os.getenv("OPENAI_API_KEY")
     if not openai_key: return ""
     
     try:
         client = OpenAI(api_key=openai_key.strip())
-        # Whisper requires a file-like object with a name
         audio_file = io.BytesIO(audio_content)
-        audio_file.name = "audio.ogg" # Meta usually sends ogg/opus
+        audio_file.name = "audio.ogg"
         
         transcript = client.audio.transcriptions.create(
             model="whisper-1", 

@@ -321,8 +321,13 @@ async def handle_meta_webhook(request: Request, background_tasks: BackgroundTask
                     
                     if text or image_url:
                         result = process_message_v3(company, f"wa_{from_num}", text, db, image_url=image_url)
-                        from utils import send_whatsapp_reply
+                        from utils import send_whatsapp_reply, send_post_interaction_confirmation
                         background_tasks.add_task(send_whatsapp_reply, company, from_num, result.get("reply", ""))
+                        
+                        # [NEW] Proactive Luxury Follow-up
+                        if result.get("reply") and ("[RESERVATION_TOOL_CALL]" in result["reply"] or "[ORDER_TOOL_CALL]" in result["reply"]):
+                            ctype = "reservation" if "[RESERVATION_TOOL_CALL]" in result["reply"] else "order"
+                            background_tasks.add_task(send_post_interaction_confirmation, company, f"wa_{from_num}", ctype)
 
         # 2. Handle Instagram
         elif "messaging" in entry:
@@ -336,8 +341,13 @@ async def handle_meta_webhook(request: Request, background_tasks: BackgroundTask
                 
                 if company:
                     result = process_message_v3(company, f"ig_{sender_id}", text, db)
-                    from utils import send_instagram_reply
+                    from utils import send_instagram_reply, send_post_interaction_confirmation
                     background_tasks.add_task(send_instagram_reply, company, sender_id, result["reply"])
+                    
+                    # [NEW] Proactive Luxury Follow-up
+                    if result.get("reply") and ("[RESERVATION_TOOL_CALL]" in result["reply"] or "[ORDER_TOOL_CALL]" in result["reply"]):
+                        ctype = "reservation" if "[RESERVATION_TOOL_CALL]" in result["reply"] else "order"
+                        background_tasks.add_task(send_post_interaction_confirmation, company, f"ig_{sender_id}", ctype)
                     
         return {"status": "ok"}
     except Exception as e:

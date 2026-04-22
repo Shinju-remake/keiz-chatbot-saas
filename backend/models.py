@@ -48,6 +48,7 @@ class Company(SQLModel, table=True):
     reservations: List["Reservation"] = Relationship(back_populates="company")
     sessions: List["ChatSession"] = Relationship(back_populates="company")
     insights: List["TrendInsight"] = Relationship(back_populates="company")
+    orders: List["Order"] = Relationship(back_populates="company")
 
 class ChatSession(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -78,6 +79,18 @@ class Reservation(SQLModel, table=True):
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
     company: "Company" = Relationship(back_populates="reservations")
+
+class Order(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    company_id: int = Field(foreign_key="company.id")
+    customer_name: str
+    items: str 
+    total_price: float = Field(default=0.0)
+    delivery_address: Optional[str] = None
+    status: str = Field(default="confirmed")
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+    company: Company = Relationship(back_populates="orders")
 
 class ChatLog(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
