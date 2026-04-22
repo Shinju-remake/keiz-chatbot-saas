@@ -20,18 +20,27 @@ import random
 from cryptography.fernet import Fernet
 
 ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY")
-cipher_suite = Fernet(ENCRYPTION_KEY.encode()) if ENCRYPTION_KEY else None
+try:
+    cipher_suite = Fernet(ENCRYPTION_KEY.encode()) if ENCRYPTION_KEY else None
+except Exception as e:
+    print(f"⚠️ ENCRYPTION ENGINE ERROR: {e}. Secrets will remain unencrypted.")
+    cipher_suite = None
 
 def encrypt_field(value: str) -> Optional[str]:
     if not value or not cipher_suite: return value
-    return cipher_suite.encrypt(value.encode()).decode()
+    try:
+        return cipher_suite.encrypt(value.encode()).decode()
+    except Exception as e:
+        print(f"❌ ENCRYPTION ERROR: {e}")
+        return value
 
 def decrypt_field(value: str) -> Optional[str]:
     if not value or not cipher_suite: return value
     try:
         return cipher_suite.decrypt(value.encode()).decode()
-    except:
-        return value # Return as-is if decryption fails (e.g. not encrypted yet)
+    except Exception as e:
+        # If decryption fails, it might be plain text or encrypted with a different key
+        return value 
 
 def process_message_v3(company: Company, session_id: str, user_msg: str, db: Session, language: str = "en", image_url: Optional[str] = None) -> dict:
     session_state = db.exec(select(ChatSession).where(ChatSession.company_id == company.id, ChatSession.session_id == session_id)).first()

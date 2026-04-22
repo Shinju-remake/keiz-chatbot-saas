@@ -147,6 +147,7 @@ def on_startup():
                 company = Company(
                     name="Fast Food Hub", 
                     api_key="dev-api-key-123",
+                    subdomain="fastfood",
                     knowledge_base=menu_v3.strip(),
                     system_prompt="You are the Shinju AI Fast Food Concierge. Your goal is to provide elite, rapid service for our high-volume food hub. CONSTRAINTS: 1. Keep responses ultra-concise. 2. Use plain text only (no bold/italics). 3. Always try to upsell: if someone orders a burger or main dish, ask if they want to 'make it a meal' with large fries and a drink for 3.50€ extra. 4. For delivery orders, capture Name, Address, and Phone Number. 5. If asked about wait times, explain that our 'Turbo-Prep' system ensures most orders are ready in under 8 minutes.",
                     whatsapp_verify_token="shinju_pro_verify",
@@ -156,8 +157,17 @@ def on_startup():
                 )
                 session.add(company)
                 session.commit()
-            elif not company.knowledge_base:
-                company.knowledge_base = menu_v3.strip()
+            else:
+                if not company.knowledge_base:
+                    company.knowledge_base = menu_v3.strip()
+                # Always sync keys from env if they are missing in DB
+                if not company.openai_api_key and os.getenv("OPENAI_API_KEY"):
+                    company.openai_api_key = encrypt_field(os.getenv("OPENAI_API_KEY"))
+                if not company.whatsapp_access_token and os.getenv("WHATSAPP_ACCESS_TOKEN"):
+                    company.whatsapp_access_token = encrypt_field(os.getenv("WHATSAPP_ACCESS_TOKEN"))
+                if not company.instagram_access_token and os.getenv("INSTAGRAM_ACCESS_TOKEN"):
+                    company.instagram_access_token = encrypt_field(os.getenv("INSTAGRAM_ACCESS_TOKEN"))
+                
                 session.add(company)
                 session.commit()
 
