@@ -107,11 +107,6 @@ def process_message_v3(company: Company, session_id: str, user_msg: str, db: Ses
             )
             db.add(new_res); db.commit()
             
-            # Post-interaction trigger
-            from main import background_tasks
-            # Note: This is a hack because process_message_v3 doesn't have background_tasks. 
-            # In main.py we will handle this properly.
-            
             if not reply_text:
                 reply = f"Great! I've confirmed your reservation for {new_res.customer_name} on {new_res.date_time} for {new_res.pax} people."
             else:

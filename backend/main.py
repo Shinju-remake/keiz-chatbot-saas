@@ -190,7 +190,7 @@ class ChatResponse(BaseModel):
 
 @app.post("/chat", response_model=ChatResponse)
 @limiter.limit("60/minute")
-async def chat_endpoint(request: Request, msg: ChatMessage, x_api_key: str = Header(...), db: Session = Depends(get_session)):
+async def chat_endpoint(request: Request, msg: ChatMessage, background_tasks: BackgroundTasks, x_api_key: str = Header(...), db: Session = Depends(get_session)):
     company = db.exec(select(Company).where(Company.api_key == x_api_key)).first()
     if not company:
         raise HTTPException(status_code=403, detail="Invalid API Key")
@@ -198,7 +198,12 @@ async def chat_endpoint(request: Request, msg: ChatMessage, x_api_key: str = Hea
     # Process message and get rich metadata
     result = process_message_v3(company, msg.session_id, msg.message, db, language=msg.language)
     
-    # result now contains 'reply', 'source', and potentially 'agent_identity'
+    # [NEW] Proactive Luxury Follow-up for Web Chat
+    if result.get("reply") and ("[RESERVATION_TOOL_CALL]" in result["reply"] or "[ORDER_TOOL_CALL]" in result["reply"]):
+        from utils import send_post_interaction_confirmation
+        ctype = "reservation" if "[RESERVATION_TOOL_CALL]" in result["reply"] else "order"
+        background_tasks.add_task(send_post_interaction_confirmation, company, msg.session_id, ctype)
+
     return ChatResponse(**result)
 
 # --- THE UNIVERSAL CONSOLE ---
