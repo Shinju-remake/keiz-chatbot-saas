@@ -1,0 +1,37 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UCA L1 Master Tutor - AI Study Buddy</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; color: #1c1e21; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .tutor-card { background-color: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); text-align: center; max-width: 450px; border-top: 5px solid #0056b3; }
+        h1 { color: #0056b3; margin-bottom: 10px; }
+        p { font-size: 1.1rem; line-height: 1.5; color: #4b4f56; }
+        .badge { display: inline-block; background-color: #e7f3ff; color: #1877f2; padding: 5px 10px; border-radius: 5px; font-weight: bold; font-size: 0.9rem; margin-top: 10px; }
+        .price-tag { font-size: 1.5rem; color: #28a745; font-weight: bold; margin: 15px 0; }
+    </style>
+</head>
+<body>
+    <div class="tutor-card">
+        <h1>UCA L1 - Master Tutor</h1>
+        <div class="badge">Official Intro to Programming Prep</div>
+        <p>Don't fail your finals. This AI is trained on your exact C programming exercises and previous exam patterns.</p>
+        <p>Chat below to start your mock test.</p>
+        <div class="price-tag">20€ / Semester</div>
+    </div>
+    <script>
+        (function() {
+            var s = document.createElement('script');
+            s.src = 'projects/chatbot_saas/widget/shinju-widget.js';
+            s.async = true;
+            s.onload = function() {
+                window.ShinjuAI.init({ apiKey: 'uca-tutor-key-2026', primaryColor: '#0056b3', subdomain: 'uca-tutor' });
+            };
+            document.head.appendChild(s);
+        })();
+    </script>
+</body>
+</html>

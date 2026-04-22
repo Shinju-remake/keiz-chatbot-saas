@@ -1,0 +1,6 @@
+UCA L1 Intro to Programming - Master Tutor 2026
+Topics:
+- C Programming: Structs (Ex1 Personne), Memory Management.
+- Logic: Exercise 2 Pizza logic and ordering flow.
+- Exams: 2025 Mock exam review included.
+- Goal: Pass the final exam with 15/20 or higher.
