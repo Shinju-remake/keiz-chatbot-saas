@@ -81,14 +81,20 @@ def on_startup():
         with Session(engine) as db:
             existing = db.exec(select(Company).where(Company.subdomain == "bistro")).first()
             if not existing:
-                from setup_demo_bistro import add_bistro_demo
+                try:
+                    from setup_demo_bistro import add_bistro_demo
+                except ImportError:
+                    from .setup_demo_bistro import add_bistro_demo
                 add_bistro_demo()
                 print("Bistro demo initialized automatically.")
             
             # Seed orders if none exist for bistro
             bistro = db.exec(select(Company).where(Company.subdomain == "bistro")).first()
             if bistro and len(bistro.orders) == 0:
-                from seed_demo_orders import seed_orders
+                try:
+                    from seed_demo_orders import seed_orders
+                except ImportError:
+                    from .seed_demo_orders import seed_orders
                 seed_orders()
                 print("Bistro orders seeded automatically.")
 
