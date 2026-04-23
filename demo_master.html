@@ -10,9 +10,9 @@
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&display=swap');
         body { font-family: 'Space Grotesk', sans-serif; background-color: #0F172A; color: white; }
         .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
-        .gradient-text { background: linear-gradient(90deg, #FF4B2B, #FF416C); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .kitchen-card { border-left: 4px solid #FF4B2B; transition: all 0.3s ease; }
-        .kitchen-card:hover { transform: translateX(5px); background: rgba(255, 75, 43, 0.1); }
+        .gradient-text { background: linear-gradient(90deg, #BB00FF, #7000FF); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .kitchen-card { border-left: 4px solid #BB00FF; transition: all 0.3s ease; }
+        .kitchen-card:hover { transform: translateX(5px); background: rgba(187, 0, 255, 0.1); }
     </style>
 </head>
 <body class="min-h-screen p-6">
@@ -31,8 +31,8 @@
                 <span class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
                 SYSTEM ONLINE
             </div>
-            <div class="px-4 py-2 glass rounded-full text-xs font-bold text-slate-300">
-                CLIENT: SHINJU BISTRO
+            <div class="px-4 py-2 glass rounded-full text-xs font-bold text-slate-300 uppercase">
+                NODE: BISTRO-2026
             </div>
         </div>
     </header>
@@ -75,7 +75,7 @@
         <div class="lg:col-span-5 flex flex-col gap-4">
             <div class="flex justify-between items-end">
                 <h2 class="text-xl font-bold uppercase tracking-widest text-slate-500">Live Kitchen Feed</h2>
-                <button onclick="fetchOrders()" class="text-xs text-[#FF4B2B] font-bold hover:underline">REFRESH NOW</button>
+                <button onclick="fetchOrders()" class="text-xs text-[#BB00FF] font-bold hover:underline">REFRESH NOW</button>
             </div>
             <div class="flex-grow glass rounded-3xl p-6 overflow-y-auto border-2 border-dashed border-slate-700">
                 <div id="orders-container" class="flex flex-col gap-4 text-slate-400 text-center py-20">
@@ -87,7 +87,7 @@
     </main>
 
     <!-- UI Overlay for QR Code -->
-    <div class="fixed bottom-10 right-10 w-48 p-4 glass rounded-2xl text-center shadow-2xl border-2 border-[#FF4B2B]">
+    <div class="fixed bottom-10 right-10 w-48 p-4 glass rounded-2xl text-center shadow-2xl border-2 border-[#BB00FF]">
         <p class="text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-tighter">Scan to Try on Phone</p>
         <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://keiz-chatbot-saas-1.onrender.com/demo" class="w-full rounded-lg mb-2 grayscale brightness-125" alt="QR Code">
         <p class="text-[9px] text-slate-500">Live Production Link</p>
@@ -102,7 +102,7 @@
             s.onload = function() {
                 window.ShinjuAI.init({
                     apiKey: 'bistro-demo-2026',
-                    primaryColor: '#FF4B2B',
+                    primaryColor: '#BB00FF',
                     logoUrl: 'https://cdn-icons-png.flaticon.com/512/3443/3443391.png',
                     subdomain: 'bistro'
                 });
@@ -135,7 +135,7 @@
                     card.innerHTML = `
                         <div class="flex justify-between items-center">
                             <span class="text-xs font-bold text-slate-500 uppercase tracking-widest">ORDER #${order.id}</span>
-                            <span class="text-xs font-bold text-[#FF4B2B]">${time}</span>
+                            <span class="text-xs font-bold text-[#BB00FF]">${time}</span>
                         </div>
                         <div class="text-lg font-bold text-white">${order.customer_name}</div>
                         <div class="text-sm text-slate-300 bg-slate-800/50 p-3 rounded-lg border border-slate-700 italic">

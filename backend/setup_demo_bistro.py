@@ -13,7 +13,7 @@ def add_bistro_demo():
     name = "Shinju Bistro"
     subdomain = "bistro"
     api_key = "bistro-demo-2026"
-    primary_color = "#FF4B2B" # Vibrant Orange-Red
+    primary_color = "#BB00FF" # Shinju Neon Purple
     system_prompt = """You are the AI Waiter for Shinju Bistro. Your goal is to take orders quickly and up-sell.
 CONSTRAINTS:
 1. Be friendly but efficient.
