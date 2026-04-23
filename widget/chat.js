@@ -24,11 +24,18 @@
         }
     };
 
-    const BASE_ORIGIN = (window.location.origin.includes("localhost") || window.location.origin.includes("127.0.0.1"))
-                        ? window.location.origin 
-                        : "https://keiz-chatbot-saas-1.onrender.com";
-    const BACKEND_URL = `${BASE_ORIGIN}/chat`;
-    const TRANSCRIBE_URL = `${BASE_ORIGIN}/transcribe`;
+    // Robust Backend URL resolution
+    let BACKEND_BASE = "";
+    if (window.location.origin.includes("localhost") || 
+        window.location.origin.includes("127.0.0.1") || 
+        window.location.origin.includes("onrender.com")) {
+        BACKEND_BASE = window.location.origin;
+    } else {
+        BACKEND_BASE = "https://keiz-chatbot-saas-1.onrender.com";
+    }
+
+    const BACKEND_URL = `${BACKEND_BASE}/chat`;
+    const TRANSCRIBE_URL = `${BACKEND_BASE}/transcribe`;
 
     ShinjuAI.sessionId = localStorage.getItem("shinju_chat_session") || "sess_" + Math.random().toString(36).substr(2, 9);
     localStorage.setItem("shinju_chat_session", ShinjuAI.sessionId);
