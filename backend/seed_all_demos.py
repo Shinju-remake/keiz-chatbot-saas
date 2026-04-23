@@ -1,8 +1,12 @@
 
 import os
 from sqlmodel import Session, select
-from database import engine
-from models import Company
+try:
+    from database import engine
+    from models import Company
+except ImportError:
+    from .database import engine
+    from .models import Company
 
 def seed_all_demos():
     demos = [

@@ -393,7 +393,10 @@ async def trigger_pro_automation(company: Company, user_msg: str, session_id: st
 async def schedule_reengagement(company_id: int, session_id: str):
     import asyncio
     await asyncio.sleep(10)
-    from database import engine
+    try:
+        from database import engine
+    except ImportError:
+        from .database import engine
     with Session(engine) as db:
         session = db.exec(select(ChatSession).where(ChatSession.company_id == company_id, ChatSession.session_id == session_id)).first()
         if session and session.reengagement_status == "none" and session.customer_phone:

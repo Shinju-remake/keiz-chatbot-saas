@@ -11,8 +11,13 @@ import pdfplumber
 import io
 import hmac
 import hashlib
-from pathlib import Path
 from dotenv import load_dotenv
+import sys
+from pathlib import Path
+
+# Add current directory to sys.path for Render/Production import stability
+_CURRENT_DIR = Path(__file__).resolve().parent
+sys.path.append(str(_CURRENT_DIR))
 
 # Rate limiting
 from slowapi import Limiter, _rate_limit_exceeded_handler
