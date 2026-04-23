@@ -35,9 +35,9 @@ MENU:
 
     try:
         cursor.execute('''
-            INSERT INTO company (name, subdomain, api_key, primary_color, system_prompt, knowledge_base, plan)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        ''', (name, subdomain, api_key, primary_color, system_prompt, menu, "pro"))
+            INSERT INTO company (name, subdomain, api_key, primary_color, system_prompt, knowledge_base, plan, email_automation_enabled)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (name, subdomain, api_key, primary_color, system_prompt, menu, "pro", 0))
         conn.commit()
         print(f"Successfully added {name} to the database.")
     except Exception as e:
