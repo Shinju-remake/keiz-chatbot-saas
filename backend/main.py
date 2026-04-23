@@ -77,26 +77,12 @@ async def health_check():
 def on_startup():
     try:
         create_db_and_tables()
-        # --- AUTO-INITIALIZE BISTRO DEMO ---
-        with Session(engine) as db:
-            existing = db.exec(select(Company).where(Company.subdomain == "bistro")).first()
-            if not existing:
-                try:
-                    from setup_demo_bistro import add_bistro_demo
-                except ImportError:
-                    from .setup_demo_bistro import add_bistro_demo
-                add_bistro_demo()
-                print("Bistro demo initialized automatically.")
-            
-            # Seed orders if none exist for bistro
-            bistro = db.exec(select(Company).where(Company.subdomain == "bistro")).first()
-            if bistro and len(bistro.orders) == 0:
-                try:
-                    from seed_demo_orders import seed_orders
-                except ImportError:
-                    from .seed_demo_orders import seed_orders
-                seed_orders()
-                print("Bistro orders seeded automatically.")
+        # --- UNIFIED DEMO SEEDING ---
+        try:
+            from seed_all_demos import seed_all_demos
+        except ImportError:
+            from .seed_all_demos import seed_all_demos
+        seed_all_demos()
 
         # Ensure new columns exist for existing tables (manual SQLite migration)
         from sqlalchemy import text
