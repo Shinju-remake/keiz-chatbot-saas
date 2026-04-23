@@ -87,7 +87,9 @@ async def process_message_v3(company: Company, session_id: str, user_msg: str, d
                 agent_id = "Shinju AI Fail-Safe"
         except Exception as e:
             trace_id = f"EXC-{datetime.utcnow().strftime('%H%M%S')}"
-            reply = f"I encountered an internal error [{trace_id}]: {str(e)}"
+            # Log full exception for keizinho
+            print(f"❌ PIPELINE CRASH [{trace_id}]: {type(e).__name__}: {str(e)}")
+            reply = f"I encountered an internal error [{trace_id}]: {type(e).__name__}: {str(e)}"
             source = "fallback"
             agent_id = "Shinju AI Error-Guard"
 
@@ -160,109 +162,111 @@ async def get_ai_response(company: Company, session_id: str, user_msg: str, db: 
         print(f"⚠️ AI ERROR: No valid OpenAI Key found for {company.name}")
         return None
     
-    try:
-        client = AsyncOpenAI(api_key=openai_key.strip(), timeout=30.0)
-        
-        raw_kb = company.knowledge_base or ""
-        user_input_lower = user_msg.lower()
-        if any(kw in user_input_lower for kw in ["menu", "price", "order", "what do you have", "show me", "selection"]) or image_url:
-            rag_context = f"DIRECT MENU DATA: {raw_kb[:2000]}"
-        else:
-            try:
-                rag_context = search_kb(company.id, user_msg, api_key=openai_key)
-            except Exception as e:
-                print(f"⚠️ RAG Search Error: {e}")
-                rag_context = ""
-            if not rag_context and raw_kb: rag_context = raw_kb[:1000]
-        
-        history = db.exec(select(ChatLog).where(ChatLog.company_id == company.id, ChatLog.session_id == session_id).order_by(ChatLog.timestamp.desc()).limit(6)).all()
-        lang_names = {"en": "English", "fr": "French", "es": "Spanish"}
-        target_lang = lang_names.get(language, "English")
-        
-        master_prompt = (
-            f"{company.system_prompt}\n"
-            f"IDENTITIES: Switch between 'Sales Concierge' (for bookings/orders) and 'Support Specialist' (for info).\n"
-            f"KNOWLEDGE: {rag_context}\n"
-            f"LANGUAGE: Respond ONLY in {target_lang}."
-        )
-        
-        messages = [{"role": "system", "content": master_prompt}]
-        for h in reversed(history):
-            if h.user_msg and h.bot_reply:
-                messages.append({"role": "user", "content": h.user_msg})
-                messages.append({"role": "assistant", "content": h.bot_reply})
-            
-        user_content = [{"type": "text", "text": user_msg}]
-        if image_url:
-            user_content.append({"type": "image_url", "image_url": {"url": image_url}})
-            
-        messages.append({"role": "user", "content": user_content})
-        
-        tools = [
-            {
-                "type": "function",
-                "function": {
-                    "name": "create_reservation",
-                    "description": "Creates a new table reservation for the customer.",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "name": {"type": "string", "description": "The name of the customer."},
-                            "date_time": {"type": "string", "description": "The date and time (e.g. 2024-05-20 19:00)."},
-                            "pax": {"type": "integer", "description": "Number of people."}
-                        },
-                        "required": ["name", "date_time", "pax"]
-                    }
-                }
-            },
-            {
-                "type": "function",
-                "function": {
-                    "name": "create_order",
-                    "description": "Creates a new delivery order for the customer.",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "name": {"type": "string", "description": "The name of the customer."},
-                            "items": {"type": "string", "description": "List of food items."},
-                            "address": {"type": "string", "description": "Delivery address."},
-                            "total_price": {"type": "number", "description": "Total price in EUR."}
-                        },
-                        "required": ["name", "items", "address", "total_price"]
-                    }
-                }
-            }
-        ]
-        
+    # Managed HTTP Bridge for Stability
+    async with httpx.AsyncClient(timeout=30.0, http2=False, limits=httpx.Limits(max_keepalive_connections=5, max_connections=10)) as http_client:
         try:
-            response = await client.chat.completions.create(model="gpt-4o-mini", messages=messages, tools=tools, tool_choice="auto", max_tokens=300, temperature=0.7)
-        except Exception as e:
-            print(f"⚠️ GPT-4o-Mini Error: {e}. Falling back to GPT-4o.")
-            try:
-                response = await client.chat.completions.create(model="gpt-4o", messages=messages, tools=tools, tool_choice="auto", max_tokens=300, temperature=0.7)
-            except Exception as e2:
-                raise Exception(f"OpenAI Multi-Model Failure: [Mini: {str(e)}] [Main: {str(e2)}]")
+            client = AsyncOpenAI(api_key=openai_key.strip(), http_client=http_client)
             
-        message = response.choices[0].message
-        full_reply = message.content or ""
-        
-        if message.tool_calls:
-            tool_call = message.tool_calls[0]
-            if tool_call.function.name == "create_reservation":
-                args = json.loads(tool_call.function.arguments)
-                full_reply += f"\n[RESERVATION_TOOL_CALL]{json.dumps(args)}"
-            elif tool_call.function.name == "create_order":
-                args = json.loads(tool_call.function.arguments)
-                full_reply += f"\n[ORDER_TOOL_CALL]{json.dumps(args)}"
+            raw_kb = company.knowledge_base or ""
+            user_input_lower = user_msg.lower()
+            if any(kw in user_input_lower for kw in ["menu", "price", "order", "what do you have", "show me", "selection"]) or image_url:
+                rag_context = f"DIRECT MENU DATA: {raw_kb[:2000]}"
+            else:
+                try:
+                    rag_context = search_kb(company.id, user_msg, api_key=openai_key)
+                except Exception as e:
+                    print(f"⚠️ RAG Search Error: {e}")
+                    rag_context = ""
+                if not rag_context and raw_kb: rag_context = raw_kb[:1000]
+            
+            history = db.exec(select(ChatLog).where(ChatLog.company_id == company.id, ChatLog.session_id == session_id).order_by(ChatLog.timestamp.desc()).limit(6)).all()
+            lang_names = {"en": "English", "fr": "French", "es": "Spanish"}
+            target_lang = lang_names.get(language, "English")
+            
+            master_prompt = (
+                f"{company.system_prompt}\n"
+                f"IDENTITIES: Switch between 'Sales Concierge' (for bookings/orders) and 'Support Specialist' (for info).\n"
+                f"KNOWLEDGE: {rag_context}\n"
+                f"LANGUAGE: Respond ONLY in {target_lang}."
+            )
+            
+            messages = [{"role": "system", "content": master_prompt}]
+            for h in reversed(history):
+                if h.user_msg and h.bot_reply:
+                    messages.append({"role": "user", "content": h.user_msg})
+                    messages.append({"role": "assistant", "content": h.bot_reply})
+                
+            user_content = [{"type": "text", "text": user_msg}]
+            if image_url:
+                user_content.append({"type": "image_url", "image_url": {"url": image_url}})
+                
+            messages.append({"role": "user", "content": user_content})
+            
+            tools = [
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "create_reservation",
+                        "description": "Creates a new table reservation.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "name": {"type": "string"},
+                                "date_time": {"type": "string"},
+                                "pax": {"type": "integer"}
+                            },
+                            "required": ["name", "date_time", "pax"]
+                        }
+                    }
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "create_order",
+                        "description": "Creates a new delivery order.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "name": {"type": "string"},
+                                "items": {"type": "string"},
+                                "address": {"type": "string"},
+                                "total_price": {"type": "number"}
+                            },
+                            "required": ["name", "items", "address", "total_price"]
+                        }
+                    }
+                }
+            ]
+            
+            try:
+                response = await client.chat.completions.create(model="gpt-4o-mini", messages=messages, tools=tools, tool_choice="auto", max_tokens=300, temperature=0.7)
+            except Exception as e:
+                print(f"⚠️ GPT-4o-Mini Error: {e}. Falling back to GPT-4o.")
+                try:
+                    response = await client.chat.completions.create(model="gpt-4o", messages=messages, tools=tools, tool_choice="auto", max_tokens=300, temperature=0.7)
+                except Exception as e2:
+                    raise Exception(f"OpenAI Multi-Model Failure: [Mini: {type(e).__name__}: {str(e)}] [Main: {type(e2).__name__}: {str(e2)}]")
+                
+            message = response.choices[0].message
+            full_reply = message.content or ""
+            
+            if message.tool_calls:
+                tool_call = message.tool_calls[0]
+                if tool_call.function.name == "create_reservation":
+                    args = json.loads(tool_call.function.arguments)
+                    full_reply += f"\n[RESERVATION_TOOL_CALL]{json.dumps(args)}"
+                elif tool_call.function.name == "create_order":
+                    args = json.loads(tool_call.function.arguments)
+                    full_reply += f"\n[ORDER_TOOL_CALL]{json.dumps(args)}"
 
-        agent_id = "AI Support Specialist"
-        if "[RESERVATION_TOOL_CALL]" in full_reply or "[ORDER_TOOL_CALL]" in full_reply: agent_id = "AI Sales Concierge"
-        elif full_reply.startswith("[SALES]"): agent_id = "AI Sales Concierge"; full_reply = full_reply.replace("[SALES]", "").strip()
-        elif full_reply.startswith("[SUPPORT]"): full_reply = full_reply.replace("[SUPPORT]", "").strip()
+            agent_id = "AI Support Specialist"
+            if "[RESERVATION_TOOL_CALL]" in full_reply or "[ORDER_TOOL_CALL]" in full_reply: agent_id = "AI Sales Concierge"
+            elif full_reply.startswith("[SALES]"): agent_id = "AI Sales Concierge"; full_reply = full_reply.replace("[SALES]", "").strip()
+            elif full_reply.startswith("[SUPPORT]"): full_reply = full_reply.replace("[SUPPORT]", "").strip()
 
-        return {"reply": full_reply.strip(), "agent_identity": agent_id}
-    except Exception as e:
-        raise e
+            return {"reply": full_reply.strip(), "agent_identity": agent_id}
+        except Exception as e:
+            raise e
 
 async def send_whatsapp_reply(company: Company, to_number: str, text: str):
     access_token = decrypt_field(company.whatsapp_access_token)
@@ -316,8 +320,6 @@ def transcribe_audio(audio_content: bytes, company: Company) -> str:
     if not openai_key: return ""
     
     try:
-        # Note: Whisper doesn't have a direct async method in the legacy way, 
-        # but we can use AsyncOpenAI's version if available or run in thread.
         from openai import OpenAI
         client = OpenAI(api_key=openai_key.strip())
         audio_file = io.BytesIO(audio_content)
