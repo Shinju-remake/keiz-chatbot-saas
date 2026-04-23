@@ -1,0 +1,161 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shinju AI - Restaurant Demo Master</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&display=swap');
+        body { font-family: 'Space Grotesk', sans-serif; background-color: #0F172A; color: white; }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+        .gradient-text { background: linear-gradient(90deg, #FF4B2B, #FF416C); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .kitchen-card { border-left: 4px solid #FF4B2B; transition: all 0.3s ease; }
+        .kitchen-card:hover { transform: translateX(5px); background: rgba(255, 75, 43, 0.1); }
+    </style>
+</head>
+<body class="min-h-screen p-6">
+    <!-- Header -->
+    <header class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-3xl font-bold gradient-text">SHINJU AI</h1>
+            <p class="text-slate-400 text-sm">Elite Restaurant Automation - Master Control</p>
+        </div>
+        <div class="flex gap-4">
+            <div class="px-4 py-2 glass rounded-full text-xs font-bold text-emerald-400 flex items-center gap-2">
+                <span class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
+                SYSTEM ONLINE
+            </div>
+            <div class="px-4 py-2 glass rounded-full text-xs font-bold text-slate-300">
+                CLIENT: SHINJU BISTRO
+            </div>
+        </div>
+    </header>
+
+    <main class="grid grid-cols-1 lg:grid-cols-12 gap-8 h-[calc(100vh-150px)]">
+        <!-- CUSTOMER VIEW (LEFT) -->
+        <div class="lg:col-span-7 flex flex-col gap-4">
+            <div class="flex justify-between items-end">
+                <h2 class="text-xl font-bold uppercase tracking-widest text-slate-500">Customer View</h2>
+                <p class="text-xs text-slate-400 italic">Simulated Mobile Interface</p>
+            </div>
+            <div class="flex-grow glass rounded-3xl overflow-hidden relative border-4 border-slate-800 shadow-2xl">
+                 <div class="absolute top-0 left-0 w-full h-12 bg-slate-800 flex justify-center items-center">
+                    <div class="w-20 h-4 bg-slate-900 rounded-full"></div>
+                 </div>
+                 <div class="mt-12 h-full bg-white text-slate-900 flex flex-col items-center justify-center p-8 text-center">
+                    <img src="https://cdn-icons-png.flaticon.com/512/3443/3443391.png" class="w-24 h-24 mb-6" alt="Shinju Bistro">
+                    <h3 class="text-3xl font-bold mb-2">Shinju Bistro</h3>
+                    <p class="text-slate-500 mb-8 max-w-sm">Welcome to the future of dining. Click the bubble below to order instantly.</p>
+                    
+                    <div class="grid grid-cols-2 gap-4 w-full max-w-md">
+                        <div class="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                            <span class="block font-bold text-lg">Burger</span>
+                            <span class="text-sm text-slate-500">From 12€</span>
+                        </div>
+                        <div class="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                            <span class="block font-bold text-lg">Drinks</span>
+                            <span class="text-sm text-slate-500">From 3€</span>
+                        </div>
+                    </div>
+
+                    <div class="mt-12 text-slate-400 text-xs uppercase tracking-widest">
+                        Powered by Shinju AI
+                    </div>
+                 </div>
+            </div>
+        </div>
+
+        <!-- KITCHEN VIEW (RIGHT) -->
+        <div class="lg:col-span-5 flex flex-col gap-4">
+            <div class="flex justify-between items-end">
+                <h2 class="text-xl font-bold uppercase tracking-widest text-slate-500">Live Kitchen Feed</h2>
+                <button onclick="fetchOrders()" class="text-xs text-[#FF4B2B] font-bold hover:underline">REFRESH NOW</button>
+            </div>
+            <div class="flex-grow glass rounded-3xl p-6 overflow-y-auto border-2 border-dashed border-slate-700">
+                <div id="orders-container" class="flex flex-col gap-4 text-slate-400 text-center py-20">
+                    <p>Waiting for orders...</p>
+                    <p class="text-xs">Take an order in the chat to see it appear here instantly.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- UI Overlay for QR Code -->
+    <div class="fixed bottom-10 right-10 w-48 p-4 glass rounded-2xl text-center shadow-2xl border-2 border-[#FF4B2B]">
+        <p class="text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-tighter">Scan to Try on Phone</p>
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://keiz-chatbot-saas-1.onrender.com/demo_master" class="w-full rounded-lg mb-2 grayscale brightness-125" alt="QR Code">
+        <p class="text-[9px] text-slate-500">Live Production Link</p>
+    </div>
+
+    <!-- Shinju AI Widget Loader -->
+    <script>
+        (function() {
+            var s = document.createElement('script');
+            s.src = '/widget/shinju-widget.js'; 
+            s.async = true;
+            s.onload = function() {
+                window.ShinjuAI.init({
+                    apiKey: 'bistro-demo-2026',
+                    primaryColor: '#FF4B2B',
+                    logoUrl: 'https://cdn-icons-png.flaticon.com/512/3443/3443391.png',
+                    subdomain: 'bistro'
+                });
+            };
+            document.head.appendChild(s);
+        })();
+
+        // KITCHEN POLLING LOGIC
+        const API_KEY = 'bistro-demo-2026';
+        const ORDERS_CONT = document.getElementById('orders-container');
+
+        async function fetchOrders() {
+            try {
+                const res = await fetch('/admin/orders', {
+                    headers: { 'X-API-Key': API_KEY }
+                });
+                const data = await res.json();
+                
+                if (data.length === 0) return;
+
+                ORDERS_CONT.innerHTML = '';
+                ORDERS_CONT.classList.remove('text-center', 'py-20');
+                
+                data.slice(0, 10).forEach(order => {
+                    const card = document.createElement('div');
+                    card.className = 'kitchen-card glass p-5 rounded-2xl flex flex-col gap-2';
+                    
+                    const time = new Date(order.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    
+                    card.innerHTML = `
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-bold text-slate-500 uppercase tracking-widest">ORDER #${order.id}</span>
+                            <span class="text-xs font-bold text-[#FF4B2B]">${time}</span>
+                        </div>
+                        <div class="text-lg font-bold text-white">${order.customer_name}</div>
+                        <div class="text-sm text-slate-300 bg-slate-800/50 p-3 rounded-lg border border-slate-700 italic">
+                            "${order.items}"
+                        </div>
+                        <div class="flex justify-between items-center mt-2">
+                            <span class="text-xs text-slate-400">Total Price:</span>
+                            <span class="font-bold text-emerald-400 font-mono text-xl">${order.total_price}€</span>
+                        </div>
+                        <div class="flex gap-2 mt-2">
+                            <div class="px-3 py-1 bg-emerald-500/10 text-emerald-500 text-[10px] font-bold rounded-md border border-emerald-500/20">PREPARING</div>
+                            <div class="px-3 py-1 bg-slate-500/10 text-slate-400 text-[10px] font-bold rounded-md border border-slate-500/20 uppercase">${order.delivery_address}</div>
+                        </div>
+                    `;
+                    ORDERS_CONT.appendChild(card);
+                });
+            } catch (e) {
+                console.error("Kitchen Feed Error:", e);
+            }
+        }
+
+        // Poll every 5 seconds
+        setInterval(fetchOrders, 5000);
+        fetchOrders();
+    </script>
+</body>
+</html>

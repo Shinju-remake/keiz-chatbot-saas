@@ -247,6 +247,10 @@ async def get_agency(): return await get_agency_static()
 @app.get("/demo")
 async def get_demo(): return await get_demo_static()
 
+@app.get("/demo_master")
+async def get_demo_master():
+    return FileResponse(str(BASE_DIR / "demo_master.html"))
+
 @app.get("/dashboard")
 async def get_dashboard(): return await get_dashboard_static()
 
@@ -523,6 +527,79 @@ async def correct_log(data: CorrectionIn, request: Request, x_api_key: Optional[
     db.add(new_rule)
     db.commit()
     return {"status": "success"}
+
+# --- ADMIN PORTAL ENDPOINTS ---
+
+@app.get("/admin/stats")
+async def get_admin_stats(request: Request, x_api_key: Optional[str] = Header(None), db: Session = Depends(get_session)):
+    company = get_current_company(request, db, x_api_key)
+    if not company: raise HTTPException(status_code=403, detail="Invalid Authentication")
+    
+    total_res = len(company.reservations)
+    total_orders = len(company.orders)
+    active_chats = len(company.sessions)
+    needs_review = db.exec(select(ChatLog).where(ChatLog.company_id == company.id, ChatLog.needs_review == True)).all()
+    
+    return {
+        "active_chats": active_chats,
+        "total_reservations": total_res + total_orders,
+        "needs_review": len(needs_review),
+        "avg_confidence": 98 
+    }
+
+@app.get("/admin/reservations")
+async def get_reservations(request: Request, x_api_key: Optional[str] = Header(None), db: Session = Depends(get_session)):
+    company = get_current_company(request, db, x_api_key)
+    if not company: raise HTTPException(status_code=403, detail="Invalid Authentication")
+    
+    res = [{"customer_name": r.customer_name, "date_time": r.date_time, "pax": str(r.pax), "type": "reservation"} for r in company.reservations]
+    orders = [{"customer_name": o.customer_name, "date_time": o.timestamp.strftime("%Y-%m-%d %H:%M"), "pax": o.items, "type": "order"} for o in company.orders]
+    
+    combined = res + orders
+    return sorted(combined, key=lambda x: x["date_time"], reverse=True)
+
+@app.get("/admin/orders")
+async def get_orders(request: Request, x_api_key: Optional[str] = Header(None), db: Session = Depends(get_session)):
+    company = get_current_company(request, db, x_api_key)
+    if not company: raise HTTPException(status_code=403, detail="Invalid Authentication")
+    return sorted(company.orders, key=lambda x: x.timestamp, reverse=True)
+
+@app.get("/admin/rules")
+async def get_rules(request: Request, x_api_key: Optional[str] = Header(None), db: Session = Depends(get_session)):
+    company = get_current_company(request, db, x_api_key)
+    if not company: raise HTTPException(status_code=403, detail="Invalid Authentication")
+    return company.rules
+
+@app.post("/admin/rules")
+async def add_rule(rule: FAQRule, request: Request, x_api_key: Optional[str] = Header(None), db: Session = Depends(get_session)):
+    company = get_current_company(request, db, x_api_key)
+    if not company: raise HTTPException(status_code=403, detail="Invalid Authentication")
+    rule.company_id = company.id
+    db.add(rule)
+    db.commit()
+    return {"status": "success"}
+
+@app.delete("/admin/rules/{rule_id}")
+async def delete_rule(rule_id: int, request: Request, x_api_key: Optional[str] = Header(None), db: Session = Depends(get_session)):
+    company = get_current_company(request, db, x_api_key)
+    if not company: raise HTTPException(status_code=403, detail="Invalid Authentication")
+    rule = db.get(FAQRule, rule_id)
+    if rule and rule.company_id == company.id:
+        db.delete(rule)
+        db.commit()
+    return {"status": "success"}
+
+@app.get("/admin/logs")
+async def get_logs(request: Request, x_api_key: Optional[str] = Header(None), db: Session = Depends(get_session)):
+    company = get_current_company(request, db, x_api_key)
+    if not company: raise HTTPException(status_code=403, detail="Invalid Authentication")
+    return db.exec(select(ChatLog).where(ChatLog.company_id == company.id).order_by(ChatLog.timestamp.desc()).limit(50)).all()
+
+@app.get("/admin/analytics/trends")
+async def get_trends(request: Request, x_api_key: Optional[str] = Header(None), db: Session = Depends(get_session)):
+    company = get_current_company(request, db, x_api_key)
+    if not company: raise HTTPException(status_code=403, detail="Invalid Authentication")
+    return {"trends": company.insights}
 
 # MOUNT STATIC FILES
 app.mount("/widget", StaticFiles(directory=str(BASE_DIR / "widget")), name="widget")
