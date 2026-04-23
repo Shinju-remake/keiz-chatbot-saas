@@ -54,7 +54,7 @@
             .shinju-user { background: ${this.config.primaryColor}; color: white; align-self: flex-end; }
             .shinju-bot { background: #e0e0e0; color: #333; align-self: flex-start; }
             #shinju-chat-input-area { padding: 10px; border-top: 1px solid #ddd; display: flex; align-items: center; background: white; }
-            #shinju-chat-input { flex: 1; border: none; padding: 10px; outline: none; font-size: 16px; }
+            #shinju-chat-input { flex: 1; border: none; padding: 10px; outline: none; font-size: 16px; color: #333 !important; background: white !important; }
             #shinju-mic-btn { background: transparent; border: none; cursor: pointer; font-size: 20px; padding: 5px 10px; color: #888; transition: 0.3s; border-radius: 50%; }
             #shinju-mic-btn.recording { background: #ff4d4d !important; color: white !important; box-shadow: 0 0 20px #ff4d4d; animation: shinju-pulse 1s infinite alternate !important; }
             @keyframes shinju-pulse { from { transform: scale(1); } to { transform: scale(1.3); } }
