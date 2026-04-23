@@ -327,7 +327,10 @@ def transcribe_audio(audio_content: bytes, company: Company) -> str:
 
 async def email_automation_loop():
     import imaplib, email, asyncio, time
-    from database import engine
+    try:
+        from database import engine
+    except ImportError:
+        from .database import engine
 
     while True:
         try:

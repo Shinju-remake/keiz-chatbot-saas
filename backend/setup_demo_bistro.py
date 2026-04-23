@@ -4,7 +4,8 @@ import uuid
 import os
 
 def add_bistro_demo():
-    db_path = os.path.join(os.path.dirname(__file__), 'chatbot_v3.db')
+    # Force path to match database.py (Project Root)
+    db_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'chatbot_v3.db'))
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
