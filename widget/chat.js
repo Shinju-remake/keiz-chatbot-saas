@@ -159,15 +159,29 @@
         if (!text) return;
         this.appendMessage(text, "user");
         this.input.value = "";
+        
+        if (!this.config.apiKey) {
+            this.appendMessage("Error: Missing API Key.", "bot");
+            return;
+        }
+
         try {
             const res = await fetch(BACKEND_URL, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "X-API-Key": this.config.apiKey },
                 body: JSON.stringify({ message: text, session_id: this.sessionId, language: this.currentLang })
             });
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                this.appendMessage(`Server Error: ${res.status} ${errData.detail || ""}`, "bot");
+                return;
+            }
             const data = await res.json();
             if (data.reply) { this.appendMessage(data.reply, "bot", data.agent_identity); }
-        } catch (e) { this.appendMessage("Connection lost.", "bot"); }
+        } catch (e) { 
+            console.error("Shinju Chat Error:", e);
+            this.appendMessage("Connection lost. Please check your network.", "bot"); 
+        }
     };
 
     ShinjuAI.startRecording = async function() {
