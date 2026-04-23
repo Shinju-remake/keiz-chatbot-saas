@@ -55,6 +55,17 @@
 
     <!-- START OF SHINJU CHAT WIDGET EMBED CODE -->
     <script src="/widget/chat.js"></script>
+    <script>
+        window.onload = function() {
+            if (window.ShinjuAI) {
+                window.ShinjuAI.init({
+                    apiKey: 'bistro-demo-2026',
+                    primaryColor: '#BB00FF',
+                    subdomain: 'bistro'
+                });
+            }
+        };
+    </script>
     <!-- END OF SHINJU CHAT WIDGET EMBED CODE -->
 </body>
 </html>
