@@ -193,7 +193,8 @@ async def get_ai_response(company: Company, session_id: str, user_msg: str, db: 
         print(f"⚠️ AI ERROR: No valid OpenAI Key found for {company.name}")
         return None
     
-    openai_key = openai_key.strip()
+    # Deep Clean: Remove all whitespace, newlines, and tabs from the key
+    openai_key = "".join(str(openai_key).split())
     
     # Context Assembly
     raw_kb = company.knowledge_base or ""
