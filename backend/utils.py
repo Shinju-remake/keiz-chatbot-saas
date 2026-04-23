@@ -87,8 +87,14 @@ async def process_message_v3(company: Company, session_id: str, user_msg: str, d
                 agent_id = "Shinju AI Fail-Safe"
         except Exception as e:
             trace_id = f"EXC-{datetime.utcnow().strftime('%H%M%S')}"
-            print(f"❌ PIPELINE CRASH [{trace_id}]: {type(e).__name__}: {str(e)}")
-            reply = f"I encountered an internal error [{trace_id}]: {type(e).__name__}: {str(e)}"
+            error_msg = str(e)
+            # Security: Redact potential API keys from the error output
+            if "sk-" in error_msg:
+                import re
+                error_msg = re.sub(r'sk-[a-zA-Z0-9_-]{20,}', '[REDACTED_KEY]', error_msg)
+            
+            print(f"❌ PIPELINE CRASH [{trace_id}]: {type(e).__name__}: {error_msg}")
+            reply = f"I encountered an internal error [{trace_id}]: {type(e).__name__}: {error_msg}"
             source = "fallback"
             agent_id = "Shinju AI Error-Guard"
 
@@ -180,12 +186,14 @@ async def get_ai_response(company: Company, session_id: str, user_msg: str, db: 
     db_key = company.openai_api_key
     openai_key = decrypt_field(db_key) if db_key else None
     
-    if not openai_key or not str(openai_key).startswith("sk-"):
+    if not openai_key or not str(openai_key).strip().startswith("sk-"):
         openai_key = os.getenv("OPENAI_API_KEY")
         
     if not openai_key:
         print(f"⚠️ AI ERROR: No valid OpenAI Key found for {company.name}")
         return None
+    
+    openai_key = openai_key.strip()
     
     # Context Assembly
     raw_kb = company.knowledge_base or ""
@@ -246,7 +254,7 @@ async def get_ai_response(company: Company, session_id: str, user_msg: str, db: 
         
     except Exception as e:
         # Final fallback to standard library if direct bridge fails
-        print(f"⚠️ Direct Bridge Failed: {e}. Falling back to library.")
+        print(f"⚠️ Direct Bridge Failed. Falling back to library.")
         try:
             client = AsyncOpenAI(api_key=openai_key.strip())
             response = await client.chat.completions.create(model="gpt-4o-mini", messages=messages, tools=tools, tool_choice="auto")
@@ -257,7 +265,10 @@ async def get_ai_response(company: Company, session_id: str, user_msg: str, db: 
                 full_reply += f"\n[{tc.function.name.upper()}_TOOL_CALL]{tc.function.arguments}"
             return {"reply": full_reply.strip(), "agent_identity": "AI Support Specialist (Safe-Mode)"}
         except Exception as e2:
-            raise Exception(f"Total Brain Blackout: [Bridge: {str(e)}] [Lib: {str(e2)}]")
+            import re
+            clean_e1 = re.sub(r'sk-[a-zA-Z0-9_-]{20,}', '[REDACTED]', str(e))
+            clean_e2 = re.sub(r'sk-[a-zA-Z0-9_-]{20,}', '[REDACTED]', str(e2))
+            raise Exception(f"Total Brain Blackout: [Bridge: {clean_e1}] [Lib: {clean_e2}]")
 
 async def send_whatsapp_reply(company: Company, to_number: str, text: str):
     access_token = decrypt_field(company.whatsapp_access_token)
