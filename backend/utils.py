@@ -87,7 +87,6 @@ async def process_message_v3(company: Company, session_id: str, user_msg: str, d
                 agent_id = "Shinju AI Fail-Safe"
         except Exception as e:
             trace_id = f"EXC-{datetime.utcnow().strftime('%H%M%S')}"
-            # Log full exception for keizinho
             print(f"❌ PIPELINE CRASH [{trace_id}]: {type(e).__name__}: {str(e)}")
             reply = f"I encountered an internal error [{trace_id}]: {type(e).__name__}: {str(e)}"
             source = "fallback"
@@ -151,6 +150,32 @@ async def process_message_v3(company: Company, session_id: str, user_msg: str, d
 
     return {"reply": reply, "source": source, "agent_identity": agent_id}
 
+async def call_openai_raw(key: str, model: str, messages: list, tools: list = None):
+    """
+    Hyper-Stable Direct REST Bridge to OpenAI (Bypasses library issues).
+    """
+    url = "https://api.openai.com/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {key.strip()}",
+        "Content-Type": "application/json",
+        "Connection": "close"
+    }
+    payload = {
+        "model": model,
+        "messages": messages,
+        "max_tokens": 300,
+        "temperature": 0.7
+    }
+    if tools:
+        payload["tools"] = tools
+        payload["tool_choice"] = "auto"
+
+    async with httpx.AsyncClient(timeout=45.0, http2=False) as client:
+        res = await client.post(url, headers=headers, json=payload)
+        if res.status_code != 200:
+            raise Exception(f"OpenAI Direct API Error {res.status_code}: {res.text}")
+        return res.json()
+
 async def get_ai_response(company: Company, session_id: str, user_msg: str, db: Session, language: str = "en", image_url: Optional[str] = None) -> dict:
     db_key = company.openai_api_key
     openai_key = decrypt_field(db_key) if db_key else None
@@ -162,111 +187,77 @@ async def get_ai_response(company: Company, session_id: str, user_msg: str, db: 
         print(f"⚠️ AI ERROR: No valid OpenAI Key found for {company.name}")
         return None
     
-    # Managed HTTP Bridge for Stability
-    async with httpx.AsyncClient(timeout=30.0, http2=False, limits=httpx.Limits(max_keepalive_connections=5, max_connections=10)) as http_client:
+    # Context Assembly
+    raw_kb = company.knowledge_base or ""
+    user_input_lower = user_msg.lower()
+    if any(kw in user_input_lower for kw in ["menu", "price", "order", "what do you have", "show me", "selection"]) or image_url:
+        rag_context = f"DIRECT MENU DATA: {raw_kb[:2000]}"
+    else:
         try:
-            client = AsyncOpenAI(api_key=openai_key.strip(), http_client=http_client)
-            
-            raw_kb = company.knowledge_base or ""
-            user_input_lower = user_msg.lower()
-            if any(kw in user_input_lower for kw in ["menu", "price", "order", "what do you have", "show me", "selection"]) or image_url:
-                rag_context = f"DIRECT MENU DATA: {raw_kb[:2000]}"
-            else:
-                try:
-                    rag_context = search_kb(company.id, user_msg, api_key=openai_key)
-                except Exception as e:
-                    print(f"⚠️ RAG Search Error: {e}")
-                    rag_context = ""
-                if not rag_context and raw_kb: rag_context = raw_kb[:1000]
-            
-            history = db.exec(select(ChatLog).where(ChatLog.company_id == company.id, ChatLog.session_id == session_id).order_by(ChatLog.timestamp.desc()).limit(6)).all()
-            lang_names = {"en": "English", "fr": "French", "es": "Spanish"}
-            target_lang = lang_names.get(language, "English")
-            
-            master_prompt = (
-                f"{company.system_prompt}\n"
-                f"IDENTITIES: Switch between 'Sales Concierge' (for bookings/orders) and 'Support Specialist' (for info).\n"
-                f"KNOWLEDGE: {rag_context}\n"
-                f"LANGUAGE: Respond ONLY in {target_lang}."
-            )
-            
-            messages = [{"role": "system", "content": master_prompt}]
-            for h in reversed(history):
-                if h.user_msg and h.bot_reply:
-                    messages.append({"role": "user", "content": h.user_msg})
-                    messages.append({"role": "assistant", "content": h.bot_reply})
-                
-            user_content = [{"type": "text", "text": user_msg}]
-            if image_url:
-                user_content.append({"type": "image_url", "image_url": {"url": image_url}})
-                
-            messages.append({"role": "user", "content": user_content})
-            
-            tools = [
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "create_reservation",
-                        "description": "Creates a new table reservation.",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "name": {"type": "string"},
-                                "date_time": {"type": "string"},
-                                "pax": {"type": "integer"}
-                            },
-                            "required": ["name", "date_time", "pax"]
-                        }
-                    }
-                },
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "create_order",
-                        "description": "Creates a new delivery order.",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "name": {"type": "string"},
-                                "items": {"type": "string"},
-                                "address": {"type": "string"},
-                                "total_price": {"type": "number"}
-                            },
-                            "required": ["name", "items", "address", "total_price"]
-                        }
-                    }
-                }
-            ]
-            
-            try:
-                response = await client.chat.completions.create(model="gpt-4o-mini", messages=messages, tools=tools, tool_choice="auto", max_tokens=300, temperature=0.7)
-            except Exception as e:
-                print(f"⚠️ GPT-4o-Mini Error: {e}. Falling back to GPT-4o.")
-                try:
-                    response = await client.chat.completions.create(model="gpt-4o", messages=messages, tools=tools, tool_choice="auto", max_tokens=300, temperature=0.7)
-                except Exception as e2:
-                    raise Exception(f"OpenAI Multi-Model Failure: [Mini: {type(e).__name__}: {str(e)}] [Main: {type(e2).__name__}: {str(e2)}]")
-                
+            rag_context = search_kb(company.id, user_msg, api_key=openai_key)
+        except Exception as e:
+            print(f"⚠️ RAG Search Error: {e}")
+            rag_context = ""
+        if not rag_context and raw_kb: rag_context = raw_kb[:1000]
+    
+    history = db.exec(select(ChatLog).where(ChatLog.company_id == company.id, ChatLog.session_id == session_id).order_by(ChatLog.timestamp.desc()).limit(6)).all()
+    lang_names = {"en": "English", "fr": "French", "es": "Spanish"}
+    target_lang = lang_names.get(language, "English")
+    
+    master_prompt = (
+        f"{company.system_prompt}\n"
+        f"KNOWLEDGE: {rag_context}\n"
+        f"LANGUAGE: Respond ONLY in {target_lang}."
+    )
+    
+    messages = [{"role": "system", "content": master_prompt}]
+    for h in reversed(history):
+        if h.user_msg and h.bot_reply:
+            messages.append({"role": "user", "content": h.user_msg})
+            messages.append({"role": "assistant", "content": h.bot_reply})
+        
+    user_content = [{"type": "text", "text": user_msg}]
+    if image_url:
+        user_content.append({"type": "image_url", "image_url": {"url": image_url}})
+    messages.append({"role": "user", "content": user_content})
+    
+    tools = [
+        {"type": "function", "function": {"name": "create_reservation", "description": "Book a table", "parameters": {"type": "object", "properties": {"name": {"type": "string"}, "date_time": {"type": "string"}, "pax": {"type": "integer"}}, "required": ["name", "date_time", "pax"]}}},
+        {"type": "function", "function": {"name": "create_order", "description": "Place food order", "parameters": {"type": "object", "properties": {"name": {"type": "string"}, "items": {"type": "string"}, "address": {"type": "string"}, "total_price": {"type": "number"}}, "required": ["name", "items", "address", "total_price"]}}}
+    ]
+    
+    # --- HYBRID COMPLETION STRATEGY ---
+    try:
+        # Try primary via direct REST bridge (more stable on Render)
+        data = await call_openai_raw(openai_key, "gpt-4o-mini", messages, tools)
+        choice = data["choices"][0]
+        full_reply = choice["message"].get("content") or ""
+        
+        if choice["message"].get("tool_calls"):
+            tc = choice["message"]["tool_calls"][0]
+            if tc["function"]["name"] == "create_reservation":
+                full_reply += f"\n[RESERVATION_TOOL_CALL]{tc['function']['arguments']}"
+            elif tc["function"]["name"] == "create_order":
+                full_reply += f"\n[ORDER_TOOL_CALL]{tc['function']['arguments']}"
+
+        agent_id = "AI Concierge"
+        if "[RESERVATION_TOOL_CALL]" in full_reply or "[ORDER_TOOL_CALL]" in full_reply: agent_id = "AI Sales Specialist"
+        return {"reply": full_reply.strip(), "agent_identity": agent_id}
+        
+    except Exception as e:
+        # Final fallback to standard library if direct bridge fails
+        print(f"⚠️ Direct Bridge Failed: {e}. Falling back to library.")
+        try:
+            client = AsyncOpenAI(api_key=openai_key.strip())
+            response = await client.chat.completions.create(model="gpt-4o-mini", messages=messages, tools=tools, tool_choice="auto")
             message = response.choices[0].message
             full_reply = message.content or ""
-            
             if message.tool_calls:
-                tool_call = message.tool_calls[0]
-                if tool_call.function.name == "create_reservation":
-                    args = json.loads(tool_call.function.arguments)
-                    full_reply += f"\n[RESERVATION_TOOL_CALL]{json.dumps(args)}"
-                elif tool_call.function.name == "create_order":
-                    args = json.loads(tool_call.function.arguments)
-                    full_reply += f"\n[ORDER_TOOL_CALL]{json.dumps(args)}"
-
-            agent_id = "AI Support Specialist"
-            if "[RESERVATION_TOOL_CALL]" in full_reply or "[ORDER_TOOL_CALL]" in full_reply: agent_id = "AI Sales Concierge"
-            elif full_reply.startswith("[SALES]"): agent_id = "AI Sales Concierge"; full_reply = full_reply.replace("[SALES]", "").strip()
-            elif full_reply.startswith("[SUPPORT]"): full_reply = full_reply.replace("[SUPPORT]", "").strip()
-
-            return {"reply": full_reply.strip(), "agent_identity": agent_id}
-        except Exception as e:
-            raise e
+                tc = message.tool_calls[0]
+                full_reply += f"\n[{tc.function.name.upper()}_TOOL_CALL]{tc.function.arguments}"
+            return {"reply": full_reply.strip(), "agent_identity": "AI Support Specialist (Safe-Mode)"}
+        except Exception as e2:
+            raise Exception(f"Total Brain Blackout: [Bridge: {str(e)}] [Lib: {str(e2)}]")
 
 async def send_whatsapp_reply(company: Company, to_number: str, text: str):
     access_token = decrypt_field(company.whatsapp_access_token)
