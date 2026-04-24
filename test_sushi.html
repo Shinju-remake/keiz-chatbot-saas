@@ -1,0 +1,78 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sushi Sniper - Precision Dining (Shinju AI)</title>
+    <style>
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #064E3B;
+            color: #10B981;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-image: url('https://images.unsplash.com/photo-1579871494447-9811cf80d66c?q=80&w=2070&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center;
+        }
+        .demo-overlay {
+            background-color: rgba(6, 78, 59, 0.9);
+            padding: 40px;
+            border-radius: 5px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            max-width: 600px;
+            border: 1px solid #10B981;
+        }
+        h1 { font-size: 3rem; margin-bottom: 10px; color: #10B981; letter-spacing: 4px; }
+        p { font-size: 1.2rem; color: #D1FAE5; line-height: 1.6; }
+        .green-line {
+            height: 1px;
+            width: 150px;
+            background-color: #10B981;
+            margin: 20px auto;
+        }
+        .cta-box {
+            background-color: #10B981;
+            color: #064E3B;
+            padding: 15px;
+            border-radius: 2px;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-overlay">
+        <h1>SUSHI SNIPER</h1>
+        <div class="green-line"></div>
+        <p>Target acquired. Welcome to <strong>Sushi Sniper</strong>.</p>
+        <p>Experience ultra-precise AI ordering for the finest fish in the city.</p>
+        <p>Try asking: <em>"What's in the Dragon Roll?"</em> or <em>"Order 4 pieces of Salmon Nigiri."</em></p>
+        <div class="cta-box">
+            MISSION: FEED THE ELITE
+        </div>
+    </div>
+
+    <!-- Shinju AI Widget Loader -->
+    <script>
+        (function() {
+            var s = document.createElement('script');
+            s.src = '/widget/shinju-widget.js';
+            s.async = true;
+            s.onload = function() {
+                window.ShinjuAI.init({
+                    apiKey: 'sushi-sniper-key-2026',
+                    primaryColor: '#10B981',
+                    subdomain: 'sushisniper'
+                });
+            };
+            document.head.appendChild(s);
+        })();
+    </script>
+</body>
+</html>

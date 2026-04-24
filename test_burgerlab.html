@@ -1,0 +1,78 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Burger Lab - Elite Fast Food (Shinju AI)</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0F172A;
+            color: #E11D48;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-image: url('https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?q=80&w=2071&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center;
+        }
+        .demo-overlay {
+            background-color: rgba(15, 23, 42, 0.9);
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            max-width: 600px;
+            border: 2px solid #E11D48;
+        }
+        h1 { font-size: 3rem; margin-bottom: 10px; color: #E11D48; text-transform: uppercase; letter-spacing: 2px; }
+        p { font-size: 1.2rem; color: #cbd5e1; line-height: 1.6; }
+        .red-line {
+            height: 2px;
+            width: 100px;
+            background-color: #E11D48;
+            margin: 20px auto;
+        }
+        .cta-box {
+            background-color: #E11D48;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-overlay">
+        <h1>Burger Lab</h1>
+        <div class="red-line"></div>
+        <p>Welcome to the <strong>Shinju AI</strong> Burger Lab Interface.</p>
+        <p>The AI is configured to handle high-speed orders and up-sell our legendary Mushroom Fries.</p>
+        <p>Try asking: <em>"Give me a Fat Elvis with a Coca-Cola."</em></p>
+        <div class="cta-box">
+            STATUS: AI KITCHEN LINKED
+        </div>
+    </div>
+
+    <!-- Shinju AI Widget Loader -->
+    <script>
+        (function() {
+            var s = document.createElement('script');
+            s.src = '/widget/shinju-widget.js';
+            s.async = true;
+            s.onload = function() {
+                window.ShinjuAI.init({
+                    apiKey: 'burger-lab-key-2026',
+                    primaryColor: '#E11D48',
+                    subdomain: 'burgerlab'
+                });
+            };
+            document.head.appendChild(s);
+        })();
+    </script>
+</body>
+</html>
