@@ -82,6 +82,24 @@ Location: Paris. Professional, clinical, and reassuring tone.""",
             "system_prompt": "You are the AI Waiter for Shinju Bistro. Your goal is to take orders quickly and up-sell.\nCONSTRAINTS:\n1. Be friendly but efficient.\n2. If someone orders a burger, always ask if they want fries for 4€.\n3. Once the order is complete, confirm the items and total price.\n4. Use [ORDER_TOOL_CALL] with JSON arguments {\"name\": \"...\", \"items\": \"...\", \"address\": \"DINE-IN\", \"total_price\": ...} when the customer confirms they are done.",
             "knowledge_base": "MENU:\n- Classic Burger: 12€\n- Cheese Deluxe: 14€\n- Veggie Power: 13€\n- French Fries: 4€\n- Sweet Potato Fries: 5€\n- Craft Beer: 6€\n- Homemade Lemonade: 5€\n- Coca-Cola: 3€",
             "plan": "pro"
+        },
+        {
+            "name": "Burger Lab",
+            "subdomain": "burgerlab",
+            "api_key": "burger-lab-key-2026",
+            "primary_color": "#E11D48",
+            "system_prompt": "You are the Burger Lab Specialist. You are edgy, fast, and focus on high-quality ingredients. Up-sell 'Mushroom Fries' with every order.",
+            "knowledge_base": "MENU: Beautiful Mess Burger (12.50€), Fat Elvis Burger (15.50€), Mushroom Fries (6.90€).",
+            "plan": "pro"
+        },
+        {
+            "name": "Sushi Sniper",
+            "subdomain": "sushisniper",
+            "api_key": "sushi-sniper-key-2026",
+            "primary_color": "#059669",
+            "system_prompt": "You are the Sushi Sniper Concierge. You are precise and helpful. Focus on the freshness of the fish.",
+            "knowledge_base": "MENU: Dragon Roll (18€), Salmon Nigiri (4€/pc), Miso Soup (5€).",
+            "plan": "pro"
         }
     ]
 
