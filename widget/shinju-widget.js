@@ -60,8 +60,9 @@
             .shinju-message { margin-bottom: 10px; padding: 8px 12px; border-radius: 8px; max-width: 85%; font-size: 14px; line-height: 1.4; word-wrap: break-word; }
             .shinju-user { background: ${this.config.primaryColor}; color: white; align-self: flex-end; }
             .shinju-bot { background: #e0e0e0; color: #333; align-self: flex-start; }
-            #shinju-chat-input-area { padding: 10px; border-top: 1px solid #ddd; display: flex; align-items: center; background: white; }
-            #shinju-chat-input { flex: 1; border: none; padding: 10px; outline: none; font-size: 16px; color: #333 !important; background: white !important; }
+            #shinju-chat-input-area { padding: 8px; border-top: 1px solid #ddd; display: flex; align-items: center; background: white; gap: 5px; }
+            #shinju-chat-input { flex: 1; border: none; padding: 8px; outline: none; font-size: 14px; color: #333 !important; background: white !important; min-width: 0; }
+            #shinju-chat-send { background: ${this.config.primaryColor}; color: white; border: none; padding: 6px 12px; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 13px; flex-shrink: 0; white-space: nowrap; }
             #shinju-mic-btn { background: transparent; border: none; cursor: pointer; font-size: 20px; padding: 5px 10px; color: #888; transition: 0.3s; border-radius: 50%; }
             #shinju-mic-btn.recording { background: #ff4d4d !important; color: white !important; box-shadow: 0 0 20px #ff4d4d; animation: shinju-pulse 1s infinite alternate !important; }
             @keyframes shinju-pulse { from { transform: scale(1); } to { transform: scale(1.3); } }
@@ -99,7 +100,7 @@
             <div id="shinju-chat-input-area">
                 <input type="text" id="shinju-chat-input" placeholder="${this.translations[this.currentLang].input}">
                 <button id="shinju-mic-btn" title="Tap to Speak">🎤</button>
-                <button id="shinju-chat-send" style="background:${this.config.primaryColor}; color:white; border:none; padding:8px 15px; border-radius:15px; cursor:pointer; font-weight:bold;">${this.translations[this.currentLang].send}</button>
+                <button id="shinju-chat-send">${this.translations[this.currentLang].send}</button>
             </div>
         `;
         document.body.appendChild(container);
