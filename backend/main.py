@@ -92,39 +92,41 @@ def on_startup():
         # Ensure new columns exist for existing tables (manual SQLite migration)
         from sqlalchemy import text
         with engine.connect() as conn:
-            # Columns for ChatLog (Feedback Loop)
-            try: conn.execute(text("ALTER TABLE chatlog ADD COLUMN confidence_score FLOAT DEFAULT 1.0;")); conn.commit()
-            except: pass
-            try: conn.execute(text("ALTER TABLE chatlog ADD COLUMN needs_review BOOLEAN DEFAULT 0;")); conn.commit()
-            except: pass
-            try: conn.execute(text("ALTER TABLE chatlog ADD COLUMN reviewed BOOLEAN DEFAULT 0;")); conn.commit()
-            except: pass
-            try: conn.execute(text("ALTER TABLE chatlog ADD COLUMN was_corrected BOOLEAN DEFAULT 0;")); conn.commit()
-            except: pass
-            try: conn.execute(text("ALTER TABLE chatlog ADD COLUMN corrected_reply TEXT;")); conn.commit()
-            except: pass
+            # Table-to-Column Mapping for all production updates
+            migrations = {
+                "chatlog": [
+                    ("confidence_score", "FLOAT DEFAULT 1.0"),
+                    ("needs_review", "BOOLEAN DEFAULT 0"),
+                    ("reviewed", "BOOLEAN DEFAULT 0"),
+                    ("was_corrected", "BOOLEAN DEFAULT 0"),
+                    ("corrected_reply", "TEXT")
+                ],
+                "chatsession": [
+                    ("customer_phone", "TEXT"),
+                    ("reengagement_status", "TEXT DEFAULT 'none'")
+                ],
+                "company": [
+                    ("logo_url", "VARCHAR"),
+                    ("subdomain", "VARCHAR"),
+                    ("whatsapp_phone_id", "VARCHAR"),
+                    ("whatsapp_access_token", "VARCHAR"),
+                    ("instagram_page_id", "TEXT"),
+                    ("instagram_access_token", "TEXT"),
+                    ("email_user", "TEXT"),
+                    ("email_password", "TEXT"),
+                    ("email_imap_server", "TEXT DEFAULT 'imap.gmail.com'"),
+                    ("email_smtp_server", "TEXT DEFAULT 'smtp.gmail.com'"),
+                    ("email_automation_enabled", "BOOLEAN DEFAULT 0")
+                ]
+            }
             
-            # Columns for ChatSession (Re-engagement)
-            try: conn.execute(text("ALTER TABLE chatsession ADD COLUMN customer_phone TEXT;")); conn.commit()
-            except: pass
-            try: conn.execute(text("ALTER TABLE chatsession ADD COLUMN reengagement_status TEXT DEFAULT 'none';")); conn.commit()
-            except: pass
-
-            # [NEW] Columns for Instagram/Email Pro Features
-            try: conn.execute(text("ALTER TABLE company ADD COLUMN instagram_page_id TEXT;")); conn.commit()
-            except: pass
-            try: conn.execute(text("ALTER TABLE company ADD COLUMN instagram_access_token TEXT;")); conn.commit()
-            except: pass
-            try: conn.execute(text("ALTER TABLE company ADD COLUMN email_user TEXT;")); conn.commit()
-            except: pass
-            try: conn.execute(text("ALTER TABLE company ADD COLUMN email_password TEXT;")); conn.commit()
-            except: pass
-            try: conn.execute(text("ALTER TABLE company ADD COLUMN email_imap_server TEXT DEFAULT 'imap.gmail.com';")); conn.commit()
-            except: pass
-            try: conn.execute(text("ALTER TABLE company ADD COLUMN email_smtp_server TEXT DEFAULT 'smtp.gmail.com';")); conn.commit()
-            except: pass
-            try: conn.execute(text("ALTER TABLE company ADD COLUMN email_automation_enabled BOOLEAN DEFAULT 0;")); conn.commit()
-            except: pass
+            for table, columns in migrations.items():
+                for col_name, col_type in columns:
+                    try:
+                        conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col_name} {col_type};"))
+                        conn.commit()
+                    except Exception:
+                        pass # Column likely already exists
             
         with Session(engine) as session:
             company = session.exec(select(Company)).first()

@@ -178,7 +178,11 @@
                 return;
             }
             const data = await res.json();
-            if (data.reply) { this.appendMessage(data.reply, "bot", data.agent_identity); }
+            if (data.reply) { 
+                this.appendMessage(data.reply, "bot", data.agent_identity); 
+            } else {
+                this.appendMessage("I'm receiving a clear signal but my response was empty. Please rephrase your request.", "bot", "Shinju System Guard");
+            }
         } catch (e) { 
             console.error("Shinju Chat Error:", e);
             this.appendMessage("Connection lost. Please check your network.", "bot"); 

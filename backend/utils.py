@@ -75,14 +75,14 @@ async def process_message_v3(company: Company, session_id: str, user_msg: str, d
     if not reply:
         try:
             ai_result = await get_ai_response(company, session_id, user_msg, db, language=language, image_url=image_url)
-            if ai_result:
+            if ai_result and ai_result.get("reply"):
                 reply = ai_result.get("reply")
                 agent_id = ai_result.get("agent_identity", "Shinju AI Brain")
                 source = "ai"
             else:
                 trace_id = f"REF-{datetime.utcnow().strftime('%H%M%S')}"
                 openai_check = "Key_Present" if (decrypt_field(company.openai_api_key) or os.getenv("OPENAI_API_KEY")) else "Key_MISSING"
-                reply = f"I'm having a brief connection issue with my central brain [{trace_id}]. (TRACE: get_ai_response was None | {openai_check})"
+                reply = f"I'm having a brief connection issue with my central brain [{trace_id}]. (TRACE: get_ai_response was empty or None | {openai_check})"
                 source = "fallback"
                 agent_id = "Shinju AI Fail-Safe"
         except Exception as e:
@@ -98,9 +98,18 @@ async def process_message_v3(company: Company, session_id: str, user_msg: str, d
             source = "fallback"
             agent_id = "Shinju AI Error-Guard"
 
+    # Final Guard: Ensure reply is never None before DB commit
+    if reply is None:
+        reply = "I apologize, but I'm unable to process that right now. Please try again in a moment."
+
     # Log interaction
-    log_entry = ChatLog(company_id=company.id, session_id=session_id, user_msg=user_msg, bot_reply=reply, source=source, timestamp=datetime.utcnow())
-    db.add(log_entry); db.commit()
+    try:
+        log_entry = ChatLog(company_id=company.id, session_id=session_id, user_msg=user_msg, bot_reply=reply, source=source, timestamp=datetime.utcnow())
+        db.add(log_entry)
+        db.commit()
+    except Exception as e:
+        print(f"⚠️ DATABASE LOGGING ERROR: {e}")
+        db.rollback() 
     
     # [RESERVATION TOOL CALL PARSING]
     if reply and "[RESERVATION_TOOL_CALL]" in reply:
