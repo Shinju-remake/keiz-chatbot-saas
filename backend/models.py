@@ -57,7 +57,7 @@ class ChatSession(SQLModel, table=True):
     customer_phone: Optional[str] = None
     is_human_takeover: bool = Field(default=False)
     reengagement_status: str = Field(default="none") # none, pending, completed, failed
-    last_active: datetime = Field(default_factory=datetime.utcnow)
+    last_active: datetime = Field(default_factory=datetime.now)
     
     company: Company = Relationship(back_populates="sessions")
 
@@ -76,7 +76,7 @@ class Reservation(SQLModel, table=True):
     date_time: str 
     pax: int
     status: str = Field(default="pending") 
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=datetime.now)
 
     company: "Company" = Relationship(back_populates="reservations")
 
@@ -88,7 +88,7 @@ class Order(SQLModel, table=True):
     total_price: float = Field(default=0.0)
     delivery_address: Optional[str] = None
     status: str = Field(default="confirmed")
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=datetime.now)
 
     company: Company = Relationship(back_populates="orders")
 
@@ -99,7 +99,7 @@ class ChatLog(SQLModel, table=True):
     user_msg: str
     bot_reply: str
     source: str 
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=datetime.now)
     
     # Feedback Loop / Human-in-the-loop
     confidence_score: float = Field(default=1.0)
@@ -118,6 +118,6 @@ class TrendInsight(SQLModel, table=True):
     insight_text: str
     suggested_rule: Optional[str] = None
     status: str = Field(default="unread") # unread, dismissed, applied
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=datetime.now)
 
     company: Company = Relationship(back_populates="insights")

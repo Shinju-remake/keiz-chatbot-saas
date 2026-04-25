@@ -500,7 +500,7 @@ async def toggle_takeover(data: TakeoverIn, request: Request, x_api_key: Optiona
         session_state = ChatSession(company_id=company.id, session_id=data.session_id)
     
     session_state.is_human_takeover = data.active
-    session_state.last_active = datetime.utcnow()
+    session_state.last_active = datetime.now()
     db.add(session_state)
     db.commit()
     return {"status": "success"}
@@ -511,7 +511,7 @@ async def get_active_sessions(request: Request, x_api_key: Optional[str] = Heade
     if not company: raise HTTPException(status_code=403, detail="Invalid Authentication")
     
     # Return sessions active in the last 24 hours
-    since = datetime.utcnow().timestamp() - 86400
+    since = datetime.now().timestamp() - 86400
     return db.exec(select(ChatSession).where(ChatSession.company_id == company.id)).all()
 
 class CorrectionIn(BaseModel):
