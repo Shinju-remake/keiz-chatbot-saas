@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shinju AI | Command Center V4</title>
+    <title>Shinju AI | Restaurant OS V5</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
@@ -36,12 +36,6 @@
             border: 1px solid var(--border); 
         }
 
-        .gradient-text { 
-            background: linear-gradient(135deg, #BB00FF 0%, #7000FF 100%); 
-            -webkit-background-clip: text; 
-            -webkit-text-fill-color: transparent; 
-        }
-
         .status-badge {
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid var(--border);
@@ -56,25 +50,17 @@
             white-space: nowrap;
         }
 
-        /* Phone Frame - Responsive Scaling */
+        /* Phone Frame */
         .phone-frame {
             width: 300px;
-            height: 600px;
+            height: 580px;
             background: #1a1a1a;
             border-radius: 44px;
             border: 7px solid #262626;
             position: relative;
-            box-shadow: 0 50px 100px -20px rgba(0,0,0,0.8), 0 0 40px rgba(187, 0, 255, 0.05);
+            box-shadow: 0 50px 100px -20px rgba(0,0,0,0.8);
             overflow: hidden;
             flex-shrink: 0;
-            transform-origin: top center;
-        }
-
-        @media (max-width: 640px) {
-            .phone-frame {
-                width: 280px;
-                height: 560px;
-            }
         }
 
         .phone-notch {
@@ -99,210 +85,219 @@
             flex-direction: column;
         }
 
-        /* Kitchen Animations */
+        /* Typing Indicator Animation */
+        .typing-dot {
+            width: 4px;
+            height: 4px;
+            background: var(--primary);
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out;
+        }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-4px); }
+        }
+
+        /* Kitchen Card V5 */
         @keyframes slideIn {
-            from { opacity: 0; transform: translateY(30px) scale(0.9); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
+            from { opacity: 0; transform: translateX(30px) scale(0.95); }
+            to { opacity: 1; transform: translateX(0) scale(1); }
         }
 
         .kitchen-card {
             animation: slideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
             background: linear-gradient(145deg, #0d0d0d 0%, #151515 100%);
             border: 1px solid var(--border);
-            border-top: 2px solid var(--primary);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
+            border-left: 3px solid var(--primary);
+            transition: all 0.3s ease;
         }
 
-        .kitchen-card::after {
-            content: "";
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: radial-gradient(circle at top right, rgba(187, 0, 255, 0.03), transparent);
-            pointer-events: none;
-        }
-
-        .kitchen-card:hover {
-            border-color: var(--primary);
-            transform: translateY(-4px);
-            box-shadow: 0 20px 40px -10px rgba(0,0,0,0.6);
-        }
-
-        .avatar-circle {
-            background: linear-gradient(135deg, #222 0%, #111 100%);
+        /* Terminal Feed */
+        .terminal-box {
+            background: #080808;
             border: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            color: var(--primary);
-            text-shadow: 0 0 10px var(--primary-glow);
+            border-radius: 1.5rem;
+            padding: 1.25rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            line-height: 1.6;
+            color: #888;
+            overflow-y: auto;
         }
 
-        /* Scrollbar Customization */
-        ::-webkit-scrollbar { width: 5px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #444; }
+        .term-success { color: #10b981; }
+        .term-info { color: #3b82f6; }
+        .term-ai { color: #BB00FF; font-weight: bold; }
 
-        .scan-glow {
-            box-shadow: 0 0 30px var(--primary-glow);
-        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #222; border-radius: 10px; }
 
         @media (max-width: 1024px) {
+            .main-grid { display: flex !important; flex-direction: column !important; overflow-y: auto !important; }
             .hide-on-mobile { display: none !important; }
-            .main-grid { display: block !important; }
-            .section-spacer { margin-bottom: 40px; }
         }
     </style>
 </head>
-<body class="flex flex-col p-4 md:p-6">
-    <!-- TOP BAR -->
-    <header class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-10 gap-6 px-2">
-        <div class="flex items-center gap-5">
-            <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#BB00FF] to-[#7000FF] flex items-center justify-center text-white font-bold text-2xl shadow-xl shadow-[#BB00FF]/20 border border-white/10">
+<body class="flex flex-col p-4 md:p-8">
+    <!-- MASTER HEADER -->
+    <header class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-10 gap-6">
+        <div class="flex items-center gap-6">
+            <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#BB00FF] to-[#7000FF] flex items-center justify-center text-white font-black text-3xl shadow-[0_0_40px_rgba(187,0,255,0.3)] border border-white/10">
                 S
             </div>
             <div>
-                <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-white flex items-center gap-3">
-                    SHINJU AI <span class="text-[11px] bg-primary/20 border border-primary/30 px-2 py-0.5 rounded text-primary uppercase tracking-[0.2em] font-bold">CORE-V4</span>
+                <h1 class="text-3xl font-extrabold tracking-tight text-white flex items-center gap-4">
+                    SHINJU AI <span class="text-[10px] bg-white/5 border border-white/10 px-3 py-1 rounded-full text-slate-400 uppercase tracking-[0.3em] font-black">OS_V5</span>
                 </h1>
-                <p class="text-slate-500 text-[10px] md:text-[11px] font-semibold uppercase tracking-[0.3em] opacity-80">Autonomous Gastronomy Protocol</p>
+                <p class="text-slate-500 text-[11px] font-bold uppercase tracking-[0.4em] opacity-80 mt-1">Autonomous Restaurant Operating System</p>
             </div>
         </div>
 
-        <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-            <div class="status-badge px-4 py-2 bg-red-500/5 border-red-500/20">
-                <span class="relative flex h-2 w-2">
-                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
-                    <span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-                </span>
-                <span class="text-red-500 font-bold uppercase tracking-wider">42 Live</span>
+        <div class="flex flex-wrap items-center gap-4">
+            <div class="status-badge bg-emerald-500/5 border-emerald-500/20">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_12px_#10b981]"></span>
+                <span class="text-emerald-400 uppercase tracking-tighter">Engine: Operational</span>
             </div>
-            <div class="status-badge px-4 py-2 bg-emerald-500/5 border-emerald-500/20">
-                <span class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981]"></span>
-                <span class="text-emerald-500 font-bold tracking-wider">12ms</span>
+            <div class="status-badge bg-primary/5 border-primary/20">
+                <span class="animate-pulse w-2 h-2 rounded-full bg-primary shadow-[0_0_12px_#BB00FF]"></span>
+                <span class="text-primary uppercase tracking-tighter">AI Logic: Peak</span>
             </div>
-            <div class="status-badge text-slate-400 uppercase mono hide-on-mobile">
-                BISTRO-SVR-PX2
+            <div class="status-badge text-slate-500 mono hide-on-mobile">
+                NODE_ID: PAR-X102
             </div>
         </div>
     </header>
 
-    <main class="main-grid flex-grow lg:grid lg:grid-cols-12 gap-8 overflow-y-auto lg:overflow-hidden">
+    <main class="main-grid flex-grow lg:grid lg:grid-cols-12 gap-8 overflow-hidden">
         
-        <!-- LEFT: CUSTOMER EXPERIENCE -->
-        <div class="col-span-12 lg:col-span-4 flex flex-col items-center gap-8 section-spacer">
+        <!-- COL 1: INTERACTION LAYER (PHONE) -->
+        <div class="col-span-12 lg:col-span-3 flex flex-col items-center gap-6">
             <div class="w-full flex justify-between items-center border-b border-white/5 pb-3">
-                <h2 class="text-[10px] font-bold uppercase tracking-[0.4em] text-slate-500">Customer Frontend</h2>
-                <span class="text-[10px] text-slate-600 font-medium mono">SECURE_TUNNEL: ACTIVE</span>
+                <h2 class="text-[10px] font-black uppercase tracking-[0.4em] text-slate-600">Interaction Layer</h2>
+                <div id="phone-typing" class="flex gap-1 opacity-0 transition-opacity">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
             </div>
 
-            <!-- THE PHONE -->
-            <div class="phone-frame scale-100 shadow-[0_0_60px_rgba(0,0,0,0.8)]">
+            <div class="phone-frame scale-95 md:scale-100">
                 <div class="phone-notch"></div>
                 <div class="phone-screen">
-                    <!-- App Status Bar -->
                     <div class="px-6 pt-3 flex justify-between items-center text-[11px] font-bold text-slate-400">
                         <span>18:19</span>
                         <div class="flex gap-1.5 items-center">
-                            <div class="w-3 h-3 bg-slate-300 rounded-sm"></div>
+                            <span class="text-[9px]">5G</span>
                             <div class="w-4 h-2 bg-slate-300 rounded-full"></div>
                         </div>
                     </div>
 
-                    <!-- App Content -->
                     <div class="flex-grow flex flex-col items-center justify-center px-8 text-center bg-white">
-                        <div class="w-20 h-20 bg-slate-900 rounded-[2.5rem] flex items-center justify-center text-3xl mb-8 shadow-2xl shadow-slate-200 border border-slate-100">
+                        <div class="w-20 h-20 bg-slate-900 rounded-[2.5rem] flex items-center justify-center text-4xl mb-8 shadow-2xl shadow-slate-200">
                             🍔
                         </div>
-                        <h3 class="text-2xl font-black text-slate-900 mb-3 tracking-tight">Shinju Bistro</h3>
-                        <p class="text-sm text-slate-500 mb-12 leading-relaxed font-medium">Click the bubble to start your AI-powered dining experience.</p>
+                        <h3 class="text-2xl font-black text-slate-900 mb-2 tracking-tighter">Shinju Bistro</h3>
+                        <p class="text-[13px] text-slate-500 mb-10 leading-relaxed font-medium">Chat with our AI Maître D' to place your order instantly.</p>
                         
                         <div class="flex flex-col gap-3 w-full">
-                            <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex justify-between items-center shadow-sm">
+                            <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex justify-between items-center group cursor-pointer hover:border-primary/30 transition-all">
                                 <div class="text-left">
-                                    <span class="block text-sm font-bold text-slate-800">Classic Burger</span>
-                                    <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Beef / Brioche</span>
+                                    <span class="block text-xs font-bold text-slate-800 uppercase tracking-widest">Digital Menu</span>
+                                    <span class="text-[10px] text-slate-400 font-bold italic">Explore items</span>
                                 </div>
-                                <span class="text-sm font-bold text-slate-900">12€</span>
-                            </div>
-                            <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex justify-between items-center shadow-sm">
-                                <div class="text-left">
-                                    <span class="block text-sm font-bold text-slate-800">Power Veggie</span>
-                                    <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Plant-Based</span>
-                                </div>
-                                <span class="text-sm font-bold text-slate-900">13€</span>
+                                <span class="text-slate-300 group-hover:text-primary transition-colors">→</span>
                             </div>
                         </div>
+                        
+                        <div class="mt-12 p-3 bg-primary/5 rounded-xl border border-primary/10 inline-flex items-center gap-3">
+                            <div class="w-2 h-2 bg-primary rounded-full animate-ping"></div>
+                            <span class="text-[10px] font-black text-primary uppercase tracking-[0.2em]">AI Live Support Ready</span>
+                        </div>
 
-                        <div class="mt-auto mb-10 opacity-30">
-                            <div class="w-12 h-1.5 bg-slate-300 rounded-full mx-auto"></div>
+                        <div class="mt-auto mb-10 opacity-20">
+                            <div class="w-12 h-1.5 bg-slate-400 rounded-full mx-auto"></div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- RIGHT: OPERATIONS DASHBOARD -->
-        <div class="col-span-12 lg:col-span-8 flex flex-col gap-8">
-            <div class="flex justify-between items-center border-b border-white/5 pb-3">
-                <h2 class="text-[10px] font-bold uppercase tracking-[0.4em] text-slate-500">Kitchen Operations Feed</h2>
-                <div class="flex items-center gap-6">
-                    <span id="update-timer" class="text-[10px] font-bold text-slate-600 mono uppercase tracking-widest">Syncing in 5s</span>
-                    <button onclick="fetchOrders()" class="text-[10px] font-bold text-primary hover:text-white transition-colors uppercase tracking-widest">Force_Reload</button>
+        <!-- COL 2: INTELLIGENCE LAYER (BRAIN) -->
+        <div class="col-span-12 lg:col-span-4 flex flex-col gap-6">
+            <div class="w-full flex justify-between items-center border-b border-white/5 pb-3">
+                <h2 class="text-[10px] font-black uppercase tracking-[0.4em] text-slate-600">Cognitive Layer</h2>
+                <span class="text-[10px] text-primary font-bold animate-pulse">STREAMING_LOGS</span>
+            </div>
+
+            <div id="terminal" class="terminal-box flex-grow shadow-2xl">
+                <div class="mb-2"><span class="term-info">[SYSTEM]</span> Initializing Shinju AI Restaurant OS...</div>
+                <div class="mb-2"><span class="term-info">[SYSTEM]</span> Establishing secure WebSocket to node PAR-X102...</div>
+                <div class="mb-2"><span class="term-success">[OK]</span> Model GPT-4o-mini loaded (Latency: 12ms).</div>
+                <div class="mb-2"><span class="term-info">[SYSTEM]</span> Listening for customer input...</div>
+                <div id="term-logs"></div>
+            </div>
+
+            <div class="glass p-5 rounded-[2rem] border-primary/10">
+                <div class="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em] mb-3">Real-time Analysis</div>
+                <div class="flex justify-between items-end">
+                    <div>
+                        <div class="text-2xl font-black text-white mono tracking-tighter">99.8%</div>
+                        <div class="text-[10px] text-slate-500 font-bold uppercase mt-1">AI Precision</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-2xl font-black text-emerald-400 mono tracking-tighter">+28%</div>
+                        <div class="text-[10px] text-slate-500 font-bold uppercase mt-1">Upsell Impact</div>
+                    </div>
+                </div>
+                <div class="mt-4 h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                    <div class="h-full bg-gradient-to-r from-primary to-blue-500 w-[99%]"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- COL 3: OPERATIONAL LAYER (KITCHEN) -->
+        <div class="col-span-12 lg:col-span-5 flex flex-col gap-6">
+            <div class="w-full flex justify-between items-center border-b border-white/5 pb-3">
+                <h2 class="text-[10px] font-black uppercase tracking-[0.4em] text-slate-600">Execution Layer</h2>
+                <div class="flex items-center gap-4">
+                    <span id="update-timer" class="text-[10px] font-bold text-slate-600 mono uppercase">Sync: 5s</span>
+                    <button onclick="fetchOrders()" class="text-[10px] font-black text-primary hover:text-white transition-colors uppercase tracking-widest">Reload</button>
                 </div>
             </div>
 
             <!-- ORDERS GRID -->
-            <div id="orders-container" class="flex-grow lg:overflow-y-auto lg:pr-4 grid grid-cols-1 md:grid-cols-2 gap-6 content-start pb-24 lg:pb-0">
+            <div id="orders-container" class="flex-grow lg:overflow-y-auto lg:pr-2 grid grid-cols-1 gap-6 content-start pb-24 lg:pb-0">
                 <!-- Empty State -->
                 <div class="col-span-full h-full flex flex-col items-center justify-center text-center py-20 lg:py-40">
-                    <div class="relative w-24 h-24 mb-8">
+                    <div class="relative w-20 h-20 mb-6">
                         <div class="absolute inset-0 bg-primary/20 rounded-full animate-ping"></div>
-                        <div class="relative w-full h-full border-2 border-primary/30 rounded-full flex items-center justify-center text-4xl shadow-[0_0_30px_rgba(187,0,255,0.2)]">
+                        <div class="relative w-full h-full border-2 border-primary/30 rounded-full flex items-center justify-center text-3xl">
                             📡
                         </div>
                     </div>
-                    <p class="text-lg font-bold text-white tracking-[0.3em] mb-3 uppercase">Standby Mode</p>
-                    <p class="text-xs text-slate-500 max-w-xs mx-auto leading-relaxed">System is listening for encrypted order packets from the Shinju AI network.</p>
-                </div>
-            </div>
-
-            <!-- ANALYTICS DASHBOARD -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 pb-6 mt-auto lg:mt-0">
-                <div class="glass p-4 rounded-[2rem] border-primary/10 shadow-xl">
-                    <div class="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">Latency</div>
-                    <div class="text-xl font-bold text-white mono">1.2<span class="text-slate-600 text-sm ml-1">ms</span></div>
-                </div>
-                <div class="glass p-4 rounded-[2rem] border-primary/10 shadow-xl">
-                    <div class="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">Conversion</div>
-                    <div class="text-xl font-bold text-emerald-400 mono">28.4<span class="text-emerald-900 text-sm ml-1">%</span></div>
-                </div>
-                <div class="glass p-4 rounded-[2rem] border-primary/10 shadow-xl">
-                    <div class="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">Precision</div>
-                    <div class="text-xl font-bold text-blue-400 mono">99.8<span class="text-blue-900 text-sm ml-1">%</span></div>
-                </div>
-                <div class="glass p-4 rounded-[2rem] border-primary/10 shadow-xl">
-                    <div class="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">Revenue</div>
-                    <div class="text-xl font-bold text-primary mono">+1.4k</div>
+                    <p class="text-sm font-black text-white tracking-[0.3em] mb-2 uppercase">Operational Standby</p>
+                    <p class="text-[11px] text-slate-500 max-w-xs mx-auto leading-relaxed">System awaiting payload capture from the autonomous chat front-end.</p>
                 </div>
             </div>
         </div>
     </main>
 
-    <!-- SCAN OVERLAY -->
+    <!-- FLOATING QR -->
     <div class="fixed bottom-10 left-10 flex items-center gap-5 group z-50">
-        <div class="w-20 h-20 md:w-24 md:h-24 p-2.5 glass rounded-[2rem] scan-glow border-2 border-primary/40 hover:scale-110 transition-all cursor-pointer bg-black">
+        <div class="w-20 h-20 md:w-24 md:h-24 p-2 glass rounded-[2rem] border-2 border-primary/30 hover:scale-110 transition-all cursor-pointer bg-black/80">
             <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://keiz-chatbot-saas-1.onrender.com/demo&bgcolor=000&color=fff" class="w-full h-full rounded-2xl" alt="QR Code">
         </div>
         <div class="pointer-events-none opacity-0 group-hover:opacity-100 transition-all transform -translate-x-4 group-hover:translate-x-0 hidden md:block">
-            <p class="text-xs font-bold text-white uppercase tracking-[0.3em]">Live Demo</p>
-            <p class="text-[10px] text-slate-500 font-medium">Scan to test autonomous flow</p>
+            <p class="text-[10px] font-black text-white uppercase tracking-[0.3em]">Mobile Sync</p>
+            <p class="text-[9px] text-slate-500 font-bold">Scan to enter interaction layer</p>
         </div>
     </div>
 
-    <!-- AI WIDGET LOAD -->
+    <!-- AI WIDGET -->
     <script>
         (function() {
             var s = document.createElement('script');
@@ -315,15 +310,49 @@
                     logoUrl: 'https://cdn-icons-png.flaticon.com/512/3443/3443391.png',
                     subdomain: 'bistro'
                 });
+
+                // Listen for message events from the widget (if widget emits them)
+                window.addEventListener('message', (e) => {
+                    if (e.data.type === 'SHINJU_USER_MSG') {
+                        logToTerminal('USER', e.data.text);
+                        showTyping(true);
+                    }
+                    if (e.data.type === 'SHINJU_BOT_REPLY') {
+                        logToTerminal('AI', e.data.text);
+                        showTyping(false);
+                    }
+                });
             };
             document.head.appendChild(s);
         })();
 
-        // KITCHEN FEED LOGIC
+        // LOGIC
         const API_KEY = 'bistro-demo-2026';
         const ORDERS_CONT = document.getElementById('orders-container');
-        const TIMER_EL = document.getElementById('update-timer');
+        const TERMINAL = document.getElementById('term-logs');
+        const TYPING = document.getElementById('phone-typing');
         let countdown = 5;
+
+        function logToTerminal(sender, text) {
+            const div = document.createElement('div');
+            div.className = 'mb-2 animate-pulse';
+            const time = new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            
+            if (sender === 'USER') {
+                div.innerHTML = `<span class="opacity-50">[${time}]</span> <span class="term-info">INTERCEPT:</span> User says "${text}"`;
+            } else if (sender === 'AI') {
+                div.innerHTML = `<span class="opacity-50">[${time}]</span> <span class="term-ai">DECISION:</span> Generating response... "${text.substring(0, 40)}..."`;
+            } else if (sender === 'OPERATIONS') {
+                div.innerHTML = `<span class="opacity-50">[${time}]</span> <span class="term-success">OPERATIONS:</span> Payload dispatched to kitchen node.`;
+            }
+            
+            TERMINAL.appendChild(div);
+            document.getElementById('terminal').scrollTop = document.getElementById('terminal').scrollHeight;
+        }
+
+        function showTyping(active) {
+            TYPING.style.opacity = active ? '1' : '0';
+        }
 
         async function fetchOrders() {
             try {
@@ -345,50 +374,45 @@
                     data.slice(0, 10).forEach(order => {
                         if (currentCards.includes(order.id.toString())) return;
                         
+                        if (currentCards.length > 0) logToTerminal('OPERATIONS', `Order received from ${order.customer_name}`);
+
                         const card = document.createElement('div');
                         card.className = 'kitchen-card p-6 rounded-[2rem] flex flex-col gap-5 shadow-2xl';
                         card.setAttribute('data-id', order.id);
                         
                         const time = new Date(order.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                        const name = order.customer_name || 'Anonymous';
-                        const initial = name.charAt(0).toUpperCase();
+                        const initial = (order.customer_name || 'C').charAt(0).toUpperCase();
                         
                         card.innerHTML = `
                             <div class="flex justify-between items-center">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 rounded-full avatar-circle text-sm">${initial}</div>
                                     <div class="flex flex-col">
-                                        <span class="text-white font-extrabold text-sm tracking-tight">${name}</span>
-                                        <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest mono">TX_NODE_${order.id.toString().padStart(4, '0')}</span>
+                                        <span class="text-white font-extrabold text-sm">${order.customer_name || 'Customer'}</span>
+                                        <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest mono">TX_ID: ${order.id}</span>
                                     </div>
                                 </div>
-                                <div class="text-right">
-                                    <span class="text-[11px] font-bold text-primary mono block">${time}</span>
-                                    <span class="text-[9px] text-emerald-500 font-black uppercase tracking-tighter">Live_Order</span>
+                                <div class="bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
+                                    <span class="text-[9px] text-emerald-500 font-black uppercase">Live_Node</span>
                                 </div>
                             </div>
 
-                            <div class="bg-white/5 rounded-2xl p-4 border border-white/5 relative overflow-hidden">
-                                <span class="text-[9px] font-bold text-slate-600 uppercase tracking-[0.2em] block mb-2">Transmission_Payload</span>
-                                <p class="text-[13px] text-slate-200 leading-relaxed font-bold italic">
-                                    "${order.items}"
-                                </p>
-                                <div class="absolute -right-4 -bottom-4 opacity-5 pointer-events-none">
-                                    <span class="text-5xl">🥡</span>
-                                </div>
+                            <div class="bg-white/5 rounded-2xl p-4 border border-white/5 relative">
+                                <div class="absolute top-3 right-4 bg-primary/20 text-primary text-[8px] font-black px-2 py-0.5 rounded border border-primary/30 uppercase tracking-tighter">AI Optimized</div>
+                                <span class="text-[9px] font-bold text-slate-600 uppercase tracking-[0.2em] block mb-2">Payload</span>
+                                <p class="text-[13px] text-slate-200 leading-relaxed font-bold italic">"${order.items}"</p>
                             </div>
 
                             <div class="flex justify-between items-center">
                                 <div class="flex gap-2">
-                                    <div class="px-3 py-1 bg-primary/10 text-primary text-[10px] font-black rounded-full border border-primary/20 uppercase tracking-widest">Priority</div>
                                     <div class="px-3 py-1 bg-white/5 text-slate-500 text-[10px] font-bold rounded-full border border-white/10 uppercase tracking-wider">${order.delivery_address}</div>
                                 </div>
                                 <div class="text-2xl font-black text-white mono">${order.total_price}<span class="text-primary text-xs ml-0.5">€</span></div>
                             </div>
 
-                            <div class="pt-2 border-t border-white/5">
-                                <button onclick="this.closest('.kitchen-card').style.opacity='0.5'; this.innerText='COMPLETED'; this.disabled=true;" class="w-full py-3 bg-white/5 hover:bg-primary/20 text-slate-400 hover:text-white text-[10px] font-black rounded-2xl border border-white/10 hover:border-primary/30 transition-all uppercase tracking-[0.3em]">
-                                    Mark as Dispatched
+                            <div class="pt-2">
+                                <button onclick="this.closest('.kitchen-card').style.opacity='0.3'; this.innerText='PROCESSED'; this.disabled=true;" class="w-full py-3 bg-white/5 hover:bg-emerald-500/20 text-slate-500 hover:text-emerald-400 text-[10px] font-black rounded-2xl border border-white/10 hover:border-emerald-500/30 transition-all uppercase tracking-[0.3em]">
+                                    Complete Transmission
                                 </button>
                             </div>
                         `;
@@ -400,14 +424,13 @@
             }
         }
 
-        // Auto-refresh Timer
         setInterval(() => {
             countdown--;
             if (countdown <= 0) {
                 fetchOrders();
                 countdown = 5;
             }
-            TIMER_EL.innerText = `Syncing in ${countdown}s`;
+            document.getElementById('update-timer').innerText = `Sync: ${countdown}s`;
         }, 1000);
 
         fetchOrders();
