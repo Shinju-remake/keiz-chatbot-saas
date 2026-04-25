@@ -239,10 +239,14 @@
             <div id="orders-container" class="flex-grow lg:overflow-y-auto lg:pr-2 grid grid-cols-1 md:grid-cols-2 gap-4 content-start pb-20 lg:pb-0">
                 <!-- Empty State -->
                 <div class="col-span-full h-full flex flex-col items-center justify-center text-center py-20 lg:py-40 opacity-50">
-                    <div class="w-16 h-16 border-2 border-dashed border-slate-700 rounded-full flex items-center justify-center text-2xl mb-4">
-                        📡
+                    <div class="relative w-20 h-20 mb-6">
+                        <div class="absolute inset-0 bg-[#BB00FF] rounded-full opacity-20 animate-ping"></div>
+                        <div class="relative w-full h-full border-2 border-[#BB00FF]/30 rounded-full flex items-center justify-center text-3xl">
+                            📡
+                        </div>
                     </div>
-                    <p class="text-sm font-bold text-slate-400 tracking-wide">WAITING FOR TRANSMISSIONS</p>
+                    <p class="text-sm font-bold text-white tracking-[0.2em] mb-2 uppercase">System: Standby Mode</p>
+                    <p class="text-[11px] text-slate-500 max-w-xs mx-auto">Listening for incoming transmissions from the Shinju AI Node network.</p>
                 </div>
             </div>
 
@@ -264,30 +268,16 @@
         </div>
     </main>
 
-    <!-- MOBILE SCAN OVERLAY -->
-    <div class="fixed bottom-6 right-6 md:bottom-8 md:right-8 flex items-center gap-4 group z-50 mobile-qr-stack">
-        <div class="text-right pointer-events-none opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0 hide-on-mobile">
-            <p class="text-[10px] font-bold text-white uppercase tracking-widest">Live Production</p>
-            <p class="text-[9px] text-slate-500">Scan to test on your own device</p>
-        </div>
-        <div class="w-14 h-14 md:w-20 md:h-20 p-2 glass rounded-2xl scan-glow border-2 border-[#BB00FF]/50 hover:scale-110 transition-all cursor-pointer">
+    <!-- SCAN OVERLAY -->
+    <div class="fixed bottom-8 left-8 flex items-center gap-4 group z-50">
+        <div class="w-16 h-16 md:w-20 md:h-20 p-2 glass rounded-2xl scan-glow border-2 border-[#BB00FF]/50 hover:scale-110 transition-all cursor-pointer">
             <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://keiz-chatbot-saas-1.onrender.com/demo&bgcolor=000&color=fff" class="w-full h-full rounded-lg" alt="QR Code">
         </div>
+        <div class="pointer-events-none opacity-0 group-hover:opacity-100 transition-all transform -translate-x-4 group-hover:translate-x-0 hidden md:block">
+            <p class="text-[10px] font-bold text-white uppercase tracking-widest">Live Production</p>
+            <p class="text-[9px] text-slate-500">Scan to test on your device</p>
+        </div>
     </div>
-
-    <style>
-        @media (max-width: 768px) {
-            .mobile-qr-stack {
-                bottom: 24px !important;
-                left: 24px !important;
-                right: auto !important;
-                flex-direction: row-reverse;
-            }
-            .mobile-qr-stack .text-right {
-                text-align: left;
-            }
-        }
-    </style>
 
     <!-- AI WIDGET LOAD -->
     <script>
