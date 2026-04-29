@@ -115,6 +115,38 @@
             transition: all 0.3s ease;
         }
 
+        .avatar-circle {
+            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            color: white;
+        }
+
+        .phase-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+        .phase-dot.active {
+            background: var(--primary);
+            box-shadow: 0 0 12px var(--primary-glow);
+            transform: scale(1.5);
+        }
+        .phase-line {
+            height: 2px;
+            flex-grow: 1;
+            background: rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+        }
+        .phase-line.active {
+            background: var(--primary);
+        }
+
         /* Terminal Feed */
         .terminal-box {
             background: #080808;
@@ -354,6 +386,46 @@
             TYPING.style.opacity = active ? '1' : '0';
         }
 
+        const PHASES = ["Received", "Preparing", "Quality Check", "Ready"];
+        
+        function advancePhase(btn, orderId) {
+            const card = btn.closest('.kitchen-card');
+            let currentPhase = parseInt(card.getAttribute('data-phase') || '0');
+            
+            if (currentPhase < 3) {
+                currentPhase++;
+                card.setAttribute('data-phase', currentPhase);
+                
+                const dots = card.querySelectorAll('.phase-dot');
+                const lines = card.querySelectorAll('.phase-line');
+                const labels = card.querySelectorAll('.phase-label');
+                
+                dots.forEach((dot, i) => {
+                    if (i <= currentPhase) dot.classList.add('active');
+                });
+                lines.forEach((line, i) => {
+                    if (i < currentPhase) line.classList.add('active');
+                });
+                labels.forEach((label, i) => {
+                    label.classList.remove('text-primary');
+                    if (i === currentPhase) label.classList.add('text-primary');
+                });
+
+                logToTerminal('OPERATIONS', `Order #${orderId} moved to: ${PHASES[currentPhase]}`);
+                
+                if (currentPhase === 3) {
+                    btn.innerText = "Complete Transmission";
+                    btn.style.color = "#10b981";
+                    btn.style.borderColor = "rgba(16, 185, 129, 0.3)";
+                }
+            } else {
+                card.style.opacity = '0.3';
+                btn.innerText = 'DISPATCHED';
+                btn.disabled = true;
+                logToTerminal('OPERATIONS', `Order #${orderId} final transmission complete.`);
+            }
+        }
+
         async function fetchOrders() {
             try {
                 const res = await fetch('/admin/orders', {
@@ -379,6 +451,7 @@
                         const card = document.createElement('div');
                         card.className = 'kitchen-card p-6 rounded-[2rem] flex flex-col gap-5 shadow-2xl';
                         card.setAttribute('data-id', order.id);
+                        card.setAttribute('data-phase', '0');
                         
                         const time = new Date(order.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                         const initial = (order.customer_name || 'C').charAt(0).toUpperCase();
@@ -403,16 +476,35 @@
                                 <p class="text-[13px] text-slate-200 leading-relaxed font-bold italic">"${order.items}"</p>
                             </div>
 
+                            <!-- PREPARATION PHASE -->
+                            <div class="px-2 py-1">
+                                <div class="flex justify-between text-[8px] font-black uppercase tracking-[0.3em] text-slate-600 mb-3">
+                                    <span class="phase-label text-primary">Received</span>
+                                    <span class="phase-label">Preparing</span>
+                                    <span class="phase-label">Quality</span>
+                                    <span class="phase-label">Ready</span>
+                                </div>
+                                <div class="flex items-center gap-0">
+                                    <div class="phase-dot active"></div>
+                                    <div class="phase-line"></div>
+                                    <div class="phase-dot"></div>
+                                    <div class="phase-line"></div>
+                                    <div class="phase-dot"></div>
+                                    <div class="phase-line"></div>
+                                    <div class="phase-dot"></div>
+                                </div>
+                            </div>
+
                             <div class="flex justify-between items-center">
                                 <div class="flex gap-2">
-                                    <div class="px-3 py-1 bg-white/5 text-slate-500 text-[10px] font-bold rounded-full border border-white/10 uppercase tracking-wider">${order.delivery_address}</div>
+                                    <div class="px-3 py-1 bg-white/5 text-slate-500 text-[10px] font-bold rounded-full border border-white/10 uppercase tracking-wider">${order.delivery_address || 'Dine-In'}</div>
                                 </div>
                                 <div class="text-2xl font-black text-white mono">${order.total_price}<span class="text-primary text-xs ml-0.5">€</span></div>
                             </div>
 
                             <div class="pt-2">
-                                <button onclick="this.closest('.kitchen-card').style.opacity='0.3'; this.innerText='PROCESSED'; this.disabled=true;" class="w-full py-3 bg-white/5 hover:bg-emerald-500/20 text-slate-500 hover:text-emerald-400 text-[10px] font-black rounded-2xl border border-white/10 hover:border-emerald-500/30 transition-all uppercase tracking-[0.3em]">
-                                    Complete Transmission
+                                <button onclick="advancePhase(this, ${order.id})" class="w-full py-3 bg-white/5 hover:bg-primary/20 text-slate-500 hover:text-primary text-[10px] font-black rounded-2xl border border-white/10 hover:border-primary/30 transition-all uppercase tracking-[0.3em]">
+                                    Advance Order State
                                 </button>
                             </div>
                         `;

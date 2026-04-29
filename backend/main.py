@@ -429,6 +429,56 @@ class SignupIn(BaseModel):
     openai_key: Optional[str] = None
     plan: Optional[str] = "free"
 
+class SettingsUpdate(BaseModel):
+    name: Optional[str] = None
+    subdomain: Optional[str] = None
+    whatsapp_phone_id: Optional[str] = None
+    instagram_page_id: Optional[str] = None
+    instagram_access_token: Optional[str] = None
+    email_user: Optional[str] = None
+    email_password: Optional[str] = None
+    email_automation_enabled: Optional[bool] = None
+    knowledge_base: Optional[str] = None
+    primary_color: Optional[str] = None
+    logo_url: Optional[str] = None
+
+@app.post("/transcribe")
+async def transcribe_endpoint(request: Request, file: UploadFile = File(...), x_api_key: Optional[str] = Header(None), db: Session = Depends(get_session)):
+    company = get_current_company(request, db, x_api_key)
+    if not company: raise HTTPException(status_code=403, detail="Invalid Authentication")
+    
+    try:
+        content = await file.read()
+        from utils import transcribe_audio
+        text = transcribe_audio(content, company)
+        return {"text": text}
+    except Exception as e:
+        print(f"TRANSCRIBE ERROR: {e}")
+        raise HTTPException(status_code=500, detail="Transcription failed.")
+
+@app.get("/admin/settings")
+async def get_settings(request: Request, x_api_key: Optional[str] = Header(None), db: Session = Depends(get_session)):
+    company = get_current_company(request, db, x_api_key)
+    if not company: raise HTTPException(status_code=403, detail="Invalid Authentication")
+    return company
+
+@app.post("/admin/settings")
+async def update_settings(data: SettingsUpdate, request: Request, x_api_key: Optional[str] = Header(None), db: Session = Depends(get_session)):
+    company = get_current_company(request, db, x_api_key)
+    if not company: raise HTTPException(status_code=403, detail="Invalid Authentication")
+    
+    update_data = data.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        if key in ["instagram_access_token", "email_password", "openai_api_key"]:
+             setattr(company, key, encrypt_field(value))
+        else:
+             setattr(company, key, value)
+             
+    db.add(company)
+    db.commit()
+    db.refresh(company)
+    return {"status": "success"}
+
 @app.post("/auth/signup")
 async def public_signup(data: SignupIn, db: Session = Depends(get_session)):
     # Check if subdomain is taken
