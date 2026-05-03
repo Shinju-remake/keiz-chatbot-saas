@@ -549,10 +549,11 @@ Action: Provision their dashboard and reach out for the demo!
         except Exception as e:
             print(f"⚠️ Webhook Error: {e}")
 
+    api_url = os.getenv("VITE_API_URL", "https://keiz-chatbot-saas-1.onrender.com")
     return {
         "status": "success",
         "api_key": new_company.api_key,
-        "dashboard_url": f"http://localhost:8000/dashboard?api_key={new_company.api_key}"
+        "dashboard_url": f"{api_url}/dashboard?api_key={new_company.api_key}"
     }
 
 # --- SUBDOMAIN RESOLUTION ENGINE ---
