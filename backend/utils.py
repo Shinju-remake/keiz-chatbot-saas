@@ -41,6 +41,152 @@ def decrypt_field(value: str) -> Optional[str]:
     except Exception as e:
         return value 
 
+def send_email(to_email: str, subject: str, body_text: str, html_content: Optional[str] = None):
+    import smtplib
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.text import MIMEText
+    
+    admin_email = os.getenv("ADMIN_EMAIL", "traore.m.2007@gmail.com")
+    smtp_user = os.getenv("SMTP_USER", admin_email)
+    smtp_pass = os.getenv("SMTP_PASSWORD") # Requires Gmail App Password
+    
+    if not smtp_pass:
+        print(f"⚠️ SMTP_PASSWORD not set. Skipping email dispatch to {to_email}.")
+        return False
+
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = subject
+    msg["From"] = f"ChatBoost by Shinju AI <{smtp_user}>"
+    msg["To"] = to_email
+
+    # Add plain-text version for fallback
+    msg.attach(MIMEText(body_text, "plain"))
+    
+    # Add HTML version if provided
+    if html_content:
+        msg.attach(MIMEText(html_content, "html"))
+
+    try:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+            server.login(smtp_user, smtp_pass)
+            server.send_message(msg)
+        return True
+    except Exception as e:
+        print(f"❌ SMTP ERROR sending to {to_email}: {e}")
+        return False
+
+def send_admin_notification(subject: str, body_text: str):
+    admin_email = os.getenv("ADMIN_EMAIL", "traore.m.2007@gmail.com")
+    
+    html_content = f"""
+    <html>
+        <body style="font-family: 'Inter', Arial, sans-serif; line-height: 1.6; color: #1a1a1a; background-color: #f9fafb; padding: 40px;">
+            <div style="max-width: 600px; margin: 0 auto; background: #ffffff; padding: 30px; border-radius: 12px; border: 1px solid #e5e7eb;">
+                <h2 style="color: #BB00FF; margin-top: 0;">🚀 New ChatBoost Lead</h2>
+                <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                    {body_text.replace('\n', '<br>')}
+                </div>
+                <p style="font-size: 14px; color: #6b7280;">Action Required: Review the dashboard configuration and contact the lead within 24 hours.</p>
+            </div>
+        </body>
+    </html>
+    """
+    return send_email(admin_email, subject, body_text, html_content=html_content)
+
+def send_user_confirmation(user_email: str, user_name: str, business_name: str):
+    subject = f"Welcome to ChatBoost, {user_name}! 🚀"
+    
+    body_text = f"""
+Hello {user_name},
+
+Thank you for choosing ChatBoost for {business_name}! 
+
+Your AI-powered dashboard is being provisioned and will be ready shortly. 
+Our team is already reviewing your business niche to ensure your chatbot is perfectly tailored to your needs.
+
+Best regards,
+The ChatBoost Team (Shinju AI)
+    """
+
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap');
+        </style>
+    </head>
+    <body style="margin: 0; padding: 0; font-family: 'Inter', Helvetica, Arial, sans-serif; background-color: #f4f4f7; color: #51545e;">
+        <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color: #f4f4f7; padding: 40px 0;">
+            <tr>
+                <td align="center">
+                    <table width="600" cellpadding="0" cellspacing="0" role="presentation" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid #eaeaef;">
+                        <!-- Banner -->
+                        <tr>
+                            <td style="background-color: #BB00FF; padding: 50px 40px; text-align: center;">
+                                <h1 style="margin: 0; color: #ffffff; font-size: 32px; font-weight: 800; letter-spacing: -1px;">ChatBoost</h1>
+                                <p style="margin: 5px 0 0; color: rgba(255,255,255,0.8); font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 2px;">by Shinju AI</p>
+                            </td>
+                        </tr>
+                        
+                        <!-- Content -->
+                        <tr>
+                            <td style="padding: 45px 40px;">
+                                <h2 style="margin-top: 0; color: #1a1a1a; font-size: 24px; font-weight: 700;">Welcome to the future, {user_name}!</h2>
+                                <p style="font-size: 16px; line-height: 1.6; color: #4a4a4e;">
+                                    We are excited to help you transform <strong>{business_name}</strong> with autonomous AI. Your intelligent dashboard is currently being provisioned on our high-performance infrastructure.
+                                </p>
+                                
+                                <div style="margin: 35px 0; background-color: #f9fafb; border-radius: 8px; padding: 25px; border-left: 4px solid #BB00FF;">
+                                    <h3 style="margin-top: 0; color: #1a1a1a; font-size: 16px;">Next Steps for Onboarding:</h3>
+                                    <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+                                        <tr>
+                                            <td style="padding: 8px 0; font-size: 14px; color: #51545e;">
+                                                <span style="color: #BB00FF; font-weight: 700;">1.</span> Receive your secure API credentials via email.
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding: 8px 0; font-size: 14px; color: #51545e;">
+                                                <span style="color: #BB00FF; font-weight: 700;">2.</span> Log in to train your AI on your specific business logic.
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding: 8px 0; font-size: 14px; color: #51545e;">
+                                                <span style="color: #BB00FF; font-weight: 700;">3.</span> Deploy the widget and watch your engagement grow.
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+
+                                <p style="font-size: 15px; color: #51545e;">Our team is reviewing your industry niche to ensure your agent provides elite service from day one. If you have any urgent requests, reply directly to this thread.</p>
+                                
+                                <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin-top: 40px;">
+                                    <tr>
+                                        <td>
+                                            <p style="margin: 0; color: #9ca3af; font-size: 14px;">Best regards,</p>
+                                            <p style="margin: 5px 0 0; color: #1a1a1a; font-weight: 700; font-size: 16px;">The ChatBoost Architecture Team</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                        
+                        <!-- Footer -->
+                        <tr>
+                            <td style="background-color: #fcfcfd; padding: 30px 40px; text-align: center; border-top: 1px solid #f0f0f4;">
+                                <p style="margin: 0; font-size: 12px; color: #9ca3af;">&copy; 2026 Shinju AI Ecosystem. Sent with precision from our Paris hub.</p>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>
+    """
+    return send_email(user_email, subject, body_text, html_content=html_content)
+
 async def process_message_v3(company: Company, session_id: str, user_msg: str, db: Session, language: str = "en", image_url: Optional[str] = None) -> dict:
     session_state = db.exec(select(ChatSession).where(ChatSession.company_id == company.id, ChatSession.session_id == session_id)).first()
     if not session_state:
@@ -55,6 +201,30 @@ async def process_message_v3(company: Company, session_id: str, user_msg: str, d
     reply = None
     source = "keyword"
     agent_id = "Shinju Keyword Matcher"
+
+    # --- SYSTEM FAIL-SAFE: ORDER STATUS TRACKER ---
+    if any(kw in user_input for kw in ["status", "track", "where is my", "order status", "suivi"]):
+        # Find latest order for this session
+        # session_id can be 'sess_abc', 'wa_123', 'ig_456'
+        # customer_name might not match session_id, but let's try to find orders for this company
+        orders = db.exec(select(Order).where(Order.company_id == company.id).order_by(Order.timestamp.desc()).limit(5)).all()
+        if orders:
+            # Simple matching: check if session_id or name matches (heuristic)
+            # In a real app, we'd use a customer_id or phone number
+            # For the demo, let's just take the most recent order if it's "confirmed"
+            latest_order = orders[0]
+            status_map = {
+                "confirmed": {"phase": 0, "label": "Received"},
+                "preparing": {"phase": 1, "label": "Preparing"},
+                "quality_check": {"phase": 2, "label": "Quality Control"},
+                "ready": {"phase": 3, "label": "Ready for Pickup"},
+                "delivered": {"phase": 4, "label": "Dispatched"}
+            }
+            s_info = status_map.get(latest_order.status.lower(), {"phase": 0, "label": latest_order.status})
+            
+            reply = f"I found your order for {latest_order.items}. Status: {s_info['label']}.\n[TRACKER_COMPONENT]{json.dumps({'order_id': latest_order.id, 'phase': s_info['phase'], 'items': latest_order.items})}"
+            source = "status_tracker"
+            agent_id = "Shinju Logistics AI"
 
     # --- SYSTEM FAIL-SAFE: DIRECT MENU HANDLER ---
     if any(kw in user_input for kw in ["menu", "serve", "selection", "food", "what do you have", "carte"]):

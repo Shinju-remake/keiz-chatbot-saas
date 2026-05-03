@@ -6,7 +6,9 @@ from pydantic import BaseModel
 from typing import List, Optional
 from sqlmodel import Session, select
 import os
+import random
 import uuid
+from datetime import datetime
 import pdfplumber
 import io
 import hmac
@@ -479,6 +481,17 @@ async def update_settings(data: SettingsUpdate, request: Request, x_api_key: Opt
     db.refresh(company)
     return {"status": "success"}
 
+@app.post("/admin/orders/{order_id}/status")
+async def update_order_status(order_id: int, status: str, request: Request, x_api_key: Optional[str] = Header(None), db: Session = Depends(get_session)):
+    company = get_current_company(request, db, x_api_key)
+    if not company: raise HTTPException(status_code=403, detail="Invalid Authentication")
+    order = db.get(Order, order_id)
+    if not order or order.company_id != company.id: raise HTTPException(status_code=404, detail="Order not found")
+    order.status = status
+    db.add(order)
+    db.commit()
+    return {"status": "success"}
+
 @app.post("/auth/signup")
 async def public_signup(data: SignupIn, db: Session = Depends(get_session)):
     # Check if subdomain is taken
@@ -489,14 +502,53 @@ async def public_signup(data: SignupIn, db: Session = Depends(get_session)):
     new_company = Company(
         name=data.name,
         subdomain=data.subdomain.lower(),
-        openai_api_key=encrypt_field(data.openai_key),
-        plan=data.plan,
-        system_prompt=f"You are the AI Assistant for {data.name}. Luxury-level service is mandatory."
+        email=data.email,
+        openai_api_key=encrypt_field(data.openai_key) if data.openai_key else None,
+        plan=data.plan or "free",
+        api_key=f"sk_{random.getrandbits(64):x}"
     )
     db.add(new_company)
     db.commit()
     db.refresh(new_company)
+
+    # [NEW] Dispatch real email notifications & automation
+    from utils import send_admin_notification, send_user_confirmation
     
+    # 1. Admin Notification
+    admin_subject = f"🚀 NEW CHATBOOST LEAD: {data.name}"
+    admin_body = f"""
+New business registration received:
+- Name: {data.name}
+- Email: {data.email}
+- Subdomain: {data.subdomain}
+- Plan: {new_company.plan}
+- Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+Action: Provision their dashboard and reach out for the demo!
+    """
+    send_admin_notification(admin_subject, admin_body)
+
+    # 2. User Confirmation
+    send_user_confirmation(data.email, data.name, data.name) # Using data.name for both user and business for now
+
+    # 3. Make.com Webhook Integration
+    import httpx
+    webhook_url = os.getenv("MAKE_WEBHOOK_URL")
+    if webhook_url and "placeholder" not in webhook_url:
+        try:
+            payload = {
+                "event": "new_signup",
+                "company_name": data.name,
+                "user_email": data.email,
+                "subdomain": data.subdomain,
+                "plan": new_company.plan
+            }
+            # Run webhook in background if possible, or just fire and forget
+            async with httpx.AsyncClient() as client:
+                await client.post(webhook_url, json=payload)
+        except Exception as e:
+            print(f"⚠️ Webhook Error: {e}")
+
     return {
         "status": "success",
         "api_key": new_company.api_key,
