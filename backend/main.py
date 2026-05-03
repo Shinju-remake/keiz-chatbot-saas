@@ -329,6 +329,10 @@ async def handle_meta_webhook(request: Request, background_tasks: BackgroundTask
                 if not company: company = db.exec(select(Company)).first() # Fallback
                 
                 if company:
+                    if company.plan.lower() in ["free", "starter"]:
+                        print(f"⚠️ PLAN LIMIT: WhatsApp integration is disabled for {company.name} ({company.plan} plan).")
+                        return {"status": "ok"}
+                    
                     text = ""
                     image_url = None
                     msg_type = message.get("type", "text")
@@ -374,6 +378,10 @@ async def handle_meta_webhook(request: Request, background_tasks: BackgroundTask
                 if not company: company = db.exec(select(Company)).first() # Fallback
                 
                 if company:
+                    if company.plan.lower() in ["free", "starter"]:
+                        print(f"⚠️ PLAN LIMIT: Instagram integration is disabled for {company.name} ({company.plan} plan).")
+                        return {"status": "ok"}
+                        
                     result = await process_message_v3(company, f"ig_{sender_id}", text, db)
                     from utils import send_instagram_reply, send_post_interaction_confirmation
                     background_tasks.add_task(send_instagram_reply, company, sender_id, result["reply"])

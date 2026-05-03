@@ -188,6 +188,18 @@ The ChatBoost Team (Shinju AI)
     return send_email(user_email, subject, body_text, html_content=html_content)
 
 async def process_message_v3(company: Company, session_id: str, user_msg: str, db: Session, language: str = "en", image_url: Optional[str] = None) -> dict:
+    from sqlalchemy import func
+    
+    # PLAN LIMITS CHECK (Monthly Messages)
+    current_month = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    msg_count = db.exec(select(func.count(ChatLog.id)).where(ChatLog.company_id == company.id, ChatLog.timestamp >= current_month)).one_or_none() or 0
+    
+    plan_limits = {"free": 50, "starter": 500, "pro": 5000, "enterprise": float('inf')}
+    limit = plan_limits.get(company.plan.lower(), 50)
+    
+    if msg_count >= limit:
+        return {"reply": f"This business has exceeded its monthly AI message allocation ({limit} msgs/mo). Please upgrade your plan.", "source": "system", "agent_identity": "System Guard"}
+
     session_state = db.exec(select(ChatSession).where(ChatSession.company_id == company.id, ChatSession.session_id == session_id)).first()
     if not session_state:
         session_state = ChatSession(company_id=company.id, session_id=session_id)
@@ -378,14 +390,21 @@ async def get_ai_response(company: Company, session_id: str, user_msg: str, db: 
     # Context Assembly
     raw_kb = company.knowledge_base or ""
     user_input_lower = user_msg.lower()
+    plan = company.plan.lower()
+
     if any(kw in user_input_lower for kw in ["menu", "price", "order", "what do you have", "show me", "selection"]) or image_url:
         rag_context = f"DIRECT MENU DATA: {raw_kb[:2000]}"
     else:
-        try:
-            rag_context = search_kb(company.id, user_msg, api_key=openai_key)
-        except Exception as e:
-            print(f"⚠️ RAG Search Error: {e}")
-            rag_context = ""
+        # PLAN GATE: Advanced RAG only available on Pro and Enterprise plans
+        if plan in ["pro", "enterprise"]:
+            try:
+                rag_context = search_kb(company.id, user_msg, api_key=openai_key)
+            except Exception as e:
+                print(f"⚠️ RAG Search Error: {e}")
+                rag_context = ""
+        else:
+            rag_context = "" # Starter/Free only gets standard raw_kb
+
         if not rag_context and raw_kb: rag_context = raw_kb[:1000]
     
     history = db.exec(select(ChatLog).where(ChatLog.company_id == company.id, ChatLog.session_id == session_id).order_by(ChatLog.timestamp.desc()).limit(6)).all()
