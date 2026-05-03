@@ -4,55 +4,301 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shinju AI | Omni-Console V3</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Geist+Mono:wght@100..900&family=Inter:wght@100..900&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #BB00FF; --dark: #0a0a0a; --gray: #f4f4f4; }
+        :root { 
+            --primary: #BB00FF; 
+            --primary-glow: rgba(187, 0, 255, 0.4);
+            --dark-bg: #050505; 
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --text-main: #ffffff;
+            --text-muted: #a1a1aa;
+            --accent-green: #00ff88;
+        }
+
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Inter', sans-serif; background: #fafafa; color: #333; display: flex; height: 100vh; overflow: hidden; }
         
-        #sidebar { width: 260px; background: var(--dark); color: white; height: 100vh; padding: 25px; position: fixed; z-index: 1000; }
-        #sidebar h2 { color: var(--primary); font-size: 1.4rem; margin-bottom: 5px; }
-        #sidebar hr { border: 0; border-top: 1px solid #333; margin: 20px 0; }
-        .nav-item { padding: 12px 15px; border-radius: 8px; cursor: pointer; transition: 0.2s; margin-bottom: 5px; color: #888; font-weight: 500; display: flex; align-items: center; gap: 10px; }
-        .nav-item:hover { background: #1a1a1a; color: white; }
-        .nav-item.active { background: var(--primary); color: white; }
+        body { 
+            font-family: 'Geist', 'Inter', sans-serif; 
+            background: var(--dark-bg); 
+            color: var(--text-main); 
+            display: flex; 
+            height: 100vh; 
+            overflow: hidden; 
+            letter-spacing: -0.01em;
+        }
 
-        #mobile-nav { display: none; position: fixed; bottom: 0; left: 0; width: 100%; height: 65px; background: var(--dark); border-top: 1px solid #333; z-index: 2000; justify-content: space-around; align-items: center; }
-        .m-nav-item { display: flex; flex-direction: column; align-items: center; color: #666; font-size: 0.6rem; text-decoration: none; cursor: pointer; }
+        /* BACKGROUND DECORATION */
+        .bg-glow {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 10% 10%, rgba(187, 0, 255, 0.03) 0%, transparent 40%),
+                radial-gradient(circle at 90% 90%, rgba(187, 0, 255, 0.03) 0%, transparent 40%);
+            pointer-events: none;
+            z-index: -1;
+        }
+        
+        #sidebar { 
+            width: 280px; 
+            background: var(--glass-bg); 
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            color: white; 
+            height: 100vh; 
+            padding: 32px; 
+            position: fixed; 
+            z-index: 1000; 
+            border-right: 1px solid var(--glass-border);
+        }
+        
+        #sidebar h2 { 
+            color: var(--primary); 
+            font-size: 1.5rem; 
+            margin-bottom: 8px; 
+            font-weight: 900;
+            letter-spacing: 0.05em;
+            text-shadow: 0 0 20px var(--primary-glow);
+        }
+        
+        #sidebar hr { border: 0; border-top: 1px solid var(--glass-border); margin: 24px 0; }
+        
+        .nav-item { 
+            padding: 12px 16px; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
+            margin-bottom: 8px; 
+            color: var(--text-muted); 
+            font-weight: 500; 
+            display: flex; 
+            align-items: center; 
+            gap: 12px; 
+            font-size: 0.9375rem;
+        }
+        
+        .nav-item:hover { 
+            background: rgba(255, 255, 255, 0.05); 
+            color: white; 
+            transform: translateX(4px);
+        }
+        
+        .nav-item.active { 
+            background: rgba(187, 0, 255, 0.1); 
+            color: var(--primary); 
+            border: 1px solid rgba(187, 0, 255, 0.2);
+        }
+
+        #mobile-nav { 
+            display: none; 
+            position: fixed; 
+            bottom: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 72px; 
+            background: rgba(10, 10, 10, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid var(--glass-border); 
+            z-index: 2000; 
+            justify-content: space-around; 
+            align-items: center; 
+        }
+        
+        .m-nav-item { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            color: var(--text-muted); 
+            font-size: 0.65rem; 
+            text-decoration: none; 
+            cursor: pointer; 
+            flex: 1;
+        }
         .m-nav-item.active { color: var(--primary); }
-        .m-nav-item span { font-size: 1.2rem; margin-bottom: 2px; }
+        .m-nav-item span { font-size: 1.4rem; margin-bottom: 4px; }
 
-        #content { flex: 1; margin-left: 260px; padding: 40px; overflow-y: auto; height: 100vh; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; gap: 15px; }
-        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 25px; }
-        .card h2 { font-size: 1.1rem; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
-
-        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px; }
-        .stat-card { padding: 15px; border-left: 4px solid var(--primary); }
+        #content { 
+            flex: 1; 
+            margin-left: 280px; 
+            padding: 48px; 
+            overflow-y: auto; 
+            height: 100vh; 
+            scrollbar-width: thin;
+            scrollbar-color: var(--glass-border) transparent;
+        }
         
+        .header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 40px; 
+            gap: 20px; 
+        }
+        
+        .card { 
+            background: var(--glass-bg); 
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 24px; 
+            border-radius: 20px; 
+            border: 1px solid var(--glass-border);
+            margin-bottom: 32px; 
+            box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.2);
+        }
+        
+        .card h2 { 
+            font-size: 1.1rem; 
+            margin-bottom: 20px; 
+            font-weight: 600;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .stats-grid { 
+            display: grid; 
+            grid-template-columns: repeat(4, 1fr); 
+            gap: 24px; 
+            margin-bottom: 40px; 
+        }
+        
+        .stat-card { 
+            padding: 24px; 
+            position: relative;
+            overflow: hidden;
+            border-left: none;
+            transition: transform 0.3s ease;
+        }
+        .stat-card:hover { transform: translateY(-4px); }
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 4px; height: 100%;
+            background: var(--primary);
+            box-shadow: 0 0 10px var(--primary-glow);
+        }
+        .stat-card h3 { font-size: 2rem; font-weight: 800; margin-top: 8px; letter-spacing: -0.02em; }
+        .stat-card p { color: var(--text-muted); font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+        
+        /* TERMINAL COMPONENT */
+        .terminal-card {
+            background: #000;
+            border: 1px solid #1a1a1a;
+            padding: 0;
+            overflow: hidden;
+            border-radius: 12px;
+        }
+        .terminal-header {
+            background: #111;
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid #1a1a1a;
+        }
+        .dot { width: 10px; height: 10px; border-radius: 50%; }
+        .dot-red { background: #ff5f56; }
+        .dot-yellow { background: #ffbd2e; }
+        .dot-green { background: #27c93f; }
+        .terminal-body {
+            height: 300px;
+            overflow-y: auto;
+            padding: 16px;
+            font-family: 'Geist Mono', monospace;
+            font-size: 0.85rem;
+            color: var(--accent-green);
+            background: #050505;
+        }
+        .terminal-line { margin-bottom: 4px; display: flex; gap: 12px; }
+        .terminal-timestamp { color: #555; min-width: 80px; }
+        .terminal-msg { color: #eee; }
+        .terminal-status { color: var(--primary); }
+
         table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
-        .tag { padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+        th { 
+            padding: 14px; 
+            text-align: left; 
+            color: var(--text-muted); 
+            font-weight: 600; 
+            font-size: 0.75rem; 
+            text-transform: uppercase; 
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid var(--glass-border); 
+        }
+        td { padding: 16px 14px; text-align: left; border-bottom: 1px solid var(--glass-border); color: #eee; }
+        tr:hover td { background: rgba(255, 255, 255, 0.01); }
 
-        .btn { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: 0.3s; }
-        .btn:hover { opacity: 0.8; transform: translateY(-2px); }
-        .btn-outline { background: transparent; border: 1px solid var(--primary); color: var(--primary); }
+        .tag { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; }
+
+        .btn { 
+            background: var(--primary); 
+            color: white; 
+            border: none; 
+            padding: 12px 24px; 
+            border-radius: 10px; 
+            cursor: pointer; 
+            font-weight: 600; 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+            font-size: 0.9rem;
+            box-shadow: 0 0 15px rgba(187, 0, 255, 0.2);
+        }
+        .btn:hover { 
+            background: #cc33ff;
+            transform: translateY(-2px); 
+            box-shadow: 0 0 25px rgba(187, 0, 255, 0.4);
+        }
+        .btn-outline { 
+            background: transparent; 
+            border: 1px solid var(--glass-border); 
+            color: white; 
+        }
+        .btn-outline:hover {
+            border-color: var(--primary);
+            background: rgba(187, 0, 255, 0.05);
+        }
         
-        .tab-content { display: none; }
+        .tab-content { display: none; animation: fadeIn 0.4s ease-out; }
         .tab-content.active { display: block; }
 
-        input, textarea, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 0.9rem; margin-bottom: 15px; }
-        input:focus, textarea:focus { border-color: var(--primary); outline: none; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        input, textarea, select { 
+            width: 100%; 
+            padding: 14px; 
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border); 
+            border-radius: 12px; 
+            font-size: 0.9375rem; 
+            margin-bottom: 20px; 
+            color: white;
+            transition: border-color 0.3s;
+        }
+        input:focus, textarea:focus { border-color: var(--primary); outline: none; background: rgba(255, 255, 255, 0.05); }
 
         @media (max-width: 1024px) {
             #sidebar { display: none; }
             #mobile-nav { display: flex; }
-            #content { margin-left: 0; padding: 20px; padding-bottom: 100px; }
-            .stats-grid { grid-template-columns: 1fr 1fr; }
+            #content { margin-left: 0; padding: 24px; padding-bottom: 100px; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 16px; }
             .header { flex-direction: column; align-items: flex-start; }
+            h1 { font-size: 1.8rem; }
         }
     </style>
 </head>
 <body>
+    <div class="bg-glow"></div>
+    
     <div id="mobile-nav">
         <div class="m-nav-item active" onclick="switchTab('analytics')"><span>📊</span>Data</div>
         <div class="m-nav-item" onclick="switchTab('reservations')"><span>📅</span>Orders</div>
@@ -62,8 +308,8 @@
     </div>
 
     <div id="sidebar">
-        <h2>SHINJU<span style="color:var(--primary);">AI</span></h2>
-        <p style="opacity:0.5; font-size:0.7rem;">Elite Omni-Console V3</p>
+        <h2>SHINJU AI</h2>
+        <p style="color: var(--text-muted); font-size:0.75rem; font-weight: 500;">OMNI-CONSOLE V3</p>
         <hr>
         <div class="nav-item active" onclick="switchTab('analytics')">📊 Analytics</div>
         <div class="nav-item" onclick="switchTab('reservations')">📅 Delivery & Orders</div>
@@ -76,105 +322,155 @@
 
     <div id="content">
         <div class="header">
-            <h1 id="company-title">Omni-Console</h1>
-            <span id="plan-badge" class="tag" style="background:var(--primary); color:white;">PRO TIER</span>
+            <h1 id="company-title" style="font-weight: 900; letter-spacing: -0.04em;">Omni-Console</h1>
+            <span id="plan-badge" class="tag" style="background:var(--primary); color:white; box-shadow: 0 0 15px var(--primary-glow);">PRO TIER</span>
         </div>
 
         <div class="stats-grid">
-            <div class="card stat-card"><p style="color:#888;font-size:0.7rem;">Active Chats</p><h3 id="stat-active-chats">0</h3></div>
-            <div class="card stat-card" style="border-color:#00ff88;"><p style="color:#888;font-size:0.7rem;">Total Orders</p><h3 id="stat-total-res">0</h3></div>
-            <div class="card stat-card" style="border-color:#FFC107;"><p style="color:#888;font-size:0.7rem;">AI Confidence</p><h3 id="stat-avg-conf">92%</h3></div>
-            <div class="card stat-card" style="border-color:#F44336;"><p style="color:#888;font-size:0.7rem;">Review Needed</p><h3 id="stat-needs-review">0</h3></div>
+            <div class="card stat-card"><p>Active Chats</p><h3 id="stat-active-chats">0</h3></div>
+            <div class="card stat-card" style="border-color:var(--accent-green);"><p>Total Orders</p><h3 id="stat-total-res">0</h3></div>
+            <div class="card stat-card" style="border-color:#FFC107;"><p>AI Confidence</p><h3 id="stat-avg-conf">92%</h3></div>
+            <div class="card stat-card" style="border-color:#F44336;"><p>Review Needed</p><h3 id="stat-needs-review">0</h3></div>
         </div>
 
         <!-- ANALYTICS TAB -->
         <div id="tab-analytics" class="tab-content active">
-            <div class="card" style="background:linear-gradient(135deg, #BB00FF, #7000FF); color:white; border:none;">
-                <h2 style="color:white; border-color:rgba(255,255,255,0.2);">🧠 Proactive Trends</h2>
-                <div id="trend-container"><p>Analyzing fast-food data loops...</p></div>
+            <div class="card" style="background: linear-gradient(135deg, rgba(187, 0, 255, 0.15), rgba(112, 0, 255, 0.15)); border-color: rgba(187, 0, 255, 0.3);">
+                <h2 style="color:white;">🧠 Live Agentic Trends</h2>
+                <div id="trend-container"><p style="color:var(--text-muted);">Analyzing fast-food data loops...</p></div>
             </div>
+            
+            <div class="card terminal-card">
+                <div class="terminal-header">
+                    <div class="dot dot-red"></div>
+                    <div class="dot dot-yellow"></div>
+                    <div class="dot dot-green"></div>
+                    <span style="font-size: 0.75rem; color: #666; font-family: 'Geist Mono', monospace; margin-left: 10px;">live_agent_logs.sh</span>
+                </div>
+                <div class="terminal-body" id="logs-terminal">
+                    <!-- Logs will be populated here as well as the table -->
+                </div>
+            </div>
+
             <div class="card">
                 <h2>Recent Interactions</h2>
-                <div style="overflow-x:auto;"><table id="logs-table"><thead><tr><th>Time</th><th>User</th><th>AI</th><th>Status</th></tr></thead><tbody id="logs-body"></tbody></table></div>
+                <div style="overflow-x:auto;">
+                    <table id="logs-table">
+                        <thead>
+                            <tr><th>Time</th><th>User</th><th>AI Response</th><th>Source</th></tr>
+                        </thead>
+                        <tbody id="logs-body"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
         <!-- ORDERS/RESERVATIONS TAB -->
         <div id="tab-reservations" class="tab-content">
-            <div class="card"><h2>Order & Delivery Queue</h2><table id="reservations-table"><thead><tr><th>Customer</th><th>Date/Time</th><th>Pax/Items</th></tr></thead><tbody id="reservations-body"></tbody></table></div>
+            <div class="card">
+                <h2>📅 Order & Delivery Queue</h2>
+                <div style="overflow-x:auto;">
+                    <table id="reservations-table">
+                        <thead><tr><th>Customer</th><th>Date/Time</th><th>Pax/Items</th></tr></thead>
+                        <tbody id="reservations-body"></tbody>
+                    </table>
+                </div>
+            </div>
         </div>
 
         <!-- RULES TAB -->
         <div id="tab-rules" class="tab-content">
-            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:20px;">
-                <div class="card"><h2>Add Instant Rule</h2><form id="rule-form"><input type="text" id="rule-keyword" placeholder="Keyword (e.g. 'vegan')" required><textarea id="rule-response" placeholder="AI Response" required></textarea><button type="submit" class="btn" style="width:100%;">Save Rule</button></form></div>
-                <div class="card"><h2>Active Rules</h2><table id="rules-table"><thead><tr><th>Keyword</th><th>Action</th></tr></thead><tbody id="rules-body"></tbody></table></div>
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap:32px;">
+                <div class="card">
+                    <h2>🛠️ Add Instant Rule</h2>
+                    <form id="rule-form">
+                        <label style="font-size:0.75rem; color:var(--text-muted); margin-bottom:8px; display:block;">Trigger Keyword</label>
+                        <input type="text" id="rule-keyword" placeholder="e.g. 'vegan' or 'opening hours'" required>
+                        <label style="font-size:0.75rem; color:var(--text-muted); margin-bottom:8px; display:block;">AI Payload</label>
+                        <textarea id="rule-response" placeholder="How should the AI respond?" style="height:120px;" required></textarea>
+                        <button type="submit" class="btn" style="width:100%;">Deploy Rule</button>
+                    </form>
+                </div>
+                <div class="card">
+                    <h2>Active Logic Gates</h2>
+                    <div style="overflow-x:auto;">
+                        <table id="rules-table">
+                            <thead><tr><th>Keyword</th><th>Action</th></tr></thead>
+                            <tbody id="rules-body"></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
 
         <!-- KNOWLEDGE BASE TAB -->
         <div id="tab-knowledge" class="tab-content">
             <div class="card">
-                <h2>🧠 Fast Food Brain (RAG)</h2>
-                <p style="color:#666; font-size:0.8rem; margin-bottom:20px;">Upload your menu, catering prices, or store policies. The AI will learn them instantly.</p>
+                <h2>🧠 Neural Knowledge Base (RAG)</h2>
+                <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:32px;">Upload menu data, store protocols, or service guidelines. The Omni-Engine indexes this into high-dimensional vector space for instant recall.</p>
                 <form id="kb-form">
-                    <textarea id="set-kb" placeholder="Paste menu text here..." style="height:200px;"></textarea>
-                    <button type="submit" class="btn">Update Brain</button>
+                    <textarea id="set-kb" placeholder="Paste raw documentation here..." style="height:250px; font-family:'Geist Mono', monospace; font-size:0.8rem;"></textarea>
+                    <button type="submit" class="btn">Update Neural Map</button>
                 </form>
-                <hr style="margin:25px 0; border:0; border-top:1px solid #eee;">
-                <h3>Upload PDF Menu</h3>
-                <input type="file" id="kb-pdf" accept=".pdf" style="margin-bottom:15px; display:block;">
-                <button onclick="uploadPDF()" class="btn btn-outline">Upload & Sync</button>
+                <hr style="margin:32px 0; border:0; border-top:1px solid var(--glass-border);">
+                <h3>Sync Binary Source (PDF)</h3>
+                <div style="display:flex; gap:16px; margin-top:16px; align-items: center;">
+                    <input type="file" id="kb-pdf" accept=".pdf" style="margin-bottom:0; flex:1;">
+                    <button onclick="uploadPDF()" class="btn btn-outline">Upload & Sync</button>
+                </div>
             </div>
         </div>
 
         <!-- BILLING TAB -->
         <div id="tab-billing" class="tab-content">
-            <div class="card" style="text-align:center;">
-                <h2>Active Subscription</h2>
-                <h1 id="current-plan-display" style="color:var(--primary); font-size:3rem; margin:20px 0;">PRO TIER</h1>
-                <p style="color:#666; margin-bottom:20px;">Monthly Retainer: €199/mo</p>
-                <button onclick="alert('Redirecting to Stripe...')" class="btn" style="padding:15px 40px;">Manage Billing</button>
+            <div class="card" style="text-align:center; padding: 60px 24px;">
+                <p style="color:var(--text-muted); text-transform:uppercase; letter-spacing: 0.1em; font-size:0.8rem;">Active Subscription</p>
+                <h1 id="current-plan-display" style="color:var(--primary); font-size:4rem; margin:16px 0; font-weight:900; letter-spacing:-0.04em;">PRO TIER</h1>
+                <p style="color:var(--text-muted); margin-bottom:40px;">Billed Monthly: €199/mo (Enterprise SLA)</p>
+                <button onclick="alert('Redirecting to Stripe...')" class="btn" style="padding:16px 48px; border-radius:14px;">Manage Billing & Invoices</button>
             </div>
         </div>
         
         <!-- SETTINGS TAB -->
         <div id="tab-settings" class="tab-content">
              <div class="card">
-                <h2>Identity & Branding</h2>
+                <h2>🎨 Identity & Virtual Branding</h2>
                 <form id="branding-form">
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
-                        <div><label style="font-size:0.7rem; color:#888;">Hub Name</label><input type="text" id="set-name"></div>
-                        <div><label style="font-size:0.7rem; color:#888;">Subdomain</label><input type="text" id="set-subdomain"></div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+                        <div><label style="font-size:0.75rem; color:var(--text-muted);">AI Entity Name</label><input type="text" id="set-name"></div>
+                        <div><label style="font-size:0.75rem; color:var(--text-muted);">Virtual Subdomain</label><input type="text" id="set-subdomain"></div>
                     </div>
-                    <button type="submit" class="btn">Update Identity</button>
+                    <button type="submit" class="btn">Update Branding</button>
                 </form>
              </div>
 
              <div class="card">
-                <h2>WhatsApp & Instagram Pro</h2>
+                <h2>📱 Omnichannel Integration (Meta)</h2>
                 <form id="social-form">
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
-                        <div><label style="font-size:0.7rem; color:#888;">WhatsApp Phone ID</label><input type="text" id="set-wa-id"></div>
-                        <div><label style="font-size:0.7rem; color:#888;">Instagram Page ID</label><input type="text" id="set-ig-id"></div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+                        <div><label style="font-size:0.75rem; color:var(--text-muted);">WhatsApp Business ID</label><input type="text" id="set-wa-id"></div>
+                        <div><label style="font-size:0.75rem; color:var(--text-muted);">Instagram Professional ID</label><input type="text" id="set-ig-id"></div>
                     </div>
-                    <label style="font-size:0.7rem; color:#888;">Meta Access Token (System User)</label>
-                    <input type="password" id="set-meta-token">
-                    <button type="submit" class="btn">Link Social Accounts</button>
+                    <label style="font-size:0.75rem; color:var(--text-muted);">Meta Long-Lived Token</label>
+                    <input type="password" id="set-meta-token" placeholder="••••••••••••••••">
+                    <button type="submit" class="btn">Sync Channels</button>
                 </form>
              </div>
 
              <div class="card">
-                <h2>Autonomous Email Agent</h2>
+                <h2>📩 Autonomous Email Dispatcher</h2>
                 <form id="email-form">
-                    <div style="margin-bottom:15px;">
-                        <label style="display:flex; align-items:center; gap:10px;"><input type="checkbox" id="set-email-enabled" style="width:auto; margin:0;"> Enable Email Automation</label>
+                    <div style="margin-bottom:24px; background: rgba(255,255,255,0.02); padding: 16px; border-radius: 12px; border: 1px solid var(--glass-border);">
+                        <label style="display:flex; align-items:center; gap:12px; cursor:pointer;">
+                            <input type="checkbox" id="set-email-enabled" style="width:20px; height:20px; margin:0; cursor:pointer;"> 
+                            <span style="font-weight:600; font-size:0.9rem;">Enable AI Email Automation</span>
+                        </label>
                     </div>
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
-                        <div><label style="font-size:0.7rem; color:#888;">Email Address</label><input type="text" id="set-email-user"></div>
-                        <div><label style="font-size:0.7rem; color:#888;">App Password</label><input type="password" id="set-email-pass"></div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+                        <div><label style="font-size:0.75rem; color:var(--text-muted);">SMTP User</label><input type="text" id="set-email-user" placeholder="admin@shinju.ai"></div>
+                        <div><label style="font-size:0.75rem; color:var(--text-muted);">SMTP Key</label><input type="password" id="set-email-pass" placeholder="••••••••"></div>
                     </div>
-                    <button type="submit" class="btn">Save Email Config</button>
+                    <button type="submit" class="btn">Deploy Email Agent</button>
                 </form>
              </div>
         </div>
@@ -182,6 +478,15 @@
 
     <script>
         const API_BASE = window.location.origin;
+        
+        // Auto-login from URL params
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('api_key')) {
+            localStorage.setItem("shinju_admin_key", urlParams.get('api_key'));
+            // Remove the key from the URL for security/cleanliness
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+        
         let API_KEY = localStorage.getItem("shinju_admin_key");
 
         async function switchTab(tab) {
@@ -222,7 +527,18 @@
                 const res = await fetch(`${API_BASE}/admin/logs`, { headers: {"X-API-Key": API_KEY} });
                 const logs = await res.json();
                 const tbody = document.getElementById("logs-body");
+                const terminal = document.getElementById("logs-terminal");
+                
                 tbody.innerHTML = logs.map(l => `<tr><td>${new Date(l.timestamp).toLocaleTimeString()}</td><td>${l.user_msg}</td><td>${l.bot_reply}</td><td>${l.source}</td></tr>`).join('');
+                
+                // Populate terminal
+                terminal.innerHTML = logs.slice(0, 15).map(l => `
+                    <div class="terminal-line">
+                        <span class="terminal-timestamp">[${new Date(l.timestamp).toLocaleTimeString()}]</span>
+                        <span class="terminal-status">SYS.INF:</span>
+                        <span class="terminal-msg">User: "${l.user_msg.substring(0, 20)}..." | AI: "${l.bot_reply.substring(0, 20)}..."</span>
+                    </div>
+                `).join('');
             } catch(e) {}
         }
 
@@ -231,7 +547,7 @@
                 const res = await fetch(`${API_BASE}/admin/analytics/trends`, { headers: {"X-API-Key": API_KEY} });
                 const d = await res.json();
                 const container = document.getElementById("trend-container");
-                if (d.trends) container.innerHTML = d.trends.map(t => `<div style="background:rgba(255,255,255,0.1);padding:10px;margin-bottom:10px;border-radius:8px;font-size:0.8rem;">${t.insight_text}</div>`).join('');
+                if (d.trends) container.innerHTML = d.trends.map(t => `<div style="background:rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding:14px; margin-bottom:12px; border-radius:12px; font-size:0.85rem; color:#eee;"><span style="color:var(--primary); font-weight:700;">INSIGHT:</span> ${t.insight_text}</div>`).join('');
             } catch(e) {}
         }
 
@@ -247,7 +563,7 @@
             try {
                 const res = await fetch(`${API_BASE}/admin/rules`, { headers: {"X-API-Key": API_KEY} });
                 const data = await res.json();
-                document.getElementById("rules-body").innerHTML = data.map(r => `<tr><td>${r.keyword}</td><td><button onclick="deleteRule(${r.id})" style="color:red; background:none; border:none; cursor:pointer;">Delete</button></td></tr>`).join('');
+                document.getElementById("rules-body").innerHTML = data.map(r => `<tr><td><span style="font-family:'Geist Mono'; color:var(--primary);">${r.keyword}</span></td><td><button onclick="deleteRule(${r.id})" style="color:#ff5f56; background:none; border:none; cursor:pointer; font-weight:600;">Delete Rule</button></td></tr>`).join('');
             } catch(e) {}
         }
 
@@ -307,16 +623,16 @@
                 
                 if (res.ok) {
                     alert(`Success! Indexed ${result.extracted_length} characters of knowledge.`);
-                    fetchSettings(); // Refresh KB text area
+                    fetchSettings(); 
                 } else {
                     alert("Upload failed: " + (result.detail || "Server Error"));
                 }
             } catch (e) {
-                alert("Network error during upload. Check your connection.");
+                alert("Network error during upload.");
             } finally {
                 btn.innerText = "Upload & Sync";
                 btn.disabled = false;
-                fileInput.value = ""; // Reset
+                fileInput.value = ""; 
             }
         }
 
@@ -362,10 +678,8 @@
         };
 
         window.onload = async () => {
-            // Priority 1: Check LocalStorage for explicit login
             if (!API_KEY) API_KEY = localStorage.getItem("shinju_admin_key");
             
-            // Priority 2: Auto-discover via config if on a subdomain
             const res = await fetch(`${API_BASE}/widget/config`);
             if (res.ok) {
                 const config = await res.json();
@@ -377,7 +691,6 @@
             }
 
             if (!API_KEY) {
-                console.error("No API Key found. Redirecting to login.");
                 window.location.href = "/login";
                 return;
             }

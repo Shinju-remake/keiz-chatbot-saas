@@ -4,90 +4,250 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shinju AI | Universal Console</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Inter:wght@100..900&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary: #BB00FF;
+            --primary-glow: rgba(187, 0, 255, 0.5);
             --dark-bg: #050505;
-            --sidebar-bg: #0a0a0a;
-            --text-gray: #888;
-            --accent: #00ff88;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --text-main: #ffffff;
+            --text-muted: #a1a1aa;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
+        
         body {
-            font-family: 'Inter', -apple-system, sans-serif;
+            font-family: 'Geist', 'Inter', -apple-system, sans-serif;
             background-color: var(--dark-bg);
-            color: white;
+            color: var(--text-main);
             height: 100vh;
             display: flex;
             flex-direction: row;
             overflow: hidden;
+            letter-spacing: -0.01em;
         }
 
-        /* SIDEBAR (Desktop) */
+        /* BACKGROUND DECORATION */
+        .bg-glow {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 20%, rgba(187, 0, 255, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 80% 80%, rgba(187, 0, 255, 0.05) 0%, transparent 40%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        /* SIDEBAR */
         #sidebar {
             width: 80px;
-            background: var(--sidebar-bg);
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 20px 0;
-            border-right: 1px solid rgba(255,255,255,0.05);
-            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 24px 0;
+            border-right: 1px solid var(--glass-border);
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             z-index: 1000;
         }
 
-        #sidebar:hover { width: 240px; }
+        #sidebar:hover { width: 260px; }
 
-        .brand { font-weight: 900; color: var(--primary); font-size: 1.5rem; margin-bottom: 40px; text-shadow: 0 0 10px rgba(187, 0, 255, 0.5); white-space: nowrap; overflow: hidden; }
+        .brand { 
+            font-weight: 900; 
+            color: var(--primary); 
+            font-size: 1.5rem; 
+            margin-bottom: 48px; 
+            text-shadow: 0 0 20px var(--primary-glow); 
+            white-space: nowrap; 
+            overflow: hidden;
+            letter-spacing: 0.1em;
+        }
 
         .nav-item {
-            width: 100%; padding: 15px 25px; display: flex; align-items: center; cursor: pointer; color: var(--text-gray); transition: 0.2s; border-left: 3px solid transparent; text-decoration: none;
+            width: 100%; 
+            padding: 14px 28px; 
+            display: flex; 
+            align-items: center; 
+            cursor: pointer; 
+            color: var(--text-muted); 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-left: 2px solid transparent; 
+            text-decoration: none;
+            position: relative;
         }
-        .nav-item:hover { color: white; background: rgba(187, 0, 255, 0.1); }
-        .nav-item.active { color: var(--primary); background: rgba(187, 0, 255, 0.05); border-left-color: var(--primary); }
-        .nav-item .icon { font-size: 1.2rem; min-width: 30px; margin-right: 15px; }
-        .nav-item .label { font-size: 0.9rem; font-weight: 600; opacity: 0; transition: opacity 0.2s; white-space: nowrap; }
+        
+        .nav-item:hover { 
+            color: white; 
+            background: rgba(255, 255, 255, 0.03); 
+        }
+        
+        .nav-item.active { 
+            color: var(--primary); 
+            background: rgba(187, 0, 255, 0.05); 
+            border-left-color: var(--primary); 
+        }
+
+        .nav-item .icon { 
+            font-size: 1.25rem; 
+            min-width: 24px; 
+            margin-right: 20px;
+            filter: grayscale(1);
+            transition: filter 0.3s;
+        }
+        .nav-item.active .icon, .nav-item:hover .icon { filter: grayscale(0); }
+
+        .nav-item .label { 
+            font-size: 0.875rem; 
+            font-weight: 500; 
+            opacity: 0; 
+            transition: opacity 0.3s ease; 
+            white-space: nowrap; 
+        }
         #sidebar:hover .nav-item .label { opacity: 1; }
 
-        /* MOBILE NAV (Bottom Bar) */
-        #mobile-nav { display: none; position: fixed; bottom: 0; left: 0; width: 100%; height: 60px; background: var(--sidebar-bg); border-top: 1px solid rgba(255,255,255,0.1); z-index: 1000; justify-content: space-around; align-items: center; padding: 0 10px; }
-        .m-nav-item { display: flex; flex-direction: column; align-items: center; color: var(--text-gray); font-size: 0.7rem; cursor: pointer; }
+        /* MOBILE NAV */
+        #mobile-nav { 
+            display: none; 
+            position: fixed; 
+            bottom: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 72px; 
+            background: rgba(10, 10, 10, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid var(--glass-border); 
+            z-index: 1000; 
+            justify-content: space-around; 
+            align-items: center; 
+            padding: 0 12px; 
+        }
+        
+        .m-nav-item { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            color: var(--text-muted); 
+            font-size: 0.7rem; 
+            cursor: pointer; 
+            transition: color 0.3s;
+            flex: 1;
+        }
         .m-nav-item.active { color: var(--primary); }
-        .m-nav-item span { font-size: 1.2rem; margin-bottom: 2px; }
+        .m-nav-item span { font-size: 1.4rem; margin-bottom: 4px; }
 
         /* MAIN VIEW */
-        #view-container { flex: 1; position: relative; background: var(--dark-bg); overflow: hidden; }
+        #view-container { 
+            flex: 1; 
+            position: relative; 
+            background: transparent;
+            overflow: hidden; 
+        }
+        
         iframe { width: 100%; height: 100%; border: none; display: none; }
-        iframe.active { display: block; }
+        iframe.active { display: block; animation: fadeIn 0.5s ease-out; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
 
         #welcome-screen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px;
-            background: radial-gradient(circle at center, rgba(187, 0, 255, 0.05) 0%, transparent 70%);
+            display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 40px;
+            z-index: 1;
         }
 
-        h1 { font-size: 2.5rem; font-weight: 900; margin-bottom: 10px; }
-        p { color: var(--text-gray); max-width: 500px; margin-bottom: 30px; }
+        .welcome-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(40px);
+            -webkit-backdrop-filter: blur(40px);
+            border: 1px solid var(--glass-border);
+            padding: 60px;
+            border-radius: 32px;
+            max-width: 600px;
+            box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.5);
+        }
 
-        .btn-group { display: flex; gap: 15px; }
-        .btn { padding: 12px 25px; border-radius: 50px; cursor: pointer; font-weight: 700; transition: 0.3s; font-size: 0.9rem; }
-        .btn-primary { background: var(--primary); color: white; border: none; }
-        .btn-outline { background: transparent; border: 1px solid var(--primary); color: white; }
+        h1 { 
+            font-size: 3.5rem; 
+            font-weight: 900; 
+            margin-bottom: 16px; 
+            letter-spacing: -0.04em;
+            background: linear-gradient(to bottom, #fff 0%, #a1a1aa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        p { 
+            color: var(--text-muted); 
+            font-size: 1.125rem;
+            line-height: 1.6;
+            margin-bottom: 40px; 
+        }
+
+        .btn-group { display: flex; gap: 16px; justify-content: center; }
+        
+        .btn { 
+            padding: 14px 32px; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            font-weight: 600; 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+            font-size: 0.9375rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-primary { 
+            background: var(--primary); 
+            color: white; 
+            border: none;
+            box-shadow: 0 0 20px rgba(187, 0, 255, 0.3);
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 30px rgba(187, 0, 255, 0.5);
+            background: #cc33ff;
+        }
+
+        .btn-outline { 
+            background: rgba(255, 255, 255, 0.03); 
+            border: 1px solid var(--glass-border); 
+            color: white; 
+        }
+        .btn-outline:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
 
         @media (max-width: 768px) {
             body { flex-direction: column; }
             #sidebar { display: none; }
             #mobile-nav { display: flex; }
-            #view-container { margin-bottom: 60px; }
-            h1 { font-size: 1.8rem; }
-            p { font-size: 0.9rem; }
+            #view-container { margin-bottom: 72px; }
+            .welcome-card { padding: 40px 24px; border-radius: 24px; margin: 20px; }
+            h1 { font-size: 2.25rem; }
+            p { font-size: 1rem; }
             .btn-group { flex-direction: column; width: 100%; }
-            .btn { width: 100%; }
+            .btn { width: 100%; justify-content: center; }
         }
     </style>
 </head>
 <body>
+    <div class="bg-glow"></div>
 
     <!-- Desktop Sidebar -->
     <div id="sidebar">
@@ -119,11 +279,13 @@
 
     <div id="view-container">
         <div id="welcome-screen">
-            <h1>SHINJU AI CONSOLE</h1>
-            <p>Master control for the Shinju Omni-Engine V3. Navigate between portals to manage your AI fleet.</p>
-            <div class="btn-group">
-                <button class="btn btn-primary" onclick="window.location.href='/agency'">ENTER AGENCY</button>
-                <button class="btn btn-outline" onclick="window.location.href='/demo_master'">COMMANDER / ORDER</button>
+            <div class="welcome-card">
+                <h1>SHINJU AI CONSOLE</h1>
+                <p>Master control for the Shinju Omni-Engine V3. Navigate between portals to manage your AI fleet with surgical precision.</p>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="window.location.href='/agency'">ENTER AGENCY</button>
+                    <button class="btn btn-outline" onclick="window.location.href='/demo_master'">COMMANDER / ORDER</button>
+                </div>
             </div>
         </div>
 
@@ -153,7 +315,6 @@
 
             // Sync Desktop & Mobile active state
             document.querySelectorAll('.nav-item, .m-nav-item').forEach(i => i.classList.remove('active'));
-            // Find equivalent elements by text content or icon if needed
             if (el) el.classList.add('active');
         }
     </script>

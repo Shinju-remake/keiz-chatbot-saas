@@ -147,6 +147,30 @@
                 });
                 html += `</div>`;
                 div.innerHTML = html;
+            } else if (text.includes("[TRACKER_COMPONENT]")) {
+                const parts = text.split("[TRACKER_COMPONENT]");
+                const mainText = parts[0].trim();
+                const data = JSON.parse(parts[1].trim());
+                const phases = ["Received", "Preparing", "Quality", "Ready"];
+                let progressHtml = `<div style="margin-top:15px; background:white; padding:15px; border-radius:15px; box-shadow:0 10px 25px rgba(0,0,0,0.05); border:1px solid #eee;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                        <span style="font-size:10px; font-weight:900; color:#999; text-transform:uppercase; tracking:1px;">Order Tracker</span>
+                        <span style="font-size:10px; font-weight:900; color:${this.config.primaryColor}; background:${this.config.primaryColor}1a; padding:2px 8px; border-radius:99px;">ID: #${data.order_id}</span>
+                    </div>
+                    <div style="font-size:13px; font-weight:700; color:#333; margin-bottom:15px;">${data.items}</div>
+                    <div style="position:relative; display:flex; justify-content:space-between; align-items:center; padding:0 5px;">
+                        <div style="position:absolute; top:6px; left:5px; right:5px; h:2px; background:#eee; z-index:1;">
+                            <div style="height:2px; background:${this.config.primaryColor}; width:${(data.phase / 3) * 100}%; transition:width 1s ease;"></div>
+                        </div>
+                        ${phases.map((p, i) => `
+                            <div style="position:relative; z-index:2; display:flex; flex-direction:column; align-items:center; gap:5px;">
+                                <div style="width:12px; height:12px; border-radius:50%; background:${i <= data.phase ? this.config.primaryColor : '#eee'}; border:2px solid white; box-shadow:0 0 0 2px ${i <= data.phase ? this.config.primaryColor + '33' : 'transparent'};"></div>
+                                <span style="font-size:8px; font-weight:800; color:${i === data.phase ? this.config.primaryColor : '#ccc'}; text-transform:uppercase;">${p}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>`;
+                div.innerHTML = tag + mainText.replace(/\*\*(.*?)\*\*/g, `<span style="color:${this.config.primaryColor}; font-weight:700;">$1</span>`) + progressHtml;
             } else {
                 div.innerHTML = tag + text.replace(/\*\*(.*?)\*\*/g, `<span style="color:${this.config.primaryColor}; font-weight:700;">$1</span>`);
             }

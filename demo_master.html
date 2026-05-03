@@ -387,8 +387,9 @@
         }
 
         const PHASES = ["Received", "Preparing", "Quality Check", "Ready"];
+        const STATUS_KEYS = ["confirmed", "preparing", "quality_check", "ready", "delivered"];
         
-        function advancePhase(btn, orderId) {
+        async function advancePhase(btn, orderId) {
             const card = btn.closest('.kitchen-card');
             let currentPhase = parseInt(card.getAttribute('data-phase') || '0');
             
@@ -396,6 +397,14 @@
                 currentPhase++;
                 card.setAttribute('data-phase', currentPhase);
                 
+                // Sync with backend
+                try {
+                    await fetch(`/admin/orders/${orderId}/status?status=${STATUS_KEYS[currentPhase]}`, {
+                        method: 'POST',
+                        headers: { 'X-API-Key': API_KEY }
+                    });
+                } catch(e) { console.error("Sync failed", e); }
+
                 const dots = card.querySelectorAll('.phase-dot');
                 const lines = card.querySelectorAll('.phase-line');
                 const labels = card.querySelectorAll('.phase-label');
@@ -419,6 +428,13 @@
                     btn.style.borderColor = "rgba(16, 185, 129, 0.3)";
                 }
             } else {
+                // Final state
+                try {
+                    await fetch(`/admin/orders/${orderId}/status?status=delivered`, {
+                        method: 'POST',
+                        headers: { 'X-API-Key': API_KEY }
+                    });
+                } catch(e) {}
                 card.style.opacity = '0.3';
                 btn.innerText = 'DISPATCHED';
                 btn.disabled = true;

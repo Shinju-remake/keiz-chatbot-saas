@@ -552,7 +552,7 @@ Action: Provision their dashboard and reach out for the demo!
     return {
         "status": "success",
         "api_key": new_company.api_key,
-        "dashboard_url": f"https://{new_company.subdomain}.shinju-ai.com/dashboard"
+        "dashboard_url": f"http://localhost:8000/dashboard?api_key={new_company.api_key}"
     }
 
 # --- SUBDOMAIN RESOLUTION ENGINE ---
