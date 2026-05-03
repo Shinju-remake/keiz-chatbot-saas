@@ -323,7 +323,15 @@
     <div id="content">
         <div class="header">
             <h1 id="company-title" style="font-weight: 900; letter-spacing: -0.04em;">Omni-Console</h1>
-            <span id="plan-badge" class="tag" style="background:var(--primary); color:white; box-shadow: 0 0 15px var(--primary-glow);">PRO TIER</span>
+            <div style="display:flex; align-items:center; gap:20px;">
+                <div id="usage-container" style="text-align:right; display:none;">
+                    <p style="font-size:10px; color:var(--text-muted); text-transform:uppercase; margin-bottom:4px;">Monthly Usage: <span id="usage-text" style="color:white; font-weight:700;">0/50</span></p>
+                    <div style="width:120px; height:4px; background:rgba(255,255,255,0.05); border-radius:10px; overflow:hidden;">
+                        <div id="usage-bar" style="width:0%; height:100%; background:var(--primary); box-shadow: 0 0 10px var(--primary-glow);"></div>
+                    </div>
+                </div>
+                <span id="plan-badge" class="tag" style="background:var(--primary); color:white; box-shadow: 0 0 15px var(--primary-glow);">PRO TIER</span>
+            </div>
         </div>
 
         <div class="stats-grid">
@@ -508,20 +516,62 @@
             if (tab === 'analytics') { fetchLogs(); fetchTrends(); fetchStats(); }
             if (tab === 'reservations') fetchReservations();
             if (tab === 'rules') fetchRules();
-            if (tab === 'settings' || tab === 'knowledge' || tab === 'billing') fetchSettings();
-        }
+            if (tab === 'settings' || tab === 'billing') fetchSettings();
+            if (tab === 'knowledge') checkPlanForBrain();
+            }
 
-        async function fetchStats() {
+            async function fetchStats() {
             try {
                 const res = await fetch(`${API_BASE}/admin/stats`, { headers: {"X-API-Key": API_KEY} });
                 const s = await res.json();
                 document.getElementById("stat-active-chats").innerText = s.active_chats;
                 document.getElementById("stat-total-res").innerText = s.total_reservations;
                 document.getElementById("stat-needs-review").innerText = s.needs_review;
-                document.getElementById("stat-avg-conf").innerText = s.avg_confidence + "%";
-            } catch(e) {}
-        }
 
+                // Usage Bar Logic
+                if (s.message_limit) {
+                    document.getElementById('usage-container').style.display = 'block';
+                    document.getElementById('usage-text').innerText = `${s.message_count}/${s.message_limit}`;
+                    const pct = Math.min((s.message_count / s.message_limit) * 100, 100);
+                    document.getElementById('usage-bar').style.width = `${pct}%`;
+                    if (pct > 90) document.getElementById('usage-bar').style.background = '#ff4b2b';
+                }
+
+                const badge = document.getElementById('plan-badge');
+                badge.innerText = `${s.plan.toUpperCase()} TIER`;
+                if (s.plan === 'free') badge.style.background = '#666';
+                if (s.plan === 'starter') badge.style.background = '#0070f3';
+
+                // Lock features visually
+                if (s.plan === 'starter' || s.plan === 'free') {
+                    const sf = document.getElementById('social-form');
+                    if (sf) {
+                        sf.style.opacity = '0.4';
+                        sf.style.pointerEvents = 'none';
+                        if (!sf.innerHTML.includes("🔒")) {
+                            sf.innerHTML += '<div style="color:var(--primary); font-weight:700; margin-top:10px;">🔒 PRO FEATURE: Upgrade to unlock Meta API</div>';
+                        }
+                    }
+                }
+            } catch(e) {}
+            }
+
+            function checkPlanForBrain() {
+            fetch(`${API_BASE}/admin/stats`, { headers: {"X-API-Key": API_KEY} })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.plan === 'free' || data.plan === 'starter') {
+                        document.getElementById('tab-knowledge').innerHTML = `
+                            <div class="card" style="text-align:center; padding:100px 20px;">
+                                <h1 style="font-size:3rem; margin-bottom:20px;">🧠</h1>
+                                <h2 style="color:white;">Advanced RAG is Locked</h2>
+                                <p style="color:var(--text-muted); max-width:400px; margin:20px auto;">The Neural Knowledge Base (PDF Training) is only available on <strong>Professional</strong> and <strong>Enterprise</strong> plans.</p>
+                                <button class="btn" onclick="switchTab('billing')">Upgrade Now</button>
+                            </div>
+                        `;
+                    }
+                });
+            }
         async function fetchLogs() {
             try {
                 const res = await fetch(`${API_BASE}/admin/logs`, { headers: {"X-API-Key": API_KEY} });

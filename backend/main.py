@@ -660,6 +660,13 @@ async def get_admin_stats(request: Request, x_api_key: Optional[str] = Header(No
     company = get_current_company(request, db, x_api_key)
     if not company: raise HTTPException(status_code=403, detail="Invalid Authentication")
     
+    from sqlalchemy import func
+    current_month = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    msg_count = db.exec(select(func.count(ChatLog.id)).where(ChatLog.company_id == company.id, ChatLog.timestamp >= current_month)).one_or_none() or 0
+    
+    plan_limits = {"free": 50, "starter": 500, "pro": 5000, "enterprise": 999999}
+    limit = plan_limits.get(company.plan.lower(), 50)
+
     total_res = len(company.reservations)
     total_orders = len(company.orders)
     active_chats = len(company.sessions)
@@ -669,7 +676,10 @@ async def get_admin_stats(request: Request, x_api_key: Optional[str] = Header(No
         "active_chats": active_chats,
         "total_reservations": total_res + total_orders,
         "needs_review": len(needs_review),
-        "avg_confidence": 98 
+        "avg_confidence": 98,
+        "message_count": msg_count,
+        "message_limit": limit,
+        "plan": company.plan
     }
 
 @app.get("/admin/reservations")
