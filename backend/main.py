@@ -329,7 +329,10 @@ async def handle_meta_webhook(request: Request, background_tasks: BackgroundTask
                 if not company: company = db.exec(select(Company)).first() # Fallback
                 
                 if company:
-                    if company.plan.lower() in ["free", "starter"]:
+                    admin_email = os.getenv("ADMIN_EMAIL", "traore.m.2007@gmail.com")
+                    is_admin = company.email.lower() == admin_email.lower()
+
+                    if not is_admin and company.plan.lower() in ["free", "starter"]:
                         print(f"⚠️ PLAN LIMIT: WhatsApp integration is disabled for {company.name} ({company.plan} plan).")
                         return {"status": "ok"}
                     
@@ -378,7 +381,10 @@ async def handle_meta_webhook(request: Request, background_tasks: BackgroundTask
                 if not company: company = db.exec(select(Company)).first() # Fallback
                 
                 if company:
-                    if company.plan.lower() in ["free", "starter"]:
+                    admin_email = os.getenv("ADMIN_EMAIL", "traore.m.2007@gmail.com")
+                    is_admin = company.email.lower() == admin_email.lower()
+
+                    if not is_admin and company.plan.lower() in ["free", "starter"]:
                         print(f"⚠️ PLAN LIMIT: Instagram integration is disabled for {company.name} ({company.plan} plan).")
                         return {"status": "ok"}
                         

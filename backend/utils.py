@@ -191,13 +191,17 @@ async def process_message_v3(company: Company, session_id: str, user_msg: str, d
     from sqlalchemy import func
     
     # PLAN LIMITS CHECK (Monthly Messages)
+    admin_email = os.getenv("ADMIN_EMAIL", "traore.m.2007@gmail.com")
+    is_admin = company.email.lower() == admin_email.lower()
+    
     current_month = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     msg_count = db.exec(select(func.count(ChatLog.id)).where(ChatLog.company_id == company.id, ChatLog.timestamp >= current_month)).one_or_none() or 0
     
     plan_limits = {"free": 50, "starter": 500, "pro": 5000, "enterprise": float('inf')}
     limit = plan_limits.get(company.plan.lower(), 50)
     
-    if msg_count >= limit:
+    # Bypass for Super Admin
+    if not is_admin and msg_count >= limit:
         return {"reply": f"This business has exceeded its monthly AI message allocation ({limit} msgs/mo). Please upgrade your plan.", "source": "system", "agent_identity": "System Guard"}
 
     session_state = db.exec(select(ChatSession).where(ChatSession.company_id == company.id, ChatSession.session_id == session_id)).first()
@@ -396,7 +400,9 @@ async def get_ai_response(company: Company, session_id: str, user_msg: str, db: 
         rag_context = f"DIRECT MENU DATA: {raw_kb[:2000]}"
     else:
         # PLAN GATE: Advanced RAG only available on Pro and Enterprise plans
-        if plan in ["pro", "enterprise"]:
+        # Admin bypass included
+        admin_email = os.getenv("ADMIN_EMAIL", "traore.m.2007@gmail.com")
+        if (company.plan.lower() in ["pro", "enterprise"]) or (company.email.lower() == admin_email.lower()):
             try:
                 rag_context = search_kb(company.id, user_msg, api_key=openai_key)
             except Exception as e:

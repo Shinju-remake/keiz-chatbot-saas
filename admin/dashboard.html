@@ -520,47 +520,59 @@
             if (tab === 'knowledge') checkPlanForBrain();
             }
 
-            async function fetchStats() {
+        async function fetchStats() {
             try {
                 const res = await fetch(`${API_BASE}/admin/stats`, { headers: {"X-API-Key": API_KEY} });
                 const s = await res.json();
                 document.getElementById("stat-active-chats").innerText = s.active_chats;
                 document.getElementById("stat-total-res").innerText = s.total_reservations;
                 document.getElementById("stat-needs-review").innerText = s.needs_review;
+                
+                // Super Admin Logic
+                const admin_email = "traore.m.2007@gmail.com";
+                // We'd ideally get current user email from API, but for now we check if plan is 'enterprise+' or similar if we wanted, 
+                // but let's assume we can fetch settings to check email
+                const settingsRes = await fetch(`${API_BASE}/admin/settings`, { headers: {"X-API-Key": API_KEY} });
+                const config = await settingsRes.json();
+                const isSuperAdmin = config.email.toLowerCase() === admin_email.toLowerCase();
 
-                // Usage Bar Logic
-                if (s.message_limit) {
+                // Usage Bar Logic (Hide for Super Admin)
+                if (s.message_limit && !isSuperAdmin) {
                     document.getElementById('usage-container').style.display = 'block';
                     document.getElementById('usage-text').innerText = `${s.message_count}/${s.message_limit}`;
                     const pct = Math.min((s.message_count / s.message_limit) * 100, 100);
                     document.getElementById('usage-bar').style.width = `${pct}%`;
                     if (pct > 90) document.getElementById('usage-bar').style.background = '#ff4b2b';
+                } else {
+                    document.getElementById('usage-container').style.display = 'none';
                 }
 
                 const badge = document.getElementById('plan-badge');
-                badge.innerText = `${s.plan.toUpperCase()} TIER`;
-                if (s.plan === 'free') badge.style.background = '#666';
-                if (s.plan === 'starter') badge.style.background = '#0070f3';
-
-                // Lock features visually
-                if (s.plan === 'starter' || s.plan === 'free') {
+                badge.innerText = isSuperAdmin ? "ROOT ADMIN" : `${s.plan.toUpperCase()} TIER`;
+                if (isSuperAdmin) badge.style.background = 'linear-gradient(90deg, #BB00FF, #00ff88)';
+                else if (s.plan === 'free') badge.style.background = '#666';
+                else if (s.plan === 'starter') badge.style.background = '#0070f3';
+                
+                // Lock features visually (Bypass for Super Admin)
+                if (!isSuperAdmin && (s.plan === 'starter' || s.plan === 'free')) {
                     const sf = document.getElementById('social-form');
-                    if (sf) {
+                    if (sf && !sf.innerHTML.includes("🔒")) {
                         sf.style.opacity = '0.4';
                         sf.style.pointerEvents = 'none';
-                        if (!sf.innerHTML.includes("🔒")) {
-                            sf.innerHTML += '<div style="color:var(--primary); font-weight:700; margin-top:10px;">🔒 PRO FEATURE: Upgrade to unlock Meta API</div>';
-                        }
+                        sf.innerHTML += '<div style="color:var(--primary); font-weight:700; margin-top:10px;">🔒 PRO FEATURE: Upgrade to unlock Meta API</div>';
                     }
                 }
             } catch(e) {}
-            }
+        }
 
-            function checkPlanForBrain() {
-            fetch(`${API_BASE}/admin/stats`, { headers: {"X-API-Key": API_KEY} })
+        function checkPlanForBrain() {
+            fetch(`${API_BASE}/admin/settings`, { headers: {"X-API-Key": API_KEY} })
                 .then(r => r.json())
-                .then(data => {
-                    if (data.plan === 'free' || data.plan === 'starter') {
+                .then(config => {
+                    const admin_email = "traore.m.2007@gmail.com";
+                    const isSuperAdmin = config.email.toLowerCase() === admin_email.toLowerCase();
+                    
+                    if (!isSuperAdmin && (config.plan === 'free' || config.plan === 'starter')) {
                         document.getElementById('tab-knowledge').innerHTML = `
                             <div class="card" style="text-align:center; padding:100px 20px;">
                                 <h1 style="font-size:3rem; margin-bottom:20px;">🧠</h1>
@@ -571,7 +583,7 @@
                         `;
                     }
                 });
-            }
+        }
         async function fetchLogs() {
             try {
                 const res = await fetch(`${API_BASE}/admin/logs`, { headers: {"X-API-Key": API_KEY} });
